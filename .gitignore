@@ -1,16 +1,7 @@
-# Compiled class file
 *.class
-
-# Log file
 *.log
-
-# BlueJ files
 *.ctxt
-
-# Mobile Tools for Java (J2ME)
 .mtj.tmp/
-
-# Package Files #
 *.jar
 *.war
 *.nar
@@ -18,7 +9,42 @@
 *.zip
 *.tar.gz
 *.rar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+.vscode/
+*.code-workspace
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+build/
+bin/
+target/
+.settings/
+.classpath
+.project
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+.env
+*.db
+*.sqlite
+*.sqlite3
+mongod.lock
+*.log.txt
+dist/
+nbproject/
+.gradle/
+node_modules/
