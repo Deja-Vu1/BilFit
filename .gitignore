@@ -48,3 +48,4 @@ dist/
 nbproject/
 .gradle/
 node_modules/
+db.properties
