@@ -118,4 +118,3 @@ public class Student extends User {
     public int getEloPoint() { return eloPoint; }
     public double getReliabilityScore() { return reliabilityScore; }
 }
-}
