@@ -6,6 +6,7 @@ public abstract class User {
     protected String nickname;
     protected String password;
 
+
     public User(String fullName, String bilkentEmail, String nickname, String password) {
         this.fullName = fullName;
         this.bilkentEmail = bilkentEmail;
@@ -13,32 +14,29 @@ public abstract class User {
         this.password = password;
     }
 
+
     public boolean login(String email, String pass) {
+        // Will be authenticated via DB 
         return this.bilkentEmail.equals(email) && this.password.equals(pass);
     }
 
     public void logout() {
-        System.out.println(this.nickname + " logged out from the system.");
+        System.out.println(this.nickname + " has logged out successfully.");
     }
 
     public void changePassword(String newPass) {
         this.password = newPass;
+        System.out.println("Password changed successfully.");
     }
 
     public void changeNickname(String newNickname) {
         this.nickname = newNickname;
+        System.out.println("New nickname set to: " + this.nickname);
     }
 
-    public String getFullName() { 
-        return fullName; 
-    }
-    public String getBilkentEmail() {
-         return bilkentEmail; 
-        }
-    public String getNickname() {
-         return nickname; 
-        }
-    public String getPassword() {
-         return password; 
-        }
+
+    public String getFullName() { return fullName; }
+    public String getBilkentEmail() { return bilkentEmail; }
+    public String getNickname() { return nickname; }
+    public String getPassword() { return password; }
 }

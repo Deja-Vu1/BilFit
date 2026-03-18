@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Student extends User {
-
-
     private String studentId;
     private int eloPoint;
     private int penaltyPoints;
@@ -22,10 +20,9 @@ public class Student extends User {
 
     public Student(String fullName, String bilkentEmail, String nickname, String password, String studentId) {
         super(fullName, bilkentEmail, nickname, password); 
-
-
         this.studentId = studentId;
         
+
         this.eloPoint = 1000; 
         this.penaltyPoints = 0;
         this.reliabilityScore = 100.0;
@@ -42,6 +39,7 @@ public class Student extends User {
         this.friendRequests = new ArrayList<>();
     }
 
+
     public void addInterest(SportType sport) {
         if (!interests.contains(sport)) {
             interests.add(sport);
@@ -52,7 +50,6 @@ public class Student extends User {
         interests.remove(sport);
     }
 
-    
     public void updateElo(boolean matchWon, int opponentElo) {
         int kFactor = 32; 
         if (matchWon) {
@@ -73,6 +70,7 @@ public class Student extends User {
 
     public void addPenaltyPoint(int points) {
         this.penaltyPoints += points;
+        System.out.println(this.nickname + " received " + points + " penalty points. Total: " + this.penaltyPoints);
     }
 
     public double calculateJaccardSimilarity(Student other) {
@@ -98,6 +96,7 @@ public class Student extends User {
     public void sendFriendRequest(Student target) {
         if (!target.friendRequests.contains(this)) {
             target.friendRequests.add(this);
+            System.out.println("Friend request sent to: " + target.getNickname());
         }
     }
 
@@ -106,6 +105,7 @@ public class Student extends User {
             this.friends.add(requester);
             requester.friends.add(this); 
             this.friendRequests.remove(requester);
+            System.out.println("You are now friends with " + requester.getNickname());
         }
     }
 
