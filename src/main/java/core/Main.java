@@ -1,4 +1,6 @@
-package java;
+package java.core;
+import java.database.Database;
+import java.database.DbStatus;
 import java.sql.ResultSet;
 
 public class Main {
