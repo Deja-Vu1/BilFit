@@ -1,8 +1,8 @@
-package controllers;
+package java.controllers;
 
+import java.controllers.models.Student;
 import java.util.ArrayList;
 import java.util.List;
-import models.Student;
 
 public class StudentRegisterController {
     

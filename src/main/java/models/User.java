@@ -1,4 +1,4 @@
-package models;
+package java.models;
 
 public abstract class User {
     protected String fullName;

@@ -1,3 +1,4 @@
+package java;
 public enum DbStatus {
     SUCCESS,
     CONNECTION_ERROR,

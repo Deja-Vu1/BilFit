@@ -1,4 +1,4 @@
-package models;
+package java.models;
 
 public class Admin extends User {
     private String activationCode;
