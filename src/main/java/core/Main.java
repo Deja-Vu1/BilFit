@@ -1,4 +1,4 @@
-package java.core;
+package core;
 import database.Database;
 import database.DbStatus;
 import java.sql.ResultSet;

@@ -1,4 +1,4 @@
-package java.database;
+package database;
 public enum DbStatus {
     SUCCESS,
     CONNECTION_ERROR,
