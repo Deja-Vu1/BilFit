@@ -1,3 +1,6 @@
+package core;
+import database.Database;
+import database.DbStatus;
 import java.sql.ResultSet;
 
 public class Main {
