@@ -1,0 +1,44 @@
+package controllers;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
+import javafx.scene.input.MouseEvent;
+import models.Student;
+
+public class StudentRegisterController {
+
+    // Giriş ekranında kullandığın geçici veritabanı simülasyonu
+    public static List<Student> temporaryDatabase = new ArrayList<>();
+
+    @FXML private TextField fullnameField;
+    @FXML private TextField emailField;
+    @FXML private TextField studentIdField;
+    @FXML private PasswordField passwordField;
+
+    @FXML
+    public void attemptRegister(ActionEvent event) {
+        String name = fullnameField.getText();
+        String email = emailField.getText();
+        String studentId = studentIdField.getText();
+        String password = passwordField.getText();
+        
+        System.out.println("Öğrenci Kaydı Alınıyor: " + name + " | ID: " + studentId);
+        
+        if (name.isEmpty() || email.isEmpty() || studentId.isEmpty() || password.isEmpty()) {
+            System.out.println("Error: All fields are required.");
+            return;
+        }
+
+        // DB ARKADAŞI: PostgreSQL INSERT INTO Students sorgusu buraya gelecek.
+    }
+
+    @FXML
+    public void goBack(MouseEvent event) {
+        System.out.println("Önceki Ekrana Dönülüyor...");
+    }
+}
