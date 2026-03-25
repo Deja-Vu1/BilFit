@@ -84,7 +84,7 @@ public class Database {
             pstmt.setString(1, name);
             pstmt.setInt(2, age);
             
-            // int affectedRows = pstmt.executeUpdate();
+            int affectedRows = pstmt.executeUpdate();
             return DbStatus.SUCCESS;
         } catch (SQLException e) {
             System.out.println("Ekleme hatası: " + e.getMessage());
@@ -98,7 +98,7 @@ public class Database {
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, name);
             
-            // int affectedRows = pstmt.executeUpdate();
+            int affectedRows = pstmt.executeUpdate();
             return DbStatus.SUCCESS;
         } catch (SQLException e) {
             System.out.println("Silme hatası: " + e.getMessage());

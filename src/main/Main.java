@@ -13,7 +13,7 @@ public class Main {
             System.out.println("Error!");
         }
 
-        // myDB.addUser("Ada", 20);
+        myDB.addUser("Talha", 19);
         // myDB.deleteUser("Ada");
         ResultSet myResults = myDB.getAllUsers();
         try{
