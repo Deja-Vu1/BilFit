@@ -1,0 +1,58 @@
+/* auth-styles.css */
+
+/* Ekranın ortasındaki ana beyaz kart */
+.auth-card {
+    -fx-background-color: white;
+    -fx-border-color: #B0B0B0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 5px;
+    -fx-background-radius: 5px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);
+}
+
+/* Metin Giriş Alanları (TextField & PasswordField) */
+.input-field {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #D0D0D0;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 8px;
+    -fx-font-size: 14px;
+}
+.input-field:focused {
+    -fx-border-color: #0000CC; /* Tıklanınca mavi kenarlık */
+}
+
+/* Kırmızı Öğrenci Butonları */
+.student-button {
+    -fx-background-color: #CC0000;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-radius: 5px;
+    -fx-cursor: hand;
+}
+.student-button:hover { -fx-background-color: #E60000; }
+.student-button:pressed { -fx-translate-y: 2px; -fx-background-color: #990000; }
+
+/* Mavi Admin Butonları */
+.admin-button {
+    -fx-background-color: #0000CC;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-radius: 5px;
+    -fx-cursor: hand;
+}
+.admin-button:hover { -fx-background-color: #0000FF; }
+.admin-button:pressed { -fx-translate-y: 2px; -fx-background-color: #000099; }
+
+/* Tıklanabilir Mavi Yazılar (Linkler) */
+.link-label {
+    -fx-text-fill: blue;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+}
+.link-label:hover {
+    -fx-underline: true;
+}
