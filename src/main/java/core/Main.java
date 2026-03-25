@@ -15,20 +15,5 @@ public class Main {
         else{
             System.out.println("Error!");
         }
-
-        myDB.addUser("Talha", 19);
-        // myDB.deleteUser("Ada");
-        ResultSet myResults = myDB.getAllUsers();
-        try{
-            while (myResults.next()) {
-                System.out.println(
-                    myResults.getInt("id") + " | " +
-                    myResults.getString("name") + " | " +
-                    myResults.getInt("age")
-                );
-            }
-        }catch (Exception e) {
-            e.getStackTrace();
-        }
     }
 }

@@ -42,7 +42,7 @@
                     </children>
                 </VBox>
                 
-                <Button maxWidth="Double.MAX_VALUE" mnemonicParsing="false" onAction="#attemptLogin" prefHeight="40.0" styleClass="student-button" text="Log in as a Student">
+                <Button mnemonicParsing="false" onAction="#attemptLogin" prefHeight="40.0" styleClass="student-button" text="Log in as a Student">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>
