@@ -53,7 +53,7 @@
                     <PasswordField fx:id="passwordField" prefHeight="35.0" styleClass="input-field" />
                 </VBox>
                 
-                <Button maxWidth="Double.MAX_VALUE" mnemonicParsing="false" onAction="#attemptRegister" prefHeight="40.0" styleClass="student-button" text="Register as a Student">
+                <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#attemptRegister" prefHeight="40.0" styleClass="student-button" text="Register as a Student">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>

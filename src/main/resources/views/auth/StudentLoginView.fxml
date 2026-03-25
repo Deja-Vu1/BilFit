@@ -7,19 +7,24 @@
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F4F4;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.bilfit.controllers.StudentLoginController">
+<StackPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F4F4;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.StudentLoginController">
     <stylesheets>
         <URL value="@auth-styles.css" />
     </stylesheets>
     <children>
         <VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="550.0" prefWidth="400.0" spacing="15.0" styleClass="auth-card">
             <children>
-                <ImageView fx:id="logoImageView" fitHeight="120.0" fitWidth="280.0" pickOnBounds="true" preserveRatio="true" />
+                <ImageView fx:id="logoImageView" fitHeight="120.0" fitWidth="280.0" pickOnBounds="true" preserveRatio="true">
+                    <image>
+                        <Image url="@../../images/bilfit_logo.png" />
+                    </image>
+                </ImageView>
                 <Separator prefWidth="200.0" />
                 
                 <Label text="Login">
@@ -42,7 +47,7 @@
                     </children>
                 </VBox>
                 
-                <Button mnemonicParsing="false" onAction="#attemptLogin" prefHeight="40.0" styleClass="student-button" text="Log in as a Student">
+                <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#attemptLogin" prefHeight="40.0" styleClass="student-button" text="Log in as a Student">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>

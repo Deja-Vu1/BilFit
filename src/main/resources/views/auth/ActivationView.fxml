@@ -37,7 +37,7 @@
                     <TextField fx:id="activationCodeField" prefHeight="35.0" styleClass="input-field" promptText="Activation code" />
                 </VBox>
                 
-                <Button maxWidth="Double.MAX_VALUE" mnemonicParsing="false" onAction="#submitCode" prefHeight="40.0" styleClass="admin-button" text="Submit">
+                <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#submitCode" prefHeight="40.0" styleClass="admin-button" text="Submit">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>

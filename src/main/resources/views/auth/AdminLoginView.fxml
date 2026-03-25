@@ -43,7 +43,7 @@
                     <PasswordField fx:id="passwordField" prefHeight="35.0" styleClass="input-field" />
                 </VBox>
                 
-                <Button maxWidth="Double.MAX_VALUE" mnemonicParsing="false" onAction="#attemptAdminLogin" prefHeight="40.0" styleClass="admin-button" text="Log in as an Admin">
+                <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#attemptAdminLogin" prefHeight="40.0" styleClass="admin-button" text="Log in as an Admin">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>
