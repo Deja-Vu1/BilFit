@@ -2,11 +2,16 @@ package controllers; // Paket adının klasör yapınla (src/main/java/controlle
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.stage.Stage;
+import javafx.scene.Node;
 
+import java.io.IOException;
 import java.net.URL; // Bu importun doğruluğunu kontrol et
 import java.util.ResourceBundle; // Bu importun doğruluğunu kontrol et
 
@@ -42,7 +47,21 @@ public class SelectionController implements Initializable {
     @FXML
     private void goToStudentLogin(ActionEvent event) {
         System.out.println("Öğrenci giriş ekranına yönlendiriliyor...");
-        // Burada sahne değiştirme kodunu çağırabilirsin
+        
+        try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            Scene scene = new Scene(root, 1200, 800);
+
+            stage.setScene(scene);
+            stage.show();
+
+        } catch (IOException e) {
+            System.err.println("StudentLoginView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
     }
 
     @FXML

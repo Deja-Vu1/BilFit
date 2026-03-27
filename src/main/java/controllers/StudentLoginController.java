@@ -1,11 +1,18 @@
 package controllers;
 
+import java.io.IOException;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.Stage;
 import models.Student;
+import javafx.scene.Node;
 
 public class StudentLoginController {
 
@@ -48,6 +55,20 @@ public class StudentLoginController {
     @FXML
     public void goToRegister(MouseEvent event) {
         System.out.println("Redirecting to StudentRegisterView");
+        try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentRegisterView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            Scene scene = new Scene(root, 1200, 800);
+
+            stage.setScene(scene);
+            stage.show();
+
+        } catch (IOException e) {
+            System.err.println("StudentRegisterView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
     }
 
     @FXML
@@ -58,5 +79,19 @@ public class StudentLoginController {
     @FXML
     public void goBack(MouseEvent event) {
         System.out.println("Redirecting to Main Selection Screen");
+        try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            Scene scene = new Scene(root, 1200, 800);
+
+            stage.setScene(scene);
+            stage.show();
+
+        } catch (IOException e) {
+            System.err.println("SelectionView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
     }
 }

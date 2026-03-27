@@ -1,14 +1,20 @@
 package controllers;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
+import javafx.stage.Stage;
 import models.Student;
+import javafx.scene.Node;
 
 public class StudentRegisterController {
 
@@ -40,5 +46,19 @@ public class StudentRegisterController {
     @FXML
     public void goBack(MouseEvent event) {
         System.out.println("Önceki Ekrana Dönülüyor...");
+        try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            Scene scene = new Scene(root, 1200, 800);
+
+            stage.setScene(scene);
+            stage.show();
+
+        } catch (IOException e) {
+            System.err.println("StudentLoginView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
     }
 }
