@@ -117,4 +117,7 @@ public class Student extends User {
     public String getStudentId() { return studentId; }
     public int getEloPoint() { return eloPoint; }
     public double getReliabilityScore() { return reliabilityScore; }
+    public double getPenaltyPoints() { return penaltyPoints; }
+
+    
 }
