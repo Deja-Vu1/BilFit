@@ -21,8 +21,6 @@ public class Student extends User {
     public Student(String fullName, String bilkentEmail, String nickname, String password, String studentId) {
         super(fullName, bilkentEmail, nickname, password);
         this.studentId = studentId;
-
-
         this.eloPoint = 1000;
         this.penaltyPoints = 0;
         this.reliabilityScore = 100.0;
@@ -30,15 +28,12 @@ public class Student extends User {
         this.winRate = 0.0;
         this.isPublicProfile = true;
         this.isEloMatchingEnabled = true;
-
-
         this.interests = new ArrayList<>();
         this.badges = new ArrayList<>();
         this.matchHistory = new ArrayList<>();
         this.friends = new ArrayList<>();
         this.friendRequests = new ArrayList<>();
     }
-
 
     public void addInterest(SportType sport) {
         if (!interests.contains(sport)) {
@@ -70,7 +65,6 @@ public class Student extends User {
 
     public void addPenaltyPoint(int points) {
         this.penaltyPoints += points;
-        System.out.println(this.nickname + " received " + points + " penalty points. Total: " + this.penaltyPoints);
     }
 
     public double calculateJaccardSimilarity(Student other) {
@@ -96,7 +90,6 @@ public class Student extends User {
     public void sendFriendRequest(Student target) {
         if (!target.friendRequests.contains(this)) {
             target.friendRequests.add(this);
-            System.out.println("Friend request sent to: " + target.getNickname());
         }
     }
 
@@ -105,7 +98,6 @@ public class Student extends User {
             this.friends.add(requester);
             requester.friends.add(this);
             this.friendRequests.remove(requester);
-            System.out.println("You are now friends with " + requester.getNickname());
         }
     }
 
@@ -114,10 +106,112 @@ public class Student extends User {
         target.friends.remove(this);
     }
 
-    public String getStudentId() { return studentId; }
-    public int getEloPoint() { return eloPoint; }
-    public double getReliabilityScore() { return reliabilityScore; }
-    public double getPenaltyPoints() { return penaltyPoints; }
+    public String getProfileTranscript() {
+        return "Matches: " + matchesPlayed + " | Win Rate: " + String.format("%.1f", winRate) + "% | ELO: " + eloPoint;
+    }
 
-    
+    public String getStudentId() {
+    return studentId;
+}
+
+public void setStudentId(String studentId) {
+    this.studentId = studentId;
+}
+
+public int getEloPoint() {
+    return eloPoint;
+}
+
+public void setEloPoint(int eloPoint) {
+    this.eloPoint = eloPoint;
+}
+
+public double getPenaltyPoints() {
+    return penaltyPoints;
+}
+
+public void setPenaltyPoints(int penaltyPoints) {
+    this.penaltyPoints = penaltyPoints;
+}
+
+public double getReliabilityScore() {
+    return reliabilityScore;
+}
+
+public void setReliabilityScore(double reliabilityScore) {
+    this.reliabilityScore = reliabilityScore;
+}
+
+public List<SportType> getInterests() {
+    return interests;
+}
+
+public void setInterests(List<SportType> interests) {
+    this.interests = interests;
+}
+
+public List<String> getBadges() {
+    return badges;
+}
+
+public void setBadges(List<String> badges) {
+    this.badges = badges;
+}
+
+public int getMatchesPlayed() {
+    return matchesPlayed;
+}
+
+public void setMatchesPlayed(int matchesPlayed) {
+    this.matchesPlayed = matchesPlayed;
+}
+
+public double getWinRate() {
+    return winRate;
+}
+
+public void setWinRate(double winRate) {
+    this.winRate = winRate;
+}
+
+public boolean isPublicProfile() {
+    return isPublicProfile;
+}
+
+public void setPublicProfile(boolean isPublicProfile) {
+    this.isPublicProfile = isPublicProfile;
+}
+
+public boolean isEloMatchingEnabled() {
+    return isEloMatchingEnabled;
+}
+
+public void setEloMatchingEnabled(boolean isEloMatchingEnabled) {
+    this.isEloMatchingEnabled = isEloMatchingEnabled;
+}
+
+public List<Match> getMatchHistory() {
+    return matchHistory;
+}
+
+public void setMatchHistory(List<Match> matchHistory) {
+    this.matchHistory = matchHistory;
+}
+
+public List<Student> getFriends() {
+    return friends;
+}
+
+public void setFriends(List<Student> friends) {
+    this.friends = friends;
+}
+
+public List<Student> getFriendRequests() {
+    return friendRequests;
+}
+
+public void setFriendRequests(List<Student> friendRequests) {
+    this.friendRequests = friendRequests;
+}
+
 }
