@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?><?import javafx.geometry.*?><?import javafx.scene.control.*?><?import javafx.scene.effect.*?><?import javafx.scene.layout.*?><?import javafx.scene.paint.*?><?import javafx.scene.text.*?><?import javafx.scene.image.*?><BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.MainDashboardController">
+   <left>
+      <VBox prefWidth="250.0" style="-fx-background-color: #FFFFFF; -fx-border-color: #E2E8F0; -fx-border-width: 0 1 0 0;"><padding><Insets top="40" left="20" right="20" bottom="30"/></padding>
+         <Button prefHeight="45" prefWidth="210" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 10;" text="    Home" />
+         <Button prefHeight="45" prefWidth="210" style="-fx-background-color: transparent; -fx-text-fill: #2B3674; -fx-font-weight: bold;" text="    Tournaments" />
+         <Button prefHeight="45" prefWidth="210" style="-fx-background-color: transparent; -fx-text-fill: #2B3674; -fx-font-weight: bold;" text="    Reservation" />
+         <Button prefHeight="45" prefWidth="210" style="-fx-background-color: transparent; -fx-text-fill: #2B3674; -fx-font-weight: bold;" text="    Profile" />
+      </VBox>
+   </left>
+   <center>
+      <VBox spacing="30"><padding><Insets top="40" right="40" bottom="40" left="40"/></padding>
+         <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;"><padding><Insets top="30" right="30" bottom="30" left="30"/></padding><effect><DropShadow blurType="GAUSSIAN" height="40.0" radius="19.5" width="40.0"><color><Color opacity="0.08" /></color></DropShadow></effect>
+            <Label text="Upcoming Tournaments" textFill="#2b3674"><font><Font name="System Bold" size="20.0" /></font></Label>
+            <Label text="Tournaments made by admins can be seen in this section" textFill="#a3aed0"><VBox.margin><Insets bottom="15" top="5"/></VBox.margin></Label>
+            <HBox alignment="CENTER_LEFT" style="-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;"><padding><Insets top="10" right="10" bottom="10" left="20"/></padding>
+               <Label text="Football Tournament  |  25.02.2026 - 20.03.2026  |  Max 10 player" textFill="#2b3674"><font><Font name="System Bold" size="13.0" /></font></Label>
+               <Region HBox.hgrow="ALWAYS" />
+               <Button prefHeight="35" prefWidth="100" style="-fx-background-color: #E9EDF7; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10;" text="Apply" />
+            </HBox>
+         </VBox>
+      </VBox>
+   </center>
+</BorderPane>
