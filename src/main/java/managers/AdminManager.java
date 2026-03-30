@@ -20,6 +20,8 @@ public class AdminManager {
         DbStatus status = db.updateStudentBanStatus(student.getStudentId(), true);
         
         if (status == DbStatus.SUCCESS) {
+            student.setBanned(true);
+            student.updateProfileVisibility(false);
             admin.banUser(student);
         }
         

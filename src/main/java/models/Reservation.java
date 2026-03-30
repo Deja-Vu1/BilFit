@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Reservation {
 
-    protected String reservationId; // For Duello protected
+    protected String reservationId;
     protected LocalDate date;
     protected String timeSlot;
     protected boolean isCancelled;
@@ -15,7 +15,6 @@ public class Reservation {
     protected List<Student> attendees;
 
     public Reservation(String reservationId, Facility facility, LocalDate date, String timeSlot) {
-
         this.reservationId = reservationId;
         this.facility = facility;
         this.date = date;
@@ -41,13 +40,16 @@ public class Reservation {
 
     public void markAttendance(boolean status) {
         this.hasAttended = status;
-
-
         for (Student s : attendees) {
-            s.updateReliabilityScore(status); // reliability score update based on the studentd attendience
+            s.updateReliabilityScore(status);
         }
         System.out.println("Attendance marked as: " + status + ". Reliability scores updated.");
     }
     
     public String getReservationId() { return reservationId; }
+    public LocalDate getDate() { return date; }
+    public void setDate(LocalDate date) { this.date = date; }
+    public String getTimeSlot() { return timeSlot; }
+    public void setTimeSlot(String timeSlot) { this.timeSlot = timeSlot; }
+    public Facility getFacility() { return facility; }
 }

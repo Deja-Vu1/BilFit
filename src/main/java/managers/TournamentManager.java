@@ -45,8 +45,7 @@ public class TournamentManager {
         DbStatus status = db.updateTournamentDetails(tournament.getTournamentId(), newName, newMaxPlayers);
         
         if (status == DbStatus.SUCCESS) {
-            tournament.setTournamentName(newName);
-            tournament.setMaxPlayersPerTeam(newMaxPlayers);
+            tournament.editDetails(newName, newMaxPlayers, tournament.getCampusLocation());
         }
         return status;
     }

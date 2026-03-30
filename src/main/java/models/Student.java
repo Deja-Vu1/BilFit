@@ -11,9 +11,11 @@ public class Student extends User {
     private List<SportType> interests;
     private List<String> badges;
     private int matchesPlayed;
+    private int matchesWon;
     private double winRate;
     private boolean isPublicProfile;
     private boolean isEloMatchingEnabled;
+    private boolean isBanned;
     private List<Match> matchHistory;
     private List<Student> friends;
     private List<Student> friendRequests;
@@ -25,9 +27,11 @@ public class Student extends User {
         this.penaltyPoints = 0;
         this.reliabilityScore = 100.0;
         this.matchesPlayed = 0;
+        this.matchesWon = 0;
         this.winRate = 0.0;
         this.isPublicProfile = true;
         this.isEloMatchingEnabled = true;
+        this.isBanned = false;
         this.interests = new ArrayList<>();
         this.badges = new ArrayList<>();
         this.matchHistory = new ArrayList<>();
@@ -47,12 +51,19 @@ public class Student extends User {
 
     public void updateElo(boolean matchWon, int opponentElo) {
         int kFactor = 32;
-        if (matchWon) {
-            this.eloPoint += kFactor;
-        } else {
-            this.eloPoint -= kFactor;
-        }
+        double expectedScore = 1.0 / (1.0 + Math.pow(10.0, (opponentElo - this.eloPoint) / 400.0));
+        double actualScore = matchWon ? 1.0 : 0.0;
+        
+        this.eloPoint = (int) (this.eloPoint + kFactor * (actualScore - expectedScore));
         this.matchesPlayed++;
+        
+        if (matchWon) {
+            this.matchesWon++;
+        }
+        
+        if (this.matchesPlayed > 0) {
+            this.winRate = ((double) this.matchesWon / this.matchesPlayed) * 100.0;
+        }
     }
 
     public void updateReliabilityScore(boolean attended) {
@@ -188,6 +199,14 @@ public boolean isEloMatchingEnabled() {
 
 public void setEloMatchingEnabled(boolean isEloMatchingEnabled) {
     this.isEloMatchingEnabled = isEloMatchingEnabled;
+}
+
+public boolean isBanned() {
+    return isBanned;
+}
+
+public void setBanned(boolean isBanned) {
+    this.isBanned = isBanned;
 }
 
 public List<Match> getMatchHistory() {

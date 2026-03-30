@@ -21,30 +21,22 @@ public class Team {
         this.captain = captain;
         
         this.members = new ArrayList<>();
-        this.members.add(captain); // Automatically add captain to the team
+        this.members.add(captain);
     }
 
-
-
     public boolean addMember(Student student, String code) {
-
-
-        if (!isFull() && this.accessCode.equals(code) && !members.contains(student)) {
+        boolean isCodeValid = (this.accessCode == null || this.accessCode.isEmpty() || this.accessCode.equals(code));
+        
+        if (!isFull() && isCodeValid && !members.contains(student)) {
             members.add(student);
-            System.out.println(student.getNickname() + " successfully added to the team.");
             return true;
         }
-
-
-        System.out.println("Failed to join. Incorrect code or team is full.");
         return false;
-
     }
 
     public void removeMember(Student student) {
         if (!student.equals(captain)) { 
             members.remove(student);
-            System.out.println(student.getNickname() + " removed from the team.");
         }
     }
 

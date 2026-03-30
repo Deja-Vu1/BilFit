@@ -24,7 +24,13 @@ public class DuelloManager {
     }
 
     public DbStatus requestToJoinDuello(Duello duello, Student student) {
-        return db.insertDuelloRequest(duello.getReservationId(), student.getStudentId());
+        DbStatus status = db.insertDuelloRequest(duello.getReservationId(), student.getStudentId());
+        
+        if (status == DbStatus.SUCCESS) {
+            duello.requestToJoin(student);
+        }
+        
+        return status;
     }
 
     public DbStatus acceptDuelloRequest(Duello duello, Student student) {

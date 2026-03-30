@@ -3,7 +3,6 @@ package models;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -51,22 +50,12 @@ public class Fixture {
     public void createBracket(List<Team> teams, LocalDate startDate, LocalDate endDate, SportType sportType) {
         this.scheduledMatches.clear();
         int totalTeams = teams.size();
-        int totalMatches = totalTeams / 2;
-        
-        long totalDays = ChronoUnit.DAYS.between(startDate, endDate) + 1;
-        if (totalDays <= 0) totalDays = 1;
         
         LocalTime dailyStartTime = LocalTime.of(18, 0);
         LocalTime dailyEndTime = LocalTime.of(22, 0);
-        
-        int matchesPerDay = (int) Math.ceil((double) totalMatches / totalDays);
-        long totalActiveMinutesPerDay = ChronoUnit.MINUTES.between(dailyStartTime, dailyEndTime);
-        long minutesBetweenMatches = matchesPerDay > 1 ? totalActiveMinutesPerDay / matchesPerDay : 90;
-        
-        if (minutesBetweenMatches < 90) minutesBetweenMatches = 90;
+        long minutesPerMatch = 90;
 
         int matchCounter = 1;
-        int matchesScheduledToday = 0;
         int currentDayOffset = 0;
         
         LocalDateTime currentMatchTime = startDate.atTime(dailyStartTime);
@@ -79,14 +68,12 @@ public class Fixture {
             Match match = new Match(matchId, currentMatchTime, sportType, team1, team2);
             this.scheduledMatches.add(match);
             
-            matchesScheduledToday++;
+            currentMatchTime = currentMatchTime.plusMinutes(minutesPerMatch);
             
-            if (matchesScheduledToday >= matchesPerDay || currentMatchTime.plusMinutes(minutesBetweenMatches).toLocalTime().isAfter(dailyEndTime)) {
+            if (currentMatchTime.plusMinutes(minutesPerMatch).toLocalTime().isAfter(dailyEndTime) || 
+                currentMatchTime.toLocalTime().isBefore(dailyStartTime)) {
                 currentDayOffset++;
                 currentMatchTime = startDate.plusDays(currentDayOffset).atTime(dailyStartTime);
-                matchesScheduledToday = 0;
-            } else {
-                currentMatchTime = currentMatchTime.plusMinutes(minutesBetweenMatches);
             }
             
             matchCounter++;

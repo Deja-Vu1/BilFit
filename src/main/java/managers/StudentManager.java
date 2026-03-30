@@ -54,7 +54,12 @@ public class StudentManager {
     }
 
     public DbStatus sendFriendRequest(Student sender, Student target) {
-        return db.insertFriendRequest(sender.getStudentId(), target.getStudentId());
+        DbStatus status = db.insertFriendRequest(sender.getStudentId(), target.getStudentId());
+        
+        if (status == DbStatus.SUCCESS) {
+            sender.sendFriendRequest(target);
+        }
+        return status;
     }
 
     public DbStatus acceptFriendRequest(Student receiver, Student requester) {

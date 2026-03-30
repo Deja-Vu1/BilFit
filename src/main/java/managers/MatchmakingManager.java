@@ -24,9 +24,7 @@ public class MatchmakingManager {
         }
         
         String matchId = UUID.randomUUID().toString();
-        DbStatus status = db.insertMatch(matchId, student.getStudentId(), opponent.getStudentId(), sport.name());
-        
-        return status;
+        return db.insertMatch(matchId, student.getStudentId(), opponent.getStudentId(), sport.name());
     }
 
     public DbStatus recordMatchResult(Match match, Team winnerTeam, int eloChange) {
@@ -36,11 +34,14 @@ public class MatchmakingManager {
             return status;
         }
 
+        int team1AvgElo = calculateTeamAverageElo(match.getTeam1());
+        int team2AvgElo = calculateTeamAverageElo(match.getTeam2());
+
         for (Student s : match.getTeam1().getMembers()) {
             boolean isWinner = match.getTeam1().equals(winnerTeam);
             DbStatus eloStatus = db.updateStudentElo(s.getStudentId(), isWinner, eloChange);
             if (eloStatus == DbStatus.SUCCESS) {
-                s.updateElo(isWinner, 1000);
+                s.updateElo(isWinner, team2AvgElo);
             }
         }
 
@@ -48,11 +49,20 @@ public class MatchmakingManager {
             boolean isWinner = match.getTeam2().equals(winnerTeam);
             DbStatus eloStatus = db.updateStudentElo(s.getStudentId(), isWinner, eloChange);
             if (eloStatus == DbStatus.SUCCESS) {
-                s.updateElo(isWinner, 1000);
+                s.updateElo(isWinner, team1AvgElo);
             }
         }
 
         match.concludeMatch(winnerTeam, eloChange);
         return DbStatus.SUCCESS;
+    }
+
+    private int calculateTeamAverageElo(Team team) {
+        if (team.getMembers().isEmpty()) return 1000;
+        int totalElo = 0;
+        for (Student s : team.getMembers()) {
+            totalElo += s.getEloPoint();
+        }
+        return totalElo / team.getMembers().size();
     }
 }
