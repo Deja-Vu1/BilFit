@@ -40,6 +40,19 @@ public class StudentManager {
         return status;
     }
 
+    public DbStatus updateProfileVisibility(Student student, boolean isPublic) {
+        DbStatus status = db.updateStudentProfileVisibility(student.getStudentId(), isPublic);
+        
+        if (status == DbStatus.SUCCESS) {
+            student.updateProfileVisibility(isPublic);
+        }
+        return status;
+    }
+
+    public DbStatus rateOpponent(Student target, double score) {
+        return db.insertStudentRating(target.getStudentId(), score);
+    }
+
     public DbStatus sendFriendRequest(Student sender, Student target) {
         return db.insertFriendRequest(sender.getStudentId(), target.getStudentId());
     }

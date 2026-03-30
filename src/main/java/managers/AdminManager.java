@@ -1,9 +1,11 @@
 package managers;
 
+import java.time.LocalDate;
 import database.Database;
 import database.DbStatus;
 import models.Admin;
 import models.Facility;
+import models.Reservation;
 import models.Student;
 
 public class AdminManager {
@@ -35,10 +37,37 @@ public class AdminManager {
     }
 
     public DbStatus sendSystemBroadcast(Admin admin, String message) {
-        DbStatus status = db.insertNotification("BROADCAST", message);
+        DbStatus status = db.insertNotification("BROADCAST", "System Update", message);
         
         if (status == DbStatus.SUCCESS) {
             admin.createNotification(message);
+        }
+        
+        return status;
+    }
+
+    public DbStatus givePenaltyPoint(Student targetStudent, int points) {
+        DbStatus status = db.updateStudentPenalty(targetStudent.getStudentId(), targetStudent.getPenaltyPoints() + points);
+        
+        if (status == DbStatus.SUCCESS) {
+            targetStudent.addPenaltyPoint(points);
+        }
+        
+        return status;
+    }
+
+    public DbStatus editFieldAvailability(Reservation reservation, LocalDate newDate, String newTimeSlot) {
+        boolean isAvailable = db.checkFacilityAvailability(reservation.getFacility().getName(), newDate, newTimeSlot);
+        
+        if (!isAvailable) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        DbStatus status = db.updateReservationTime(reservation.getReservationId(), newDate, newTimeSlot);
+        
+        if (status == DbStatus.SUCCESS) {
+            reservation.setDate(newDate);
+            reservation.setTimeSlot(newTimeSlot);
         }
         
         return status;
