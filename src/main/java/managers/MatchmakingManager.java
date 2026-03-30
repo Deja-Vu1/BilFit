@@ -3,8 +3,10 @@ package managers;
 import database.Database;
 import database.DbStatus;
 import models.Match;
+import models.SportType;
 import models.Student;
 import models.Team;
+import java.util.UUID;
 
 public class MatchmakingManager {
 
@@ -12,6 +14,19 @@ public class MatchmakingManager {
 
     public MatchmakingManager(Database db) {
         this.db = db;
+    }
+
+    public DbStatus findSoloMatch(Student student, SportType sport) {
+        Student opponent = db.findOpponentForMatch(student.getStudentId(), sport.name(), student.getEloPoint());
+        
+        if (opponent == null) {
+            return DbStatus.DATA_NOT_FOUND;
+        }
+        
+        String matchId = UUID.randomUUID().toString();
+        DbStatus status = db.insertMatch(matchId, student.getStudentId(), opponent.getStudentId(), sport.name());
+        
+        return status;
     }
 
     public DbStatus recordMatchResult(Match match, Team winnerTeam, int eloChange) {

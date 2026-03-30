@@ -4,6 +4,7 @@ import database.Database;
 import database.DbStatus;
 import models.Team;
 import models.Tournament;
+import java.time.LocalDate;
 
 public class TournamentManager {
 
@@ -19,7 +20,6 @@ public class TournamentManager {
         if (status == DbStatus.SUCCESS) {
             tournament.applyAsTeam(team);
         }
-        
         return status;
     }
 
@@ -33,7 +33,24 @@ public class TournamentManager {
         if (status == DbStatus.SUCCESS) {
             tournament.cancelTournament();
         }
+        return status;
+    }
+
+    public DbStatus generateAndSaveFixture(Tournament tournament) {
+        DbStatus status = db.insertFixture(tournament.getTournamentId());
         
+        if (status == DbStatus.SUCCESS) {
+            tournament.generateFixture();
+        }
+        return status;
+    }
+
+    public DbStatus updateTournamentSchedule(Tournament tournament, LocalDate newStart, LocalDate newEnd) {
+        DbStatus status = db.updateTournamentDates(tournament.getTournamentId(), newStart, newEnd);
+        
+        if (status == DbStatus.SUCCESS) {
+            tournament.updateSchedule(newStart, newEnd);
+        }
         return status;
     }
 }
