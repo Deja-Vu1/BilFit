@@ -2,7 +2,10 @@ package managers;
 
 import database.Database;
 import database.DbStatus;
+<<<<<<< HEAD
 import models.Student;
+=======
+>>>>>>> origin/Arda_backend_v2
 import models.Team;
 import models.Tournament;
 import java.time.LocalDate;
@@ -15,10 +18,13 @@ public class TournamentManager {
         this.db = db;
     }
 
+<<<<<<< HEAD
     public DbStatus createTournament(Tournament tournament) {
         return db.insertTournament(tournament.getTournamentId(), tournament.getTournamentName(), tournament.getSportType().name(), tournament.getStartDate(), tournament.getEndDate(), tournament.getMaxPlayersPerTeam());
     }
 
+=======
+>>>>>>> origin/Arda_backend_v2
     public DbStatus registerTeamToTournament(Tournament tournament, Team team) {
         DbStatus status = db.insertTournamentParticipant(tournament.getTournamentId(), team.getTeamId());
         
@@ -28,6 +34,7 @@ public class TournamentManager {
         return status;
     }
 
+<<<<<<< HEAD
     public DbStatus applyWithCode(Tournament tournament, Student student, String code) {
         if (!tournament.getAccessCode().equals(code)) {
             return DbStatus.QUERY_ERROR;
@@ -51,6 +58,8 @@ public class TournamentManager {
         return status;
     }
 
+=======
+>>>>>>> origin/Arda_backend_v2
     public DbStatus cancelTournament(Tournament tournament) {
         if (tournament == null) {
             return DbStatus.DATA_NOT_FOUND;
