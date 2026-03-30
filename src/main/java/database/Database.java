@@ -218,6 +218,7 @@ public class Database {
 
     /**
      * Create or update an activation code for a user in the database.
+     * Also sends the activation code to the user's email address.
      * @param email User's email address
      * @return DbStatus indicating the result of the operation
      */
