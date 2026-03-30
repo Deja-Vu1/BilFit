@@ -7,7 +7,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
-public class ProfileController {
+public class HomeController {
     @FXML public void initialize() {}
     
     @FXML public void loadAccount(ActionEvent event) throws Exception { loadScene(event, "/views/dashboard/ProfileView.fxml"); }

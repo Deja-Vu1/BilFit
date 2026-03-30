@@ -1,14 +1,31 @@
-<?xml version="1.0" encoding="UTF-8"?><?import javafx.geometry.*?><?import javafx.scene.control.*?><?import javafx.scene.effect.*?><?import javafx.scene.layout.*?><?import javafx.scene.paint.*?><?import javafx.scene.text.*?><BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.MyReservationsController">
-   <left><VBox prefWidth="250.0" style="-fx-background-color: #FFFFFF; -fx-border-width: 0 1 0 0;"><padding><Insets top="40" left="20" right="20"/></padding><Button prefHeight="45" prefWidth="210" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 10;" text="    My Reservations" /></VBox></left>
+<?xml version="1.0" encoding="UTF-8"?><?import javafx.geometry.*?><?import javafx.scene.control.*?><?import javafx.scene.effect.*?><?import javafx.scene.layout.*?><?import javafx.scene.paint.*?><?import javafx.scene.text.*?><?import javafx.scene.image.*?><?import javafx.scene.shape.*?><BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ReservationController">
+   <left><VBox prefWidth="280.0" styleClass="sidebar"><padding><Insets top="40" left="20" right="20"/></padding>
+      <Button prefHeight="45" prefWidth="210" styleClass="menu-btn" text="    Home" onAction="#loadHome"/>
+      <Button prefHeight="45" prefWidth="210" styleClass="menu-btn, active" text="    Reservation" />
+   </VBox></left>
    <center>
-      <VBox spacing="30"><padding><Insets top="40" right="40" bottom="40" left="40"/></padding>
-         <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;" VBox.vgrow="ALWAYS"><padding><Insets top="30" right="30" bottom="30" left="30"/></padding><effect><DropShadow blurType="GAUSSIAN" radius="19.5"><color><Color opacity="0.08" /></color></DropShadow></effect>
-            <Label text="My Active Reservations" textFill="#2b3674"><font><Font name="System Bold" size="20.0" /></font></Label>
-            <HBox alignment="CENTER_LEFT" style="-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;"><VBox.margin><Insets top="20"/></VBox.margin><padding><Insets top="10" right="10" bottom="10" left="20"/></padding>
+      <VBox spacing="30.0" BorderPane.alignment="CENTER"><padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
+         <VBox styleClass="content-card">
+            <HBox alignment="CENTER_LEFT"><Label text="Your Reservations" styleClass="content-title"/><Region HBox.hgrow="ALWAYS"/><Label text="🎫" style="-fx-font-size: 24;"/></HBox>
+            <Separator prefWidth="200.0"><VBox.margin><Insets bottom="20.0" top="15.0" /></VBox.margin></Separator>
+            <HBox alignment="CENTER_LEFT" style="-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;"><padding><Insets bottom="10.0" left="20.0" right="10.0" top="10.0" /></padding>
                <Label text="Main Campus   |   Football Field 1   |   20.02.2026   |   18.45-19.45" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
                <Region HBox.hgrow="ALWAYS" />
-               <Button prefHeight="35" prefWidth="100" style="-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-radius: 10;" text="Cancel" />
+               <Button prefHeight="35.0" prefWidth="100.0" styleClass="btn-danger" text="Cancel" />
             </HBox>
+         </VBox>
+         <VBox styleClass="content-card" VBox.vgrow="ALWAYS">
+            <HBox alignment="CENTER_LEFT"><Label text="Reservations" styleClass="content-title"/><Region HBox.hgrow="ALWAYS"/><Label text="🛎️" style="-fx-font-size: 24;"/></HBox>
+            <Separator prefWidth="200.0"><VBox.margin><Insets bottom="20.0" top="15.0" /></VBox.margin></Separator>
+            <HBox spacing="15"><VBox.margin><Insets bottom="20"/></VBox.margin>
+               <Button prefHeight="40" prefWidth="120" styleClass="btn-secondary" text="Basketball" />
+               <Button prefHeight="40" prefWidth="120" styleClass="btn-success" text="Football" />
+            </HBox>
+            <GridPane hgap="15" vgap="15">
+               <columnConstraints><ColumnConstraints hgrow="ALWAYS" percentWidth="25"/><ColumnConstraints hgrow="ALWAYS" percentWidth="25"/><ColumnConstraints hgrow="ALWAYS" percentWidth="25"/><ColumnConstraints hgrow="ALWAYS" percentWidth="25"/></columnConstraints>
+               <Button maxWidth="Infinity" prefHeight="40" styleClass="btn-danger" text="8.45 - 9.45" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+               <Button maxWidth="Infinity" prefHeight="40" styleClass="btn-success" text="11.45 - 12.45" GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+            </GridPane>
          </VBox>
       </VBox>
    </center>
