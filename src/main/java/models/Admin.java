@@ -20,6 +20,14 @@ public class Admin extends User {
         targetStudent.addPenaltyPoint(points);
     }
 
+    public String getActivationCode() {
+        return activationCode;
+    }
+
+    public void setActivationCode(String activationCode) {
+        this.activationCode = activationCode;
+    }
+
     public void banUser(Student targetStudent) {
         System.out.println("User banned: " + targetStudent.getNickname());
     }

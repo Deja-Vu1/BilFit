@@ -26,6 +26,72 @@ public class Team {
 
 
 
+    public String getTeamId() {
+        return teamId;
+    }
+
+
+
+    public void setTeamId(String teamId) {
+        this.teamId = teamId;
+    }
+
+
+
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
+    }
+
+
+
+    public String getAccessCode() {
+        return accessCode;
+    }
+
+
+
+    public void setAccessCode(String accessCode) {
+        this.accessCode = accessCode;
+    }
+
+
+
+    public int getMaxCapacity() {
+        return maxCapacity;
+    }
+
+
+
+    public void setMaxCapacity(int maxCapacity) {
+        this.maxCapacity = maxCapacity;
+    }
+
+
+
+    public boolean isGe250Requested() {
+        return ge250Requested;
+    }
+
+
+
+    public void setGe250Requested(boolean ge250Requested) {
+        this.ge250Requested = ge250Requested;
+    }
+
+
+
+    public void setMembers(List<Student> members) {
+        this.members = members;
+    }
+
+
+
+    public void setCaptain(Student captain) {
+        this.captain = captain;
+    }
+
+
+
     public boolean addMember(Student student, String code) {
 
 

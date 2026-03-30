@@ -9,6 +9,65 @@ public class Match {
     private LocalDateTime date;
     private SportType sportType;
     private int pointChange;
+    public String getMatchId() {
+        return matchId;
+    }
+
+    public void setMatchId(String matchId) {
+        this.matchId = matchId;
+    }
+
+    public LocalDateTime getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDateTime date) {
+        this.date = date;
+    }
+
+    public SportType getSportType() {
+        return sportType;
+    }
+
+    public void setSportType(SportType sportType) {
+        this.sportType = sportType;
+    }
+
+    public int getPointChange() {
+        return pointChange;
+    }
+
+    public void setPointChange(int pointChange) {
+        this.pointChange = pointChange;
+    }
+
+    public boolean isWin() {
+        return isWin;
+    }
+
+    public void setWin(boolean isWin) {
+        this.isWin = isWin;
+    }
+
+    public String getOpponentName() {
+        return opponentName;
+    }
+
+    public void setOpponentName(String opponentName) {
+        this.opponentName = opponentName;
+    }
+
+    public void setTeam1(Team team1) {
+        this.team1 = team1;
+    }
+
+    public void setTeam2(Team team2) {
+        this.team2 = team2;
+    }
+
+    public void setWinner(Team winner) {
+        this.winner = winner;
+    }
     private boolean isWin;
     private String opponentName;
     private Team team1;

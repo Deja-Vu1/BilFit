@@ -26,4 +26,24 @@ public class Notification {
     public String getTitle() { return title; }
     public String getMessage() { return message; }
     public LocalDateTime getDate() { return date; }
+
+    public String getNotificationId() {
+        return notificationId;
+    }
+
+    public void setNotificationId(String notificationId) {
+        this.notificationId = notificationId;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public void setDate(LocalDateTime date) {
+        this.date = date;
+    }
 }

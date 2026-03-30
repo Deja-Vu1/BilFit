@@ -24,6 +24,46 @@ public class Duello extends Reservation {
         this.scheduledMatch = null;
     }
 
+    public String getAccessCode() {
+        return accessCode;
+    }
+
+    public void setAccessCode(String accessCode) {
+        this.accessCode = accessCode;
+    }
+
+    public String getRequiredSkillLevel() {
+        return requiredSkillLevel;
+    }
+
+    public void setRequiredSkillLevel(String requiredSkillLevel) {
+        this.requiredSkillLevel = requiredSkillLevel;
+    }
+
+    public int getEmptySlots() {
+        return emptySlots;
+    }
+
+    public void setEmptySlots(int emptySlots) {
+        this.emptySlots = emptySlots;
+    }
+
+    public boolean isMatched() {
+        return isMatched;
+    }
+
+    public void setMatched(boolean isMatched) {
+        this.isMatched = isMatched;
+    }
+
+    public Match getScheduledMatch() {
+        return scheduledMatch;
+    }
+
+    public void setScheduledMatch(Match scheduledMatch) {
+        this.scheduledMatch = scheduledMatch;
+    }
+
     public void publishDuello() {
         System.out.println("Duello published publicly! Looking for opponents with skill level: " + this.requiredSkillLevel);
     }

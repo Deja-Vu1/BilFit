@@ -23,6 +23,50 @@ public class Facility {
         this.isUnderMaintenance = false; // Default : Open
     }
 
+    public String getFacilityId() {
+        return facilityId;
+    }
+
+    public void setFacilityId(String facilityId) {
+        this.facilityId = facilityId;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getCampusLocation() {
+        return campusLocation;
+    }
+
+    public void setCampusLocation(String campusLocation) {
+        this.campusLocation = campusLocation;
+    }
+
+    public SportType getSportType() {
+        return sportType;
+    }
+
+    public void setSportType(SportType sportType) {
+        this.sportType = sportType;
+    }
+
+    public int getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(int capacity) {
+        this.capacity = capacity;
+    }
+
+    public boolean isUnderMaintenance() {
+        return isUnderMaintenance;
+    }
+
+    public void setUnderMaintenance(boolean isUnderMaintenance) {
+        this.isUnderMaintenance = isUnderMaintenance;
+    }
+
     public boolean checkAvailability(LocalDate date, String timeSlot) {
         if (isUnderMaintenance) {
 

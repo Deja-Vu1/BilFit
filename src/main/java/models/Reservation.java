@@ -25,6 +25,58 @@ public class Reservation {
         this.attendees = new ArrayList<>();
     }
 
+    public void setReservationId(String reservationId) {
+        this.reservationId = reservationId;
+    }
+
+    public LocalDate getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDate date) {
+        this.date = date;
+    }
+
+    public String getTimeSlot() {
+        return timeSlot;
+    }
+
+    public void setTimeSlot(String timeSlot) {
+        this.timeSlot = timeSlot;
+    }
+
+    public boolean isCancelled() {
+        return isCancelled;
+    }
+
+    public void setCancelled(boolean isCancelled) {
+        this.isCancelled = isCancelled;
+    }
+
+    public boolean isHasAttended() {
+        return hasAttended;
+    }
+
+    public void setHasAttended(boolean hasAttended) {
+        this.hasAttended = hasAttended;
+    }
+
+    public Facility getFacility() {
+        return facility;
+    }
+
+    public void setFacility(Facility facility) {
+        this.facility = facility;
+    }
+
+    public List<Student> getAttendees() {
+        return attendees;
+    }
+
+    public void setAttendees(List<Student> attendees) {
+        this.attendees = attendees;
+    }
+
     public boolean createReservation(Student student) {
         if (facility.checkAvailability(this.date, this.timeSlot)) {
             attendees.add(student);

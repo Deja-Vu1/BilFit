@@ -19,6 +19,26 @@ public abstract class User {
         return this.bilkentEmail.equals(email) && this.password.equals(pass);
     }
 
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+
+    public void setBilkentEmail(String bilkentEmail) {
+        this.bilkentEmail = bilkentEmail;
+    }
+
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+
     public void logout() {
         System.out.println(this.nickname + " has logged out successfully.");
     }

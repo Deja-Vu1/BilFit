@@ -16,6 +16,30 @@ public class Fixture {
         this.currentStage = "Group Stage"; // Default starting stage
     }
 
+    public String getFixtureId() {
+        return fixtureId;
+    }
+
+    public void setFixtureId(String fixtureId) {
+        this.fixtureId = fixtureId;
+    }
+
+    public List<Match> getScheduledMatches() {
+        return scheduledMatches;
+    }
+
+    public void setScheduledMatches(List<Match> scheduledMatches) {
+        this.scheduledMatches = scheduledMatches;
+    }
+
+    public String getCurrentStage() {
+        return currentStage;
+    }
+
+    public void setCurrentStage(String currentStage) {
+        this.currentStage = currentStage;
+    }
+
     public void shuffleTeams(List<Team> teams) {
         Collections.shuffle(teams);
         System.out.println("Teams have been shuffled automatically for fair matchmaking.");

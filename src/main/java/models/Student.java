@@ -109,6 +109,116 @@ public class Student extends User {
         }
     }
 
+    public void setStudentId(String studentId) {
+        this.studentId = studentId;
+    }
+
+
+    public void setEloPoint(int eloPoint) {
+        this.eloPoint = eloPoint;
+    }
+
+
+    public void setPenaltyPoints(int penaltyPoints) {
+        this.penaltyPoints = penaltyPoints;
+    }
+
+
+    public void setReliabilityScore(double reliabilityScore) {
+        this.reliabilityScore = reliabilityScore;
+    }
+
+
+    public List<SportType> getInterests() {
+        return interests;
+    }
+
+
+    public void setInterests(List<SportType> interests) {
+        this.interests = interests;
+    }
+
+
+    public List<String> getBadges() {
+        return badges;
+    }
+
+
+    public void setBadges(List<String> badges) {
+        this.badges = badges;
+    }
+
+
+    public int getMatchesPlayed() {
+        return matchesPlayed;
+    }
+
+
+    public void setMatchesPlayed(int matchesPlayed) {
+        this.matchesPlayed = matchesPlayed;
+    }
+
+
+    public double getWinRate() {
+        return winRate;
+    }
+
+
+    public void setWinRate(double winRate) {
+        this.winRate = winRate;
+    }
+
+
+    public boolean isPublicProfile() {
+        return isPublicProfile;
+    }
+
+
+    public void setPublicProfile(boolean isPublicProfile) {
+        this.isPublicProfile = isPublicProfile;
+    }
+
+
+    public boolean isEloMatchingEnabled() {
+        return isEloMatchingEnabled;
+    }
+
+
+    public void setEloMatchingEnabled(boolean isEloMatchingEnabled) {
+        this.isEloMatchingEnabled = isEloMatchingEnabled;
+    }
+
+
+    public List<Match> getMatchHistory() {
+        return matchHistory;
+    }
+
+
+    public void setMatchHistory(List<Match> matchHistory) {
+        this.matchHistory = matchHistory;
+    }
+
+
+    public List<Student> getFriends() {
+        return friends;
+    }
+
+
+    public void setFriends(List<Student> friends) {
+        this.friends = friends;
+    }
+
+
+    public List<Student> getFriendRequests() {
+        return friendRequests;
+    }
+
+
+    public void setFriendRequests(List<Student> friendRequests) {
+        this.friendRequests = friendRequests;
+    }
+
+
     public void removeFriend(Student target) {
         this.friends.remove(target);
         target.friends.remove(this);
