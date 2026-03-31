@@ -15,37 +15,6 @@ public class TournamentsController {
         System.out.println("Tournaments ekranı başarıyla yüklendi.");
     }
 
-    // --- Navigasyon Metodları ---
-
-    @FXML
-    public void loadAccount(ActionEvent event) {
-        switchScene(event, "/views/dashboard/ProfileView.fxml");
-    }
-
-    @FXML
-    public void loadHome(ActionEvent event) {
-        switchScene(event, "/views/dashboard/HomeView.fxml");
-    }
-
-    @FXML
-    public void loadELO(ActionEvent event) {
-        switchScene(event, "/views/dashboard/ELOView.fxml");
-    }
-
-    @FXML
-    public void loadReservation(ActionEvent event) {
-        switchScene(event, "/views/dashboard/FacilitySelectView.fxml");
-    }
-
-    @FXML
-    public void loadSettings(ActionEvent event) {
-        switchScene(event, "/views/dashboard/SettingsView.fxml");
-    }
-
-    @FXML
-    public void logout(ActionEvent event) {
-        switchScene(event, "/views/auth/SelectionView.fxml");
-    }
 
     // --- Sayfa İçi Buton İşlevleri (FXML'de tanımlı değilse eklenmeli) ---
 

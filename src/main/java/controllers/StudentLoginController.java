@@ -52,7 +52,7 @@ public class StudentLoginController {
         System.out.println("Redirecting to Homeview");
                 try {
             // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/HomeView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/MainDashboardView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
