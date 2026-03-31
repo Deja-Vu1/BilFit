@@ -6,7 +6,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-public class MyReservationsController {
+public class ReservationController {
         @FXML public void initialize() {} 
         @FXML public void loadHome(ActionEvent event) throws Exception { loadScene(event, "/views/dashboard/HomeView.fxml"); }
 
