@@ -25,6 +25,8 @@ public class StudentLoginController {
         String emailInput = emailField.getText();
         String passwordInput = passwordField.getText();
 
+        deployHomepage(event);
+        /*
         System.out.println("Attempting to log in with email: " + emailInput);
 
         if (emailInput == null || emailInput.isEmpty() || passwordInput == null || passwordInput.isEmpty()) {
@@ -37,7 +39,7 @@ public class StudentLoginController {
         for (Student student : StudentRegisterController.temporaryDatabase) {
             if (student.login(emailInput, passwordInput)) {
                 System.out.println(" Login successful! \n Welcome, " + student.getNickname());
-                deployHomepage();
+                deployHomepage(event);
                 isLogged = true;
                 break;
             }
@@ -46,10 +48,22 @@ public class StudentLoginController {
         if (!isLogged) {
             System.out.println("Error: Invalid email or password.");
         }
+        */
     }
 
-    public void deployHomepage() {
+    public void deployHomepage(ActionEvent event) {
         System.out.println("Redirecting to StudentMainView");
+         try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/StudentMainView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);
+
+        } catch (IOException e) {
+            System.err.println("StudentMainView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
+        
     }
 
     @FXML
