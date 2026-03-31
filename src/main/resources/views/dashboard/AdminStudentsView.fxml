@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?><?import javafx.geometry.*?><?import javafx.scene.control.*?><?import javafx.scene.effect.*?><?import javafx.scene.layout.*?><?import javafx.scene.paint.*?><?import javafx.scene.text.*?><BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminStudentsController">
+   <left><VBox prefWidth="250.0" styleClass="sidebar"><padding><Insets top="40" left="20" right="20"/></padding><Button prefHeight="45" prefWidth="210" styleClass="menu-btn, active" text="    Manage Students" /></VBox></left>
+   <center>
+      <VBox spacing="30"><padding><Insets top="40" right="40" bottom="40" left="40"/></padding>
+         <VBox styleClass="content-card">
+            <Label text="Penalty Points" styleClass="content-title"/>
+            <HBox spacing="20" alignment="CENTER_LEFT"><VBox.margin><Insets top="20" bottom="20"/></VBox.margin>
+               <TextField promptText="User Email" styleClass="modern-input"/>
+               <Label text="or" textFill="#2b3674"/>
+               <TextField promptText="Student ID" styleClass="modern-input"/>
+               <TextField promptText="15" prefWidth="60" style="-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-padding: 10; -fx-background-radius: 10;"/>
+               <Button prefHeight="35" prefWidth="180" styleClass="btn-success" text="+ Give Penalty Points" />
+            </HBox>
+         </VBox>
+      </VBox>
+   </center>
+</BorderPane>

@@ -66,7 +66,20 @@ public class SelectionController implements Initializable {
 
     @FXML
     private void goToAdminLogin(ActionEvent event) {
-        System.out.println("Admin giriş ekranına yönlendiriliyor...");
-        // Burada sahne değiştirme kodunu çağırabilirsin
+         System.out.println("Öğrenci giriş ekranına yönlendiriliyor...");
+        
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminLoginView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            Scene scene = new Scene(root, 1200, 800);
+
+            stage.setScene(scene);
+            stage.show();
+
+        } catch (IOException e) {
+            System.err.println("StudentLoginView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
     }
 }

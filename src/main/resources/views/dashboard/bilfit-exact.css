@@ -1,0 +1,179 @@
+/* --- GENEL ARKAPLAN VE YAZITİPİ --- */
+.root {
+    -fx-background-color: #F4F7FE; /* Modern açık gri/mavi arkaplan */
+    -fx-font-family: "Segoe UI", "Open Sans", Helvetica, sans-serif;
+}
+
+/* --- SOL MENÜ (SIDEBAR) --- */
+.sidebar {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 0 1 0 0;
+}
+
+/* Menü Butonları */
+.menu-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #A3AED0; /* Pasif menü yazı rengi */
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-alignment: center-left;
+    -fx-padding: 15 20 15 30;
+    -fx-cursor: hand;
+}
+
+.menu-btn:hover {
+    -fx-background-color: #F4F7FE;
+    -fx-text-fill: #2B3674;
+}
+
+/* Seçili Menü Butonu */
+.menu-btn.active {
+    -fx-background-color: #E6F4EA; /* Açık yeşil arkaplan */
+    -fx-text-fill: #1E8E3E; /* Koyu yeşil yazı */
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+}
+
+/* --- İÇERİK ALANI KARTLARI --- */
+.content-card {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 20px;
+    -fx-border-radius: 20px;
+    -fx-padding: 25px;
+    -fx-effect: dropshadow(three-pass-box, rgba(112,144,176,0.15), 20, 0, 0, 5); /* Kart gölgesi */
+}
+
+/* Başlıklar */
+.content-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #2B3674; /* Koyu modern başlık rengi */
+}
+
+/* Alt Başlıklar */
+.content-subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: #A3AED0;
+}
+
+/* --- TABLEVIEW --- */
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: transparent;
+}
+
+.table-view .column-header, .table-view .filler {
+    -fx-background-color: #F4F7FE;
+    -fx-size: 45px;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-color: #E9EDF7;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: #A3AED0;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}
+
+.table-row-cell {
+    -fx-background-color: #FFFFFF;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-color: #E9EDF7;
+    -fx-cell-size: 55px; /* Satır yüksekliği */
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #F8F9FA;
+}
+
+.table-view .cell {
+    -fx-text-fill: #2B3674;
+    -fx-font-weight: bold;
+    -fx-alignment: center-left;
+    -fx-padding: 0 10 0 10;
+}
+
+/* --- INPUTS --- */
+.modern-input {
+    -fx-background-color: #F4F7FE;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 10px 15px;
+    -fx-font-size: 14px;
+    -fx-text-fill: #2B3674;
+}
+
+.modern-input:focused {
+    -fx-border-color: #4318FF;
+}
+
+/* --- BUTONLAR --- */
+.action-btn {
+    -fx-background-color: #D93025; /* Kırmızı */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 12px;
+    -fx-padding: 10 25 10 25;
+    -fx-cursor: hand;
+}
+
+.action-btn:hover {
+    -fx-background-color: #A30000;
+}
+
+.btn-secondary {
+    -fx-background-color: #E9EDF7;
+    -fx-text-fill: #4318FF;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10px;
+    -fx-cursor: hand;
+    -fx-padding: 8 15 8 15;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: #D0D9ED;
+}
+
+.btn-danger {
+    -fx-background-color: #FCE8E8;
+    -fx-text-fill: #D93025;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10px;
+    -fx-cursor: hand;
+    -fx-padding: 8 15 8 15;
+}
+
+.btn-danger:hover {
+    -fx-background-color: #FAD2D2;
+}
+
+.btn-success {
+    -fx-background-color: #E6F4EA;
+    -fx-text-fill: #1E8E3E;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10px;
+    -fx-cursor: hand;
+    -fx-padding: 8 15 8 15;
+    -fx-border-color: #1E8E3E;
+    -fx-border-radius: 10px;
+}
+
+.btn-success:hover {
+    -fx-background-color: #CEEAD6;
+}
+
+/* Rozetler */
+.tag-orange {
+    -fx-background-color: #FFF3E0;
+    -fx-text-fill: #E65100;
+    -fx-padding: 4 12 4 12;
+    -fx-background-radius: 12;
+    -fx-font-weight: bold;
+}
