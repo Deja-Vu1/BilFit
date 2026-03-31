@@ -60,10 +60,7 @@ public class StudentLoginController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentRegisterView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root, 1200, 800);
-
-            stage.setScene(scene);
-            stage.show();
+            stage.getScene().setRoot(root);
 
         } catch (IOException e) {
             System.err.println("StudentRegisterView yüklenirken hata oluştu!");
@@ -84,10 +81,7 @@ public class StudentLoginController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root, 1200, 800);
-
-            stage.setScene(scene);
-            stage.show();
+            stage.getScene().setRoot(root);
 
         } catch (IOException e) {
             System.err.println("SelectionView yüklenirken hata oluştu!");

@@ -53,10 +53,7 @@ public class SelectionController implements Initializable {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root, 1200, 800);
-
-            stage.setScene(scene);
-            stage.show();
+            stage.getScene().setRoot(root);
 
         } catch (IOException e) {
             System.err.println("StudentLoginView yüklenirken hata oluştu!");
@@ -72,10 +69,7 @@ public class SelectionController implements Initializable {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminLoginView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root, 1200, 800);
-
-            stage.setScene(scene);
-            stage.show();
+            stage.getScene().setRoot(root);
 
         } catch (IOException e) {
             System.err.println("StudentLoginView yüklenirken hata oluştu!");
