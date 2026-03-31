@@ -7,5 +7,8 @@ public enum DbStatus {
     DATA_NOT_FOUND,
     QUERY_ERROR,
     DUPLICATE_ENTRY, // Same entry already exists in the database
-    INVALID_CODE     // Wrong code provided for verification
+    INVALID_CODE,     // Wrong code provided for verification
+    EXPIRED_CODE,     // Code provided has expired
+    EMAIL_ALREADY_EXISTS, // Email is already registered in the system
+    ID_ALREADY_EXISTS // Student ID is already registered in the system
 }

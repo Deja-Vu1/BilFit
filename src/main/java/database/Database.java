@@ -87,33 +87,67 @@ public class Database {
     }
 
     /**
-     * Yeni kullanıcı kaydı oluşturur.
+     * Registers a new student to the database.
+     * Checks for duplicate email or student ID before insertion.
+     * @param name Student's full name
+     * @param bilkentMail Student's Bilkent email address
+     * @param studentId Student's ID number
+     * @param password Student's password (should be hashed before calling this method)
+     * @return DbStatus indicating SUCCESS, EMAIL_ALREADY_EXISTS, ID_ALREADY_EXISTS, etc.
      */
-    public DbStatus registerUser(String email, String rawPassword, String activationCode, String role) {
-        String hashedPassword = hashPassword(rawPassword);
-        String sql = "INSERT INTO users (email, password_hash, role, activation_code, is_active) VALUES (?, ?, ?, ?, false)";
+    public DbStatus registerStudent(String name, String bilkentMail, String studentId, String password) {
+        // Çakışma kontrolü için SQL
+        String checkSql = "SELECT bilkent_email, student_id FROM users WHERE bilkent_email = ? OR student_id = ?";
+        
+        // Yeni kullanıcı ekleme SQL'i (is_activated varsayılan olarak FALSE ile başlatılır)
+        String insertSql = "INSERT INTO users (name, bilkent_email, student_id, password, is_activated) VALUES (?, ?, ?, ?, FALSE)";
 
         try (Connection conn = getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
 
-            pstmt.setString(1, email);
-            pstmt.setString(2, hashedPassword);
-            pstmt.setString(3, role);
-            pstmt.setString(4, activationCode);
+            // 1. ADIM: E-posta veya Öğrenci ID'si sistemde zaten kayıtlı mı kontrolü
+            checkStmt.setString(1, bilkentMail);
+            checkStmt.setString(2, studentId);
 
-            int affectedRows = pstmt.executeUpdate();
-            return affectedRows > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                if (rs.next()) {
+                    String existingEmail = rs.getString("bilkent_email");
+                    String existingId = rs.getString("student_id");
+
+                    // Hangisinin çakıştığını bulup uygun durumu döndürüyoruz
+                    if (bilkentMail.equals(existingEmail)) {
+                        return DbStatus.EMAIL_ALREADY_EXISTS; 
+                    } else if (studentId.equals(existingId)) {
+                        return DbStatus.ID_ALREADY_EXISTS; 
+                    }
+                }
+            }
+
+            // 2. ADIM: Herhangi bir çakışma yoksa, kayıt işlemi (INSERT)
+            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+                insertStmt.setString(1, name);
+                insertStmt.setString(2, bilkentMail);
+                insertStmt.setString(3, studentId);
+                insertStmt.setString(4, password); 
+
+                int insertedRows = insertStmt.executeUpdate();
+                return insertedRows > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
-            // PostgreSQL'de 23505 kodu Unique Violation
-            if ("23505".equals(e.getSQLState())) {
-                return DbStatus.DUPLICATE_ENTRY;
-            }
-            // Connection error
+            
+            // Veritabanı bağlantı hatası
             if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
                 return DbStatus.CONNECTION_ERROR;
             }
+            
+            // PostgreSQL Unique Constraint Violation Error Code (23505)
+            // Eğer üstteki SELECT işlemi bir anlık atlanır ve veritabanı kendi kısıtlamasıyla (UNIQUE) hata fırlatırsa yakalarız
+            if ("23505".equals(e.getSQLState())) {
+                 return DbStatus.QUERY_ERROR; // veya sisteminde varsa DbStatus.DATA_ALREADY_EXISTS
+            }
+            
             return DbStatus.QUERY_ERROR;
         }
     }
@@ -178,17 +212,23 @@ public class Database {
     /**
      * Verify the activation code provided by the user against the database record.
      * If you want to set the user's profile as active after successful verification, you can call setProfileActivation() method separately.
+     * activation of the account is optional becuase verification code can be used for other purposes as well, such as password reset. So we keep them separate.
+     * It only verify 30 minutes old activation codes to prevent abuse.
+     * After verification, if the code is correct, method automatically deletes the activation code from the database to prevent reuse.
      * @param email User's email address
      * @param inputCode Activation code provided by the user
-     * @return DbStatus (SUCCESS, INVALID_CODE, DATA_NOT_FOUND, CONNECTION_ERROR, QUERY_ERROR)
+     * @return DbStatus (SUCCESS, INVALID_CODE, EXPIRED_CODE, DATA_NOT_FOUND, CONNECTION_ERROR, QUERY_ERROR)
      */
     public DbStatus verifyActivationCode(String email, String inputCode) {
-        String selectSql = "SELECT a.activation_code FROM activation a INNER JOIN users u ON a.user_id = u.id WHERE u.bilkent_email = ?";
+        String selectSql = "SELECT a.activation_code FROM activation a INNER JOIN users u ON a.user_id = u.id WHERE u.bilkent_email = ? AND a.created_at >= NOW() - INTERVAL '30 minutes'";
+        
+        String deleteSql = "DELETE FROM activation WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
 
         try (Connection conn = getConnection();
              PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
 
             selectStmt.setString(1, email);
+            
             try (ResultSet rs = selectStmt.executeQuery()) {
                 if (rs.next()) {
                     String dbCode = rs.getString("activation_code");
@@ -198,12 +238,19 @@ public class Database {
                     }
                     
                     if (dbCode.equals(inputCode)) {
-                        return DbStatus.SUCCESS; // Kod doğru
+                        // KOD DOĞRU! Silme işlemini (DELETE) gerçekleştir:
+                        try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                            deleteStmt.setString(1, email);
+                            deleteStmt.executeUpdate();
+                        }
+                        
+                        return DbStatus.SUCCESS; // Doğrulandı ve kod silindi
                     } else {
-                        return DbStatus.INVALID_CODE; // Kod yanlış
+                        return DbStatus.INVALID_CODE; // Yanlış kod girildi
                     }
                 } else {
-                    return DbStatus.DATA_NOT_FOUND; // Kullanıcı veya kod yok
+                    // Kayıt yoksa ya hiç istenmemiştir ya da 30 dakikayı geçtiği için sorgu getirmemiştir
+                    return DbStatus.EXPIRED_CODE; 
                 }
             }
             
@@ -224,7 +271,7 @@ public class Database {
      */
     public DbStatus createActivationCode(String email) {
         String findUserSql = "SELECT id FROM users WHERE bilkent_email = ?";
-        String updateActivationSql = "UPDATE activation SET activation_code = ? WHERE user_id = ?";
+        String updateActivationSql = "UPDATE activation SET activation_code = ?, created_at = CURRENT_TIMESTAMP WHERE user_id = ?";
         String insertActivationSql = "INSERT INTO activation (user_id, activation_code) VALUES (?, ?)";
         String activationCode = generateRandomCode(6); // Creates a random 6-digit code
 
