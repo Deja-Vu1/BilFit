@@ -1,55 +1,98 @@
-<?xml version="1.0" encoding="UTF-8"?><?import javafx.geometry.*?><?import javafx.scene.control.*?><?import javafx.scene.layout.*?><?import javafx.scene.shape.*?><?import javafx.scene.text.*?><?import javafx.scene.image.*?><BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ProfileController">
-   <left>
-      <VBox prefWidth="280.0" styleClass="sidebar" BorderPane.alignment="CENTER">
-         <VBox alignment="CENTER" prefHeight="120.0"><padding><Insets top="40.0" /></padding><ImageView fitHeight="70.0" fitWidth="160.0" pickOnBounds="true" preserveRatio="true"><image><Image url="@../../images/bilfit_logo.png" /></image><VBox.margin><Insets bottom="30"/></VBox.margin></ImageView></VBox>
-         <VBox alignment="CENTER" spacing="10.0"><padding><Insets bottom="10.0" /></padding><Circle fill="#E2E8F0" radius="35.0" stroke="#4318FF" strokeType="INSIDE" strokeWidth="2.0" /><HBox alignment="CENTER" spacing="15.0"><Circle fill="#4318FF" radius="12.0" /><Circle fill="#FF9120" radius="12.0" /></HBox><Separator prefWidth="200.0"><VBox.margin><Insets bottom="10.0" top="10.0" /></VBox.margin></Separator></VBox>
-         <VBox spacing="8.0"><padding><Insets left="20.0" right="20.0" /></padding>
-            <Button alignment="BASELINE_LEFT" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn, active" text="    Account" />
-            <Button alignment="BASELINE_LEFT" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" text="    Home" onAction="#loadHome"/>
-            <Button alignment="BASELINE_LEFT" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" text="    Tournaments" onAction="#loadTournaments"/>
-            <Button alignment="BASELINE_LEFT" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" text="    ELO" onAction="#loadELO"/>
-            <Button alignment="BASELINE_LEFT" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" text="    Reservation" onAction="#loadReservation"/>
-         </VBox>
-         <Region VBox.vgrow="ALWAYS" />
-      </VBox>
-   </left>
-   <center>
-      <VBox spacing="30.0" BorderPane.alignment="CENTER"><padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
-         <VBox styleClass="content-card">
-            <Label text="User Profile" styleClass="content-title"><VBox.margin><Insets bottom="20.0" /></VBox.margin></Label>
-            <HBox spacing="30" alignment="CENTER_LEFT">
-               <Circle fill="#E2E8F0" radius="50.0" stroke="#4318FF" strokeType="INSIDE" strokeWidth="3.0" />
-               <VBox spacing="10">
-                  <Label text="Berkin İlkan Seçkin" textFill="#2b3674"><font><Font name="System Bold" size="22.0" /></font></Label>
-                  <HBox spacing="10">
-                     <Label styleClass="modern-input" text="ID: 22401560" />
-                     <Label styleClass="modern-input" text="CS" />
-                     <Label styleClass="btn-success" text="🏋 GYM RAT" />
-                     <Label styleClass="tag-orange" text="🔥 100 Day Streak" />
-                  </HBox>
-               </VBox>
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.image.*?>
+
+<VBox spacing="30.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ProfileController">
+   <padding>
+      <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
+   </padding>
+   
+   <VBox styleClass="content-card">
+      <Label styleClass="content-title" text="User Profile">
+         <VBox.margin>
+            <Insets bottom="20.0" />
+         </VBox.margin>
+      </Label>
+      <HBox alignment="CENTER_LEFT" spacing="30">
+         <Circle fill="#E2E8F0" radius="50.0" stroke="#4318FF" strokeType="INSIDE" strokeWidth="3.0" />
+         <VBox spacing="10">
+            <Label text="Berkin İlkan Seçkin" textFill="#2b3674">
+               <font>
+                  <Font name="System Bold" size="22.0" />
+               </font>
+            </Label>
+            <HBox spacing="10">
+               <Label styleClass="modern-input" text="ID: 22401560" />
+               <Label styleClass="modern-input" text="CS" />
+               <Label styleClass="btn-success" text="🏋 GYM RAT" />
+               <Label styleClass="tag-orange" text="🔥 100 Day Streak" />
             </HBox>
          </VBox>
-         <HBox spacing="30.0" VBox.vgrow="ALWAYS">
-            <VBox HBox.hgrow="ALWAYS" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-color: #E2E8F0; -fx-border-radius: 20;"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
-               <HBox alignment="TOP_RIGHT"><Label styleClass="btn-secondary" text="All Sports" /></HBox>
-               <Region VBox.vgrow="ALWAYS" />
-               <Label text="46" textFill="#4318FF"><font><Font name="System Bold" size="48.0" /></font></Label>
-               <Label text="Matches Played" textFill="#2B3674"><font><Font name="System Bold" size="14.0" /></font></Label>
-            </VBox>
-            <VBox HBox.hgrow="ALWAYS" style="-fx-background-color: #FCE8E8; -fx-background-radius: 20;"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
-               <HBox alignment="TOP_RIGHT"><Label styleClass="btn-danger" text="Ranked Only" /></HBox>
-               <Region VBox.vgrow="ALWAYS" />
-               <Label text="83%" textFill="#D93025"><font><Font name="System Bold" size="48.0" /></font></Label>
-               <Label text="Win Rate" textFill="#D93025"><font><Font name="System Bold" size="14.0" /></font></Label>
-            </VBox>
-            <VBox HBox.hgrow="ALWAYS" style="-fx-background-color: #E6F4EA; -fx-background-radius: 20;"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
-               <HBox alignment="TOP_RIGHT"><Label styleClass="btn-success" text="Football" /></HBox>
-               <Region VBox.vgrow="ALWAYS" />
-               <Label text="1420" textFill="#1E8E3E"><font><Font name="System Bold" size="48.0" /></font></Label>
-               <Label text="ELO" textFill="#1E8E3E"><font><Font name="System Bold" size="14.0" /></font></Label>
-            </VBox>
+      </HBox>
+   </VBox>
+   
+   <HBox spacing="30.0" VBox.vgrow="ALWAYS">
+      <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-color: #E2E8F0; -fx-border-radius: 20;" HBox.hgrow="ALWAYS">
+         <padding>
+            <Insets bottom="30" left="30" right="30" top="30" />
+         </padding>
+         <HBox alignment="TOP_RIGHT">
+            <Label styleClass="btn-secondary" text="All Sports" />
          </HBox>
+         <Region VBox.vgrow="ALWAYS" />
+         <Label text="46" textFill="#4318FF">
+            <font>
+               <Font name="System Bold" size="48.0" />
+            </font>
+         </Label>
+         <Label text="Matches Played" textFill="#2B3674">
+            <font>
+               <Font name="System Bold" size="14.0" />
+            </font>
+         </Label>
       </VBox>
-   </center>
-</BorderPane>
+      <VBox style="-fx-background-color: #FCE8E8; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
+         <padding>
+            <Insets bottom="30" left="30" right="30" top="30" />
+         </padding>
+         <HBox alignment="TOP_RIGHT">
+            <Label styleClass="btn-danger" text="Ranked Only" />
+         </HBox>
+         <Region VBox.vgrow="ALWAYS" />
+         <Label text="83%" textFill="#D93025">
+            <font>
+               <Font name="System Bold" size="48.0" />
+            </font>
+         </Label>
+         <Label text="Win Rate" textFill="#D93025">
+            <font>
+               <Font name="System Bold" size="14.0" />
+            </font>
+         </Label>
+      </VBox>
+      <VBox style="-fx-background-color: #E6F4EA; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
+         <padding>
+            <Insets bottom="30" left="30" right="30" top="30" />
+         </padding>
+         <HBox alignment="TOP_RIGHT">
+            <Label styleClass="btn-success" text="Football" />
+         </HBox>
+         <Region VBox.vgrow="ALWAYS" />
+         <Label text="1420" textFill="#1E8E3E">
+            <font>
+               <Font name="System Bold" size="48.0" />
+            </font>
+         </Label>
+         <Label text="ELO" textFill="#1E8E3E">
+            <font>
+               <Font name="System Bold" size="14.0" />
+            </font>
+         </Label>
+      </VBox>
+   </HBox>
+</VBox>

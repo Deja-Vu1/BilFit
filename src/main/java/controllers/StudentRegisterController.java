@@ -20,7 +20,12 @@ public class StudentRegisterController {
 
     // Giriş ekranında kullandığın geçici veritabanı simülasyonu
     public static List<Student> temporaryDatabase = new ArrayList<>();
-
+    
+    static {
+        Student test = new Student("Göktan Arslan", "admin", "admin", "admin", "12345678");
+        temporaryDatabase.add(test);
+    }
+    
     @FXML private TextField fullnameField;
     @FXML private TextField emailField;
     @FXML private TextField studentIdField;
@@ -40,7 +45,7 @@ public class StudentRegisterController {
             return;
         }
 
-        // DB ARKADAŞI: PostgreSQL INSERT INTO Students sorgusu buraya gelecek.
+        // DB : PostgreSQL INSERT INTO Students sorgusu buraya gelecek.
     }
 
     @FXML
@@ -51,10 +56,7 @@ public class StudentRegisterController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root, 1200, 800);
-
-            stage.setScene(scene);
-            stage.show();
+            stage.getScene().setRoot(root);
 
         } catch (IOException e) {
             System.err.println("StudentLoginView yüklenirken hata oluştu!");

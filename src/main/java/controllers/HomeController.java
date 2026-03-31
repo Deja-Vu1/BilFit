@@ -20,7 +20,6 @@ public class HomeController {
     private void loadScene(ActionEvent event, String fxmlFile) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource(fxmlFile));
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-        stage.setScene(new Scene(root, 1200, 800));
-        stage.show();
+        stage.getScene().setRoot(root);
     }
 }
