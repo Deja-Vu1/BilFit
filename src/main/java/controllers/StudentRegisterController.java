@@ -20,7 +20,12 @@ public class StudentRegisterController {
 
     // Giriş ekranında kullandığın geçici veritabanı simülasyonu
     public static List<Student> temporaryDatabase = new ArrayList<>();
-
+    
+    static {
+        Student test = new Student("Göktan Arslan", "admin@bilkent.edu.tr", "admin", "admin", "12345678");
+        temporaryDatabase.add(test);
+    }
+    
     @FXML private TextField fullnameField;
     @FXML private TextField emailField;
     @FXML private TextField studentIdField;

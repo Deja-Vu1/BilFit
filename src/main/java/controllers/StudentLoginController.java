@@ -37,7 +37,7 @@ public class StudentLoginController {
         for (Student student : StudentRegisterController.temporaryDatabase) {
             if (student.login(emailInput, passwordInput)) {
                 System.out.println(" Login successful! \n Welcome, " + student.getNickname());
-                deployHomepage();
+                deployHomepage(event);
                 isLogged = true;
                 break;
             }
@@ -48,8 +48,19 @@ public class StudentLoginController {
         }
     }
 
-    public void deployHomepage() {
-        System.out.println("Redirecting to StudentMainView");
+    public void deployHomepage(ActionEvent event) {
+        System.out.println("Redirecting to Homeview");
+                try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/HomeView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);
+
+        } catch (IOException e) {
+            System.err.println("HomeView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
     }
 
     @FXML

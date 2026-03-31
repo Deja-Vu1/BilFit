@@ -1,7 +1,7 @@
 module bilfit {
     requires javafx.controls;
     requires javafx.fxml;
-    requires java.sql; // Database kullandığın için
+    requires java.sql; // Database için
     requires org.postgresql.jdbc;
     requires jakarta.mail;
 
