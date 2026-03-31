@@ -40,13 +40,7 @@ public class Main extends Application {
         } else {
             System.out.println("Veritabanı bağlantı hatası!");
         }
-
-        if (myDB.verifyActivationCode("arda.ozcimen@ug.bilkent.edu.tr", "931078") == DbStatus.SUCCESS) {
-            System.out.println("Aktivasyon kodu doğrulandı!");
-            myDB.setProfileActivation("arda.ozcimen@ug.bilkent.edu.tr");
-        } else {
-            System.out.println("Aktivasyon kodu doğrulama başarısız!");
-        }
+        
         // JavaFX uygulamasını başlat
         launch(args);
     }
