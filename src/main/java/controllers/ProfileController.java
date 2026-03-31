@@ -16,6 +16,8 @@ public class ProfileController {
     @FXML public void loadReservation(ActionEvent event) throws Exception { loadScene(event, "/views/dashboard/ReservationView.fxml"); }
     @FXML public void loadSettings(ActionEvent event) throws Exception { loadScene(event, "/views/dashboard/SettingsView.fxml"); }
     @FXML public void logout(ActionEvent event) throws Exception { loadScene(event, "/views/auth/SelectionView.fxml"); }
+    @FXML public void loadHome(ActionEvent event) throws Exception { loadScene(event, "/views/dashboard/HomeView.fxml"); }
+
 
     private void loadScene(ActionEvent event, String fxmlFile) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource(fxmlFile));

@@ -22,7 +22,7 @@ public class StudentRegisterController {
     public static List<Student> temporaryDatabase = new ArrayList<>();
     
     static {
-        Student test = new Student("Göktan Arslan", "admin@bilkent.edu.tr", "admin", "admin", "12345678");
+        Student test = new Student("Göktan Arslan", "admin", "admin", "admin", "12345678");
         temporaryDatabase.add(test);
     }
     
