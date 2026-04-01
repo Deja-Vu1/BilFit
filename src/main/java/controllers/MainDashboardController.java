@@ -64,12 +64,12 @@ public class MainDashboardController {
         }
     }
 
-    // Ortadaki alana ilgili FXML'i yükleyen ve buton renklerini ayarlayan metod
+    
     private void loadView(String fxml, Button activeBtn) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("/views/dashboard/" + fxml));
         contentArea.getChildren().setAll(root);
         
-        // Tüm butonları varsayılan (şeffaf arka plan, lacivert yazı) renge döndür
+        
         String defaultStyle = "-fx-background-color: transparent; -fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-font-size: 14px;";
         
         if (btnAccount != null) btnAccount.setStyle(defaultStyle);
@@ -80,13 +80,13 @@ public class MainDashboardController {
         if (btnAdmin != null) btnAdmin.setStyle(defaultStyle);
         if (btnSettings != null) btnSettings.setStyle(defaultStyle);
 
-        // Sadece o an tıklanan (aktif) butonu yeşil ve belirgin yap
+       
         if (activeBtn != null) {
             activeBtn.setStyle("-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-radius: 10;");
         }
     }
 
-    // Full-screen destekli pop-up metodu (hata mesajlarının arkaya düşmemesi için)
+    
     private void showAlert(Alert.AlertType alertType, String title, String message) {
         Alert alert = new Alert(alertType);
         alert.setTitle(title);
