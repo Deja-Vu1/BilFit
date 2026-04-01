@@ -4,6 +4,7 @@ module bilfit {
     requires java.sql; // Database kullandığın için
     requires org.postgresql.jdbc;
     requires jakarta.mail;
+    requires javafx.graphics;
 
     opens core to javafx.graphics, javafx.fxml;
     opens controllers to javafx.fxml;
