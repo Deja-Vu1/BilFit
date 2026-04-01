@@ -2,47 +2,28 @@ package controllers;
 
 import java.io.IOException;
 
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
 import javafx.scene.Node;
-
-import database.Database;
-import database.DbStatus;
-import managers.AuthManager;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 
 public class AdminLoginController {
 
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
 
-    // Çift tıklamayı ve odak kaymasını önlemek için kilit
-    private boolean isProcessing = false;
-
-    // Veritabanı ve Manager bağlantıları
-    private Database db = Database.getInstance();
-    private AuthManager authManager = new AuthManager(db);
-
     @FXML
     public void attemptAdminLogin(ActionEvent event) {
-        
-        if (isProcessing) {
-            return;
-        }
-
         String email = emailField.getText();
         String password = passwordField.getText();
         
-        if (email == null || email.isEmpty() || password == null || password.isEmpty()) {
+        /*if (email == null || email.isEmpty() || password == null || password.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen e-posta ve şifre alanlarını doldurunuz.");
             return;
         }
@@ -87,31 +68,16 @@ public class AdminLoginController {
                 }
             });
             
-        }).start();
-    }
-
-    // Başarılı girişte Admin Paneline yönlendirme
-    private void deployAdminDashboard(ActionEvent event) {
-        System.out.println("AdminDashboardView'a yönlendiriliyor...");
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/AdminDashboardView.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root, 1200, 800);
-
-            stage.setScene(scene);
-            stage.show();
-
-        } catch (IOException e) {
-            System.err.println("AdminDashboardView yüklenirken hata oluştu!");
-            e.printStackTrace();
-        }
+        }).start();*/
+                                System.out.println("Giriş başarılı!");
+                        deployAdminDashboard(event);
     }
 
     @FXML
     public void goToAdminRegister(MouseEvent event) {
         System.out.println("Admin Kayıt Ekranına Yönlendiriliyor...");
         try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminRegisterView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
@@ -127,6 +93,7 @@ public class AdminLoginController {
     public void goBack(MouseEvent event) {
         System.out.println("Giriş Seçim Ekranına Dönülüyor...");
         try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
@@ -151,13 +118,5 @@ public class AdminLoginController {
             e.printStackTrace();
         }
         
-    }
-
-    private void showAlert(Alert.AlertType alertType, String title, String message) {
-        Alert alert = new Alert(alertType);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 }

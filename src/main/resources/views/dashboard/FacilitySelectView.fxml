@@ -1,64 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.effect.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.paint.*?>
-<?import javafx.scene.text.*?>
-<?import javafx.scene.image.*?>
-<?import javafx.scene.shape.*?>
-
-<VBox spacing="30.0" style="-fx-background-color: #F4F7FE;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.FacilitySelectController">
-   <padding>
-      <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
-   </padding>
-   <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;">
-      <padding>
-         <Insets bottom="30" left="30" right="30" top="30" />
-      </padding>
-      <effect>
-         <DropShadow blurType="GAUSSIAN" radius="19.5">
-            <color>
-               <Color opacity="0.08" />
-            </color>
-         </DropShadow>
-      </effect>
-      <HBox alignment="CENTER_LEFT">
-         <Label text="Reservations" textFill="#2b3674">
-            <font>
-               <Font name="System Bold" size="20.0" />
-            </font>
-         </Label>
-         <Region HBox.hgrow="ALWAYS" />
-         <Label style="-fx-font-size: 24;" text="🛎️" />
-      </HBox>
-      <Label text="Users can reserve a sport field" textFill="#a3aed0">
-         <VBox.margin>
-            <Insets bottom="15" top="5" />
-         </VBox.margin>
-      </Label>
-      <Separator prefWidth="200.0">
-         <VBox.margin>
-            <Insets bottom="20.0" />
-         </VBox.margin>
-      </Separator>
-      <HBox spacing="15">
-         <VBox.margin>
-            <Insets bottom="20" />
-         </VBox.margin>
-         <Button prefHeight="40" prefWidth="120" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-border-color: #1E8E3E; -fx-border-radius: 10; -fx-background-radius: 10; -fx-font-weight: bold;" text="Football" />
-         <Button prefHeight="40" prefWidth="120" style="-fx-background-color: #F4F7FE; -fx-text-fill: #2b3674; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-font-weight: bold;" text="Basketball" />
-      </HBox>
-      <HBox alignment="CENTER" spacing="10">
-         <VBox.margin>
-            <Insets bottom="15" />
-         </VBox.margin>
-         <Label text="Main Campus ▼" textFill="#666666">
-            <font>
-               <Font name="System Bold" size="16.0" />
-            </font>
-         </Label>
-      </HBox>
-   </VBox>
-</VBox>
+<?xml version="1.0" encoding="UTF-8"?><?import javafx.geometry.*?><?import javafx.scene.control.*?><?import javafx.scene.effect.*?><?import javafx.scene.layout.*?><?import javafx.scene.paint.*?><?import javafx.scene.text.*?><?import javafx.scene.image.*?><?import javafx.scene.shape.*?><BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.FacilitySelectController">
+   <left><VBox prefWidth="250.0" style="-fx-background-color: #FFFFFF; -fx-border-width: 0 1 0 0;"><padding><Insets top="40" left="20" right="20"/></padding><Button prefHeight="45" prefWidth="210" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 10;" text="    Reservation" /></VBox></left>
+   <center>
+      <VBox spacing="30.0" BorderPane.alignment="CENTER"><padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
+         <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;"><padding><Insets top="30" right="30" bottom="30" left="30"/></padding><effect><DropShadow blurType="GAUSSIAN" radius="19.5"><color><Color opacity="0.08" /></color></DropShadow></effect>
+            <HBox alignment="CENTER_LEFT"><Label text="Reservations" textFill="#2b3674"><font><Font name="System Bold" size="20.0" /></font></Label><Region HBox.hgrow="ALWAYS"/><Label text="🛎️" style="-fx-font-size: 24;"/></HBox>
+            <Label text="Users can reserve a sport field" textFill="#a3aed0"><VBox.margin><Insets bottom="15" top="5"/></VBox.margin></Label>
+            <Separator prefWidth="200.0"><VBox.margin><Insets bottom="20.0" /></VBox.margin></Separator>
+            <HBox spacing="15"><VBox.margin><Insets bottom="20"/></VBox.margin>
+               <Button prefHeight="40" prefWidth="120" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-border-color: #1E8E3E; -fx-border-radius: 10; -fx-background-radius: 10; -fx-font-weight: bold;" text="Football" />
+               <Button prefHeight="40" prefWidth="120" style="-fx-background-color: #F4F7FE; -fx-text-fill: #2b3674; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-font-weight: bold;" text="Basketball" />
+            </HBox>
+            <HBox spacing="10" alignment="CENTER"><VBox.margin><Insets bottom="15"/></VBox.margin>
+               <Label text="Main Campus ▼" textFill="#666666"><font><Font name="System Bold" size="16.0" /></font></Label>
+            </HBox>
+         </VBox>
+      </VBox>
+   </center>
+</BorderPane>

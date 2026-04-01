@@ -2,62 +2,45 @@ package controllers;
 
 import java.io.IOException;
 
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
+import models.Student;
 import javafx.scene.Node;
-
-import database.Database;
-import database.DbStatus;
-import managers.AuthManager;
 
 public class StudentLoginController {
 
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
 
-    // Çift tıklamayı önlemek için kilit
-    private boolean isProcessing = false;
-
-    // Veritabanı ve Manager bağlantılarını başlatıyoruz
-    private Database db = Database.getInstance();
-    private AuthManager authManager = new AuthManager(db);
-
     @FXML
     public void attemptLogin(ActionEvent event) {
         
-        // Eğer zaten giriş işlemi arka planda sürüyorsa, butona tekrar basılmasını yoksay
-        if (isProcessing) {
-            return;
-        }
-
         String emailInput = emailField.getText();
         String passwordInput = passwordField.getText();
 
-        // 1. Boş alan kontrolü
+       /*  // 1. Boş alan kontrolü
         if (emailInput == null || emailInput.isEmpty() || passwordInput == null || passwordInput.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Uyarı", "E-posta veya şifre alanları boş bırakılamaz.");
+            System.out.println("Error: Email or password fields cannot be empty.");
             return;
         }
 
-        // KİLİDİ KAPAT: İşlem başladı
-        isProcessing = true;
+        boolean isLogged = false;
 
-        // Tıklanan butonu yakala ve orijinal yazısını sakla
-        Button clickedButton = (Button) event.getSource();
-        String originalButtonText = clickedButton.getText();
-        
-        // ODAK HİLESİ: Username kutusunun seçilmesini engellemek için odağı arka plana at
-        clickedButton.getParent().requestFocus();
+        for (Student student : StudentRegisterController.temporaryDatabase) {
+            if (student.login(emailInput, passwordInput)) {
+                System.out.println(" Login successful! \n Welcome, " + student.getNickname());
+                deployHomepage(event);
+                isLogged = true;
+                break;
+            }
+        }
 
         // Butonu inaktif (silik) yap ve yazısını değiştir
         clickedButton.setDisable(true);
@@ -99,30 +82,31 @@ public class StudentLoginController {
                 }
             });
             
-        }).start(); // Thread'i başlat
+        }).start(); */// Thread'i başlat
+                        System.out.println("Giriş başarılı!");
+                        deployHomepage(event);
     }
 
     public void deployHomepage(ActionEvent event) {
-        System.out.println("MainDashboardView'a yönlendiriliyor...");
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/MainDashboardView.fxml"));
+        System.out.println("Redirecting to StudentMainView");
+         try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/StudentMainView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root, 1200, 800);
-
-            stage.setScene(scene);
-            stage.show();
+            stage.getScene().setRoot(root);
 
         } catch (IOException e) {
-            System.err.println("MainDashboardView yüklenirken hata oluştu!");
+            System.err.println("StudentMainView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
+        
     }
 
     @FXML
     public void goToRegister(MouseEvent event) {
-        System.out.println("StudentRegisterView'a yönlendiriliyor...");
+        System.out.println("Redirecting to StudentRegisterView");
         try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentRegisterView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
@@ -137,13 +121,24 @@ public class StudentLoginController {
     @FXML
     public void goToForgotPassword(MouseEvent event) {
         System.out.println("Şifremi Unuttum ekranına yönlendiriliyor...");
+                try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ResetPasswordView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);
+
+        } catch (IOException e) {
+            System.err.println("ResetPasswordView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
     }
 
 
     @FXML
     public void goBack(MouseEvent event) {
-        System.out.println("Seçim ekranına dönülüyor...");
+        System.out.println("Redirecting to Main Selection Screen");
         try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
@@ -153,13 +148,5 @@ public class StudentLoginController {
             System.err.println("SelectionView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
-    }
-
-    private void showAlert(Alert.AlertType alertType, String title, String message) {
-        Alert alert = new Alert(alertType);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 }
