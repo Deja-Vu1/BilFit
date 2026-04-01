@@ -130,7 +130,7 @@ public class Database {
         
         String insertUserSql = "INSERT INTO users (full_name, bilkent_email, student_id, password_hash, role, is_activated) VALUES (?, ?, ?, ?, 'student', FALSE) RETURNING id";
         
-        String insertStudentSql = "INSERT INTO students (user_id, elo_point, penalty_points, realibility_score, matches_played, win_rate, is_public_profile, is_elo_matchmaking_enabled) " +
+        String insertStudentSql = "INSERT INTO students (user_id, elo_point, penalty_points, reliability_score, matches_played, win_rate, is_public_profile, is_elo_matching_enabled) " +
                                   "VALUES (?, 1000, 0, 100.0, 0, 0.0, TRUE, TRUE)";
 
         try{
@@ -159,6 +159,7 @@ public class Database {
 
             UUID generatedUserId = null;
             try (PreparedStatement insertUserStmt = getConnection().prepareStatement(insertUserSql)) {
+                passwordHash = hashPassword(passwordHash); 
                 
                 insertUserStmt.setString(1, name);
                 insertUserStmt.setString(2, bilkentMail);
