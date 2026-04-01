@@ -590,6 +590,7 @@ public class Database {
             }
             return DbStatus.QUERY_ERROR;
         }
+    }
 
     /**
      * Removes a specific sport from a student's interests.
