@@ -6,6 +6,7 @@ import models.Match;
 import models.SportType;
 import models.Student;
 import models.Team;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class MatchmakingManager {
@@ -16,15 +17,27 @@ public class MatchmakingManager {
         this.db = db;
     }
 
-    public DbStatus findSoloMatch(Student student, SportType sport) {
+    public Match findSoloMatch(Student student, SportType sport) {
+        if (!student.isCanAttend()) {
+            return null; 
+        }
+
         Student opponent = db.findOpponentForMatch(student.getStudentId(), sport.name(), student.getEloPoint());
         
         if (opponent == null) {
-            return DbStatus.DATA_NOT_FOUND;
+            return null;
         }
         
         String matchId = UUID.randomUUID().toString();
-        return db.insertMatch(matchId, student.getStudentId(), opponent.getStudentId(), sport.name());
+        DbStatus status = db.insertMatch(matchId, student.getStudentId(), opponent.getStudentId(), sport.name());
+        
+        if (status == DbStatus.SUCCESS) {
+            Team team1 = new Team(student.getStudentId() + "_T", student.getNickname(), "SOLO", 1, false, student);
+            Team team2 = new Team(opponent.getStudentId() + "_T", opponent.getNickname(), "SOLO", 1, false, opponent);
+            return new Match(matchId, LocalDateTime.now(), sport, team1, team2);
+        }
+        
+        return null;
     }
 
     public DbStatus recordMatchResult(Match match, Team winnerTeam, int eloChange) {
@@ -34,14 +47,12 @@ public class MatchmakingManager {
             return status;
         }
 
-        int team1AvgElo = calculateTeamAverageElo(match.getTeam1());
-        int team2AvgElo = calculateTeamAverageElo(match.getTeam2());
-
         for (Student s : match.getTeam1().getMembers()) {
             boolean isWinner = match.getTeam1().equals(winnerTeam);
             DbStatus eloStatus = db.updateStudentElo(s.getStudentId(), isWinner, eloChange);
             if (eloStatus == DbStatus.SUCCESS) {
-                s.updateElo(isWinner, team2AvgElo);
+                int newElo = isWinner ? s.getEloPoint() + eloChange : s.getEloPoint() - eloChange;
+                s.setEloPoint(Math.max(0, newElo)); 
             }
         }
 
@@ -49,11 +60,13 @@ public class MatchmakingManager {
             boolean isWinner = match.getTeam2().equals(winnerTeam);
             DbStatus eloStatus = db.updateStudentElo(s.getStudentId(), isWinner, eloChange);
             if (eloStatus == DbStatus.SUCCESS) {
-                s.updateElo(isWinner, team1AvgElo);
+                int newElo = isWinner ? s.getEloPoint() + eloChange : s.getEloPoint() - eloChange;
+                s.setEloPoint(Math.max(0, newElo)); 
             }
         }
 
-        match.concludeMatch(winnerTeam, eloChange);
+        match.setWinner(winnerTeam);
+        match.setPointChange(eloChange);
         return DbStatus.SUCCESS;
     }
 

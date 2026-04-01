@@ -20,24 +20,42 @@ public class TournamentManager {
     }
 
     public DbStatus registerTeamToTournament(Tournament tournament, Team team) {
+        if (!tournament.isActive() || team.getMembers().size() > tournament.getMaxPlayersPerTeam()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        for (Team t : tournament.getParticipatingTeams()) {
+            if (t.getTeamId().equals(team.getTeamId())) {
+                return DbStatus.QUERY_ERROR;
+            }
+        }
+
         DbStatus status = db.insertTournamentParticipant(tournament.getTournamentId(), team.getTeamId());
         
         if (status == DbStatus.SUCCESS) {
-            tournament.applyAsTeam(team);
+            tournament.getParticipatingTeams().add(team);
         }
         return status;
     }
 
     public DbStatus applyWithCode(Tournament tournament, Student student, String code) {
-        if (!tournament.getAccessCode().equals(code)) {
+        if (!tournament.isActive() || !student.isCanAttend() || !tournament.getAccessCode().equals(code)) {
             return DbStatus.QUERY_ERROR;
+        }
+
+        for (Team t : tournament.getParticipatingTeams()) {
+            if (t.getMembers().contains(student)) {
+                return DbStatus.QUERY_ERROR;
+            }
         }
 
         DbStatus status = db.insertTournamentParticipant(tournament.getTournamentId(), student.getStudentId());
         
         if (status == DbStatus.SUCCESS) {
-            tournament.applyWithCode(student, code);
+            Team soloTeam = new Team(student.getStudentId() + "_T", student.getNickname(), "SOLO", 1, false, student);
+            tournament.getParticipatingTeams().add(soloTeam);
         }
+        
         return status;
     }
 
@@ -45,7 +63,8 @@ public class TournamentManager {
         DbStatus status = db.updateTournamentDetails(tournament.getTournamentId(), newName, newMaxPlayers);
         
         if (status == DbStatus.SUCCESS) {
-            tournament.editDetails(newName, newMaxPlayers, tournament.getCampusLocation());
+            tournament.setTournamentName(newName);
+            tournament.setMaxPlayersPerTeam(newMaxPlayers);
         }
         return status;
     }
@@ -58,7 +77,7 @@ public class TournamentManager {
         DbStatus status = db.updateTournamentStatus(tournament.getTournamentId(), false);
         
         if (status == DbStatus.SUCCESS) {
-            tournament.cancelTournament();
+            tournament.setActive(false);
         }
         return status;
     }
@@ -67,7 +86,7 @@ public class TournamentManager {
         DbStatus status = db.insertFixture(tournament.getTournamentId());
         
         if (status == DbStatus.SUCCESS) {
-            tournament.generateFixture();
+            tournament.getTournamentFixture().setCurrentStage("Group Stage Prepared");
         }
         return status;
     }
@@ -76,7 +95,8 @@ public class TournamentManager {
         DbStatus status = db.updateTournamentDates(tournament.getTournamentId(), newStart, newEnd);
         
         if (status == DbStatus.SUCCESS) {
-            tournament.updateSchedule(newStart, newEnd);
+            tournament.setStartDate(newStart);
+            tournament.setEndDate(newEnd);
         }
         return status;
     }

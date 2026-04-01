@@ -3,7 +3,6 @@ package models;
 import java.time.LocalDateTime;
 
 public class Match {
-
     private String matchId;
     private LocalDateTime date;
     private SportType sportType;
@@ -21,13 +20,18 @@ public class Match {
         this.winner = null;
     }
 
-    public void concludeMatch(Team winnerTeam, int pointChange) {
-        this.winner = winnerTeam;
-        this.pointChange = pointChange;
-    }
-
     public String getMatchId() { return matchId; }
+    public void setMatchId(String matchId) { this.matchId = matchId; }
+    public LocalDateTime getDate() { return date; }
+    public void setDate(LocalDateTime date) { this.date = date; }
+    public SportType getSportType() { return sportType; }
+    public void setSportType(SportType sportType) { this.sportType = sportType; }
+    public int getPointChange() { return pointChange; }
+    public void setPointChange(int pointChange) { this.pointChange = pointChange; }
     public Team getTeam1() { return team1; }
+    public void setTeam1(Team team1) { this.team1 = team1; }
     public Team getTeam2() { return team2; }
+    public void setTeam2(Team team2) { this.team2 = team2; }
     public Team getWinner() { return winner; }
+    public void setWinner(Team winner) { this.winner = winner; }
 }

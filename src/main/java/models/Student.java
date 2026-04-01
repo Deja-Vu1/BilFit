@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Student extends User {
+    public static final int MAX_PENALTY_LIMIT = 3;
+    public static final double MIN_RELIABILITY_SCORE = 50.0;
+    
     private String studentId;
     private int eloPoint;
     private int penaltyPoints;
@@ -39,198 +42,39 @@ public class Student extends User {
         this.friendRequests = new ArrayList<>();
     }
 
-    public void addInterest(SportType sport) {
-        if (!interests.contains(sport)) {
-            interests.add(sport);
-        }
+    public String getStudentId() { return studentId; }
+    public void setStudentId(String studentId) { this.studentId = studentId; }
+    public int getEloPoint() { return eloPoint; }
+    public void setEloPoint(int eloPoint) { this.eloPoint = eloPoint; }
+    public int getPenaltyPoints() { return penaltyPoints; }
+    public void setPenaltyPoints(int penaltyPoints) { this.penaltyPoints = penaltyPoints; }
+    public double getReliabilityScore() { return reliabilityScore; }
+    public void setReliabilityScore(double reliabilityScore) { this.reliabilityScore = reliabilityScore; }
+    public List<SportType> getInterests() { return interests; }
+    public void setInterests(List<SportType> interests) { this.interests = interests; }
+    public List<String> getBadges() { return badges; }
+    public void setBadges(List<String> badges) { this.badges = badges; }
+    public int getMatchesPlayed() { return matchesPlayed; }
+    public void setMatchesPlayed(int matchesPlayed) { this.matchesPlayed = matchesPlayed; }
+    public int getMatchesWon() { return matchesWon; }
+    public void setMatchesWon(int matchesWon) { this.matchesWon = matchesWon; }
+    public double getWinRate() { return winRate; }
+    public void setWinRate(double winRate) { this.winRate = winRate; }
+    public boolean isPublicProfile() { return isPublicProfile; }
+    public void setPublicProfile(boolean isPublicProfile) { this.isPublicProfile = isPublicProfile; }
+    public boolean isEloMatchingEnabled() { return isEloMatchingEnabled; }
+    public void setEloMatchingEnabled(boolean isEloMatchingEnabled) { this.isEloMatchingEnabled = isEloMatchingEnabled; }
+    public boolean isBanned() { return isBanned; }
+    public void setBanned(boolean isBanned) { this.isBanned = isBanned; }
+    
+    public boolean isCanAttend() { 
+        return this.penaltyPoints < MAX_PENALTY_LIMIT && this.reliabilityScore >= MIN_RELIABILITY_SCORE && !this.isBanned; 
     }
-
-    public void removeInterest(SportType sport) {
-        interests.remove(sport);
-    }
-
-    public void updateElo(boolean matchWon, int opponentElo) {
-        int kFactor = 32;
-        double expectedScore = 1.0 / (1.0 + Math.pow(10.0, (opponentElo - this.eloPoint) / 400.0));
-        double actualScore = matchWon ? 1.0 : 0.0;
-        
-        this.eloPoint = (int) (this.eloPoint + kFactor * (actualScore - expectedScore));
-        this.matchesPlayed++;
-        
-        if (matchWon) {
-            this.matchesWon++;
-        }
-        
-        if (this.matchesPlayed > 0) {
-            this.winRate = ((double) this.matchesWon / this.matchesPlayed) * 100.0;
-        }
-    }
-
-    public void updateReliabilityScore(boolean attended) {
-        if (!attended) {
-            this.reliabilityScore -= 5.0;
-        } else if (this.reliabilityScore < 100.0) {
-            this.reliabilityScore += 1.0;
-        }
-    }
-
-    public void addPenaltyPoint(int points) {
-        this.penaltyPoints += points;
-    }
-
-    public double calculateJaccardSimilarity(Student other) {
-        int intersection = 0;
-        for (SportType sport : this.interests) {
-            if (other.interests.contains(sport)) {
-                intersection++;
-            }
-        }
-        int union = this.interests.size() + other.interests.size() - intersection;
-        if (union == 0) return 0.0;
-        return (double) intersection / union;
-    }
-
-    public void toggleEloMatching(boolean enabled) {
-        this.isEloMatchingEnabled = enabled;
-    }
-
-    public void updateProfileVisibility(boolean isPublic) {
-        this.isPublicProfile = isPublic;
-    }
-
-    public void sendFriendRequest(Student target) {
-        if (!target.friendRequests.contains(this)) {
-            target.friendRequests.add(this);
-        }
-    }
-
-    public void acceptFriendRequest(Student requester) {
-        if (this.friendRequests.contains(requester)) {
-            this.friends.add(requester);
-            requester.friends.add(this);
-            this.friendRequests.remove(requester);
-        }
-    }
-
-    public void removeFriend(Student target) {
-        this.friends.remove(target);
-        target.friends.remove(this);
-    }
-
-    public String getProfileTranscript() {
-        return "Matches: " + matchesPlayed + " | Win Rate: " + String.format("%.1f", winRate) + "% | ELO: " + eloPoint;
-    }
-
-    public String getStudentId() {
-    return studentId;
-}
-
-public void setStudentId(String studentId) {
-    this.studentId = studentId;
-}
-
-public int getEloPoint() {
-    return eloPoint;
-}
-
-public void setEloPoint(int eloPoint) {
-    this.eloPoint = eloPoint;
-}
-
-public double getPenaltyPoints() {
-    return penaltyPoints;
-}
-
-public void setPenaltyPoints(int penaltyPoints) {
-    this.penaltyPoints = penaltyPoints;
-}
-
-public double getReliabilityScore() {
-    return reliabilityScore;
-}
-
-public void setReliabilityScore(double reliabilityScore) {
-    this.reliabilityScore = reliabilityScore;
-}
-
-public List<SportType> getInterests() {
-    return interests;
-}
-
-public void setInterests(List<SportType> interests) {
-    this.interests = interests;
-}
-
-public List<String> getBadges() {
-    return badges;
-}
-
-public void setBadges(List<String> badges) {
-    this.badges = badges;
-}
-
-public int getMatchesPlayed() {
-    return matchesPlayed;
-}
-
-public void setMatchesPlayed(int matchesPlayed) {
-    this.matchesPlayed = matchesPlayed;
-}
-
-public double getWinRate() {
-    return winRate;
-}
-
-public void setWinRate(double winRate) {
-    this.winRate = winRate;
-}
-
-public boolean isPublicProfile() {
-    return isPublicProfile;
-}
-
-public void setPublicProfile(boolean isPublicProfile) {
-    this.isPublicProfile = isPublicProfile;
-}
-
-public boolean isEloMatchingEnabled() {
-    return isEloMatchingEnabled;
-}
-
-public void setEloMatchingEnabled(boolean isEloMatchingEnabled) {
-    this.isEloMatchingEnabled = isEloMatchingEnabled;
-}
-
-public boolean isBanned() {
-    return isBanned;
-}
-
-public void setBanned(boolean isBanned) {
-    this.isBanned = isBanned;
-}
-
-public List<Match> getMatchHistory() {
-    return matchHistory;
-}
-
-public void setMatchHistory(List<Match> matchHistory) {
-    this.matchHistory = matchHistory;
-}
-
-public List<Student> getFriends() {
-    return friends;
-}
-
-public void setFriends(List<Student> friends) {
-    this.friends = friends;
-}
-
-public List<Student> getFriendRequests() {
-    return friendRequests;
-}
-
-public void setFriendRequests(List<Student> friendRequests) {
-    this.friendRequests = friendRequests;
-}
-
+    
+    public List<Match> getMatchHistory() { return matchHistory; }
+    public void setMatchHistory(List<Match> matchHistory) { this.matchHistory = matchHistory; }
+    public List<Student> getFriends() { return friends; }
+    public void setFriends(List<Student> friends) { this.friends = friends; }
+    public List<Student> getFriendRequests() { return friendRequests; }
+    public void setFriendRequests(List<Student> friendRequests) { this.friendRequests = friendRequests; }
 }

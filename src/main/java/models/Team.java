@@ -19,32 +19,22 @@ public class Team {
         this.maxCapacity = maxCapacity;
         this.ge250Requested = ge250Requested;
         this.captain = captain;
-        
         this.members = new ArrayList<>();
         this.members.add(captain);
     }
 
-    public boolean addMember(Student student, String code) {
-        boolean isCodeValid = (this.accessCode == null || this.accessCode.isEmpty() || this.accessCode.equals(code));
-        
-        if (!isFull() && isCodeValid && !members.contains(student)) {
-            members.add(student);
-            return true;
-        }
-        return false;
-    }
-
-    public void removeMember(Student student) {
-        if (!student.equals(captain)) { 
-            members.remove(student);
-        }
-    }
-
-    public boolean isFull() {
-        return members.size() >= maxCapacity;
-    }
-
-    public Student getCaptain() { return captain; }
-    public List<Student> getMembers() { return members; }
+    public String getTeamId() { return teamId; }
+    public void setTeamId(String teamId) { this.teamId = teamId; }
     public String getTeamName() { return teamName; }
+    public void setTeamName(String teamName) { this.teamName = teamName; }
+    public String getAccessCode() { return accessCode; }
+    public void setAccessCode(String accessCode) { this.accessCode = accessCode; }
+    public int getMaxCapacity() { return maxCapacity; }
+    public void setMaxCapacity(int maxCapacity) { this.maxCapacity = maxCapacity; }
+    public boolean isGe250Requested() { return ge250Requested; }
+    public void setGe250Requested(boolean ge250Requested) { this.ge250Requested = ge250Requested; }
+    public List<Student> getMembers() { return members; }
+    public void setMembers(List<Student> members) { this.members = members; }
+    public Student getCaptain() { return captain; }
+    public void setCaptain(Student captain) { this.captain = captain; }
 }

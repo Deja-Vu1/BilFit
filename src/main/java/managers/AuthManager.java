@@ -12,7 +12,7 @@ public class AuthManager {
     }
 
     public DbStatus registerStudent(String email, String password, String studentId, String fullName) {
-        return db.registerUser(email, password, null, "STUDENT");
+        return db.registerUser(email, password, studentId, fullName, null, "STUDENT");
     }
 
     public DbStatus registerAdmin(String email, String password, String activationCode, String fullName) {
@@ -22,7 +22,7 @@ public class AuthManager {
             return verificationStatus;
         }
 
-        return db.registerUser(email, password, activationCode, "ADMIN");
+        return db.registerUser(email, password, null, fullName, activationCode, "ADMIN");
     }
 
     public DbStatus loginStudent(String email, String password) {

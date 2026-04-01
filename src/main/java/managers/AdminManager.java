@@ -21,8 +21,7 @@ public class AdminManager {
         
         if (status == DbStatus.SUCCESS) {
             student.setBanned(true);
-            student.updateProfileVisibility(false);
-            admin.banUser(student);
+            // student.setPublicProfile(false);
         }
         
         return status;
@@ -32,27 +31,21 @@ public class AdminManager {
         DbStatus status = db.updateFacilityMaintenance(facility.getName(), isUnderMaintenance);
         
         if (status == DbStatus.SUCCESS) {
-            facility.setMaintenanceStatus(isUnderMaintenance);
+            facility.setUnderMaintenance(isUnderMaintenance);
         }
         
         return status;
     }
 
     public DbStatus sendSystemBroadcast(Admin admin, String message) {
-        DbStatus status = db.insertNotification("BROADCAST", "System Update", message);
-        
-        if (status == DbStatus.SUCCESS) {
-            admin.createNotification(message);
-        }
-        
-        return status;
+        return db.insertNotification("BROADCAST", "System Update", message);
     }
 
     public DbStatus givePenaltyPoint(Student targetStudent, int points) {
         DbStatus status = db.updateStudentPenalty(targetStudent.getStudentId(), targetStudent.getPenaltyPoints() + points);
         
         if (status == DbStatus.SUCCESS) {
-            targetStudent.addPenaltyPoint(points);
+            targetStudent.setPenaltyPoints(targetStudent.getPenaltyPoints() + points);
         }
         
         return status;
@@ -70,6 +63,26 @@ public class AdminManager {
         if (status == DbStatus.SUCCESS) {
             reservation.setDate(newDate);
             reservation.setTimeSlot(newTimeSlot);
+        }
+        
+        return status;
+    }
+
+    public DbStatus updateNickname(Admin admin, String newNickname) {
+        DbStatus status = db.updateUserNickname(admin.getBilkentEmail(), newNickname);
+        
+        if (status == DbStatus.SUCCESS) {
+            admin.setNickname(newNickname);
+        }
+        
+        return status;
+    }
+
+    public DbStatus updatePassword(Admin admin, String newPassword) {
+        DbStatus status = db.updateUserPassword(admin.getBilkentEmail(), newPassword);
+        
+        if (status == DbStatus.SUCCESS) {
+            admin.setPassword(newPassword);
         }
         
         return status;
