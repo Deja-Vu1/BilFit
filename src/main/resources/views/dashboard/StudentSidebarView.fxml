@@ -45,18 +45,18 @@
             <padding>
                <Insets left="20.0" right="20.0" />
             </padding>
-            <Button alignment="BASELINE_LEFT" onAction="#loadAccount" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Account" />
-            <Button alignment="BASELINE_LEFT" onAction="#loadHome" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn, active" stylesheets="@bilfit-exact.css" text="    Home" textAlignment="CENTER" />
-            <Button alignment="BASELINE_LEFT" onAction="#loadTournaments" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Tournaments" />
-            <Button alignment="BASELINE_LEFT" onAction="#loadELO" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    ELO" />
-            <Button alignment="BASELINE_LEFT" onAction="#loadReservations" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Reservation" />
+            <Button fx:id="btnAccount" alignment="BASELINE_LEFT" onAction="#loadAccount" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Account" />
+            <Button fx:id="btnHome" alignment="BASELINE_LEFT" onAction="#loadHome" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn, active" stylesheets="@bilfit-exact.css" text="    Home" textAlignment="CENTER" />
+            <Button fx:id="btnTournaments" alignment="BASELINE_LEFT" onAction="#loadTournaments" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Tournaments" />
+            <Button fx:id="btnELO" alignment="BASELINE_LEFT" onAction="#loadELO" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    ELO" />
+            <Button fx:id="btnReservation" alignment="BASELINE_LEFT" onAction="#loadReservations" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Reservation" />
          </VBox>
          <Region VBox.vgrow="ALWAYS" />
          <VBox alignment="CENTER" spacing="8.0">
             <padding>
                <Insets bottom="30.0" left="20.0" right="20.0" />
             </padding>
-            <Button alignment="BASELINE_LEFT" onAction="#loadSettings" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Settings" textAlignment="CENTER" />
+            <Button fx:id="btnSettings" alignment="BASELINE_LEFT" onAction="#loadSettings" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Settings" textAlignment="CENTER" />
             <Button alignment="BASELINE_LEFT" onAction="#logout" prefHeight="45.0" prefWidth="210.0" style="-fx-text-fill: #D93025; -fx-background-color: #FCE8E8; -fx-background-radius: 10;" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Logout" />
          </VBox>
       </VBox>
