@@ -70,7 +70,7 @@ public class AdminLoginController {
             
         }).start();*/
                                 System.out.println("Giriş başarılı!");
-                        deployAdminDashboard(event);
+                        deployHomepage(event);
     }
 
     @FXML
