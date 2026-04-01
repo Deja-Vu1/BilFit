@@ -29,7 +29,7 @@ public class AdminLoginController {
     private boolean isProcessing = false;
 
     // Veritabanı ve Manager bağlantıları
-    private Database db = new Database();
+    private Database db = Database.getInstance();
     private AuthManager authManager = new AuthManager(db);
 
     @FXML

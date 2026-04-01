@@ -31,7 +31,7 @@ public class StudentRegisterController {
     private boolean isProcessing = false;
 
     // Veritabanı ve Manager bağlantılarını başlatıyoruz
-    private Database db = new Database();
+    private Database db = Database.getInstance();
     private AuthManager authManager = new AuthManager(db);
 
     @FXML

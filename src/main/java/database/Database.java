@@ -14,19 +14,34 @@ import java.util.UUID;
 
 public class Database {
 
+    // 1. Uygulama boyunca yaşayacak TEK ortak nesne
+    private static Database instance;
+
     private String dbUrl;
     private String dbUser;
     private String dbPassword;
     private String salt;
     private Connection conn;
 
-    public Database() {
+    // 2. Constructor'ı "public" yerine "private" yapıyoruz.
+    // Bu sayede dışarıdan kimse "new Database()" diyemez!
+    private Database() {
         loadProperties();
         try {
             getConnection();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    // 3. Herkesin bu ortak nesneye ulaşmak için kullanacağı metod
+    public static Database getInstance() {
+        if (instance == null) {
+            // Eğer obje henüz hiç oluşturulmadıysa 1 kere oluştur
+            instance = new Database();
+        }
+        // Eğer zaten oluşturulduysa var olanı ver
+        return instance;
     }
 
     private void loadProperties() {
@@ -49,7 +64,7 @@ public class Database {
     // Yardımcı metot: Bağlantıyı oluşturur veya kapalıysa yeniden açar
     private Connection getConnection() throws SQLException {
         // Bağlantı yoksa, kapandıysa veya geçerliliğini yitirdiyse yenisini aç
-        if (conn == null || conn.isClosed() || !conn.isValid(2)) { // 2 saniye timeout ile kontrol et
+        if (conn == null || conn.isClosed()) { // 2 saniye timeout ile kontrol et
             conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
         }
         return conn;
