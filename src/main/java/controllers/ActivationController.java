@@ -107,6 +107,13 @@ public class ActivationController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        
+        // Full-screen pop-up arkaya düşme sorunu çözümü
+        if (activationCodeField != null && activationCodeField.getScene() != null) {
+            Stage stage = (Stage) activationCodeField.getScene().getWindow();
+            alert.initOwner(stage);
+        }
+        
         alert.showAndWait();
     }
 }

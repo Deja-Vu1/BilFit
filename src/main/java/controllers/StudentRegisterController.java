@@ -111,6 +111,13 @@ public class StudentRegisterController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        
+        // Full-screen pop-up arkaya düşme sorunu çözümü
+        if (emailField != null && emailField.getScene() != null) {
+            Stage stage = (Stage) emailField.getScene().getWindow();
+            alert.initOwner(stage);
+        }
+        
         alert.showAndWait();
     }
 }

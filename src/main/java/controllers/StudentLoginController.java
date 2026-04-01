@@ -123,6 +123,13 @@ public class StudentLoginController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        
+        // Eğer sahnemiz aktifse, pop-up'ın sahibini (owner) ana ekran olarak ayarlıyoruz.
+        if (emailField.getScene() != null) {
+            Stage stage = (Stage) emailField.getScene().getWindow();
+            alert.initOwner(stage);
+        }
+        
         alert.showAndWait();
     }
 }
