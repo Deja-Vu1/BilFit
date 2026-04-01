@@ -519,4 +519,76 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Adds a new sport interest for a student.
+     * Prevents duplicate entries for the same student and sport.
+     * It automatically checks if the provided sport name exists in the sports table and if the student email exists in the users table.
+     * Prohibit case sensitivity for sport names to prevent duplicates like "Football" and "football".
+     * @param mail Student's Bilkent email address
+     * @param sportName Name of the sport to add
+     * @return DbStatus indicating SUCCESS, INTEREST_ALREADY_EXISTS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus insertStudentInterest(String mail, String sportName) {
+        
+        String findUserSql = "SELECT id FROM users WHERE bilkent_email = ?";
+        String findSportSql = "SELECT id FROM sports WHERE LOWER(name) = LOWER(?)";
+        
+        String checkInterestExistsSql = "SELECT 1 FROM student_interests WHERE student_id = ? AND sport_id = ?";
+        
+        String insertInterestSql = "INSERT INTO student_interests (student_id, sport_id) VALUES (?, ?)";
+
+        try (Connection conn = getConnection()) {
+
+            java.util.UUID userId = null;
+            try (PreparedStatement userStmt = conn.prepareStatement(findUserSql)) {
+                userStmt.setString(1, mail);
+                try (ResultSet rs = userStmt.executeQuery()) {
+                    if (rs.next()) {
+                        userId = rs.getObject("id", java.util.UUID.class);
+                    } else {
+                        return DbStatus.DATA_NOT_FOUND; 
+                    }
+                }
+            }
+
+            int sportId = -1;
+            try (PreparedStatement sportStmt = conn.prepareStatement(findSportSql)) {
+                sportStmt.setString(1, sportName);
+                try (ResultSet rs = sportStmt.executeQuery()) {
+                    if (rs.next()) {
+                        sportId = rs.getInt("id");
+                    } else {
+                        return DbStatus.DATA_NOT_FOUND; 
+                    }
+                }
+            }
+
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkInterestExistsSql)) {
+                checkStmt.setObject(1, userId);
+                checkStmt.setInt(2, sportId);
+                
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        return DbStatus.QUERY_ERROR; 
+                    }
+                }
+            }
+
+            try (PreparedStatement insertStmt = conn.prepareStatement(insertInterestSql)) {
+                insertStmt.setObject(1, userId);
+                insertStmt.setInt(2, sportId);
+
+                int insertedRows = insertStmt.executeUpdate();
+                return insertedRows > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
