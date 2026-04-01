@@ -638,7 +638,7 @@ public class Database {
         
         // İç içe sorgu (Subquery) sayesinde e-posta üzerinden doğrudan students tablosunu güncelliyoruz
         String updateSql = "UPDATE students " +
-                           "SET is_elo_matchmaking_enabled = ? " +
+                           "SET is_elo_matching_enabled = ? " +
                            "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
 
         try (Connection conn = getConnection();
