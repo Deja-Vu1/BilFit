@@ -590,5 +590,38 @@ public class Database {
             }
             return DbStatus.QUERY_ERROR;
         }
+
+    /**
+     * Removes a specific sport from a student's interests.
+     * Uses case-insensitive matching for the sport name.
+     * @param mail Student's Bilkent email address
+     * @param sportName Name of the sport to remove
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if the interest didn't exist), or errors.
+     */
+    public DbStatus deleteStudentInterest(String mail, String sportName) {
+        
+        String deleteSql = "DELETE FROM student_interests " +
+                           "WHERE student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                           "AND sport_id = (SELECT id FROM sports WHERE LOWER(name) = LOWER(?))";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(deleteSql)) {
+
+            stmt.setString(1, mail);
+            stmt.setString(2, sportName);
+
+            int deletedRows = stmt.executeUpdate();
+
+            return deletedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
     }
 }
