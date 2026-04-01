@@ -22,12 +22,12 @@ public class AdminLoginController {
     public void attemptAdminLogin(ActionEvent event) {
         String email = emailField.getText();
         String password = passwordField.getText();
-        
-        System.out.println("Admin Girişi Deneniyor. Email: " + email);
+        deployHomepage(event);
+       /* System.out.println("Admin Girişi Deneniyor. Email: " + email);
         if (email.isEmpty() || password.isEmpty()) {
             System.out.println("Error: Fields cannot be empty.");
             return;
-        }
+        }*/
     }
 
     @FXML
@@ -60,5 +60,20 @@ public class AdminLoginController {
             System.err.println("SelectionView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
+    }
+    
+        public void deployHomepage(ActionEvent event) {
+        System.out.println("Redirecting to AdminMainView");
+         try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/AdminMainView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);
+
+        } catch (IOException e) {
+            System.err.println("AdminMainView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
+        
     }
 }
