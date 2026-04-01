@@ -18,9 +18,15 @@ public class Database {
     private String dbUser;
     private String dbPassword;
     private String salt;
+    private Connection conn;
 
     public Database() {
         loadProperties();
+        try {
+            getConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     private void loadProperties() {
@@ -41,8 +47,8 @@ public class Database {
     }
 
     // Yardımcı metot: Bağlantıyı oluşturur
-    private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+    private void getConnection() throws SQLException {
+        conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
     }
 
     private String generateRandomCode(int length) {
@@ -59,7 +65,7 @@ public class Database {
      * Veritabanı bağlantısının başarılı olup olmadığını test eder.
      */
     public DbStatus testConnection() {
-        try (Connection conn = getConnection()) {
+        try{
             if (conn != null && !conn.isClosed()) {
                 return DbStatus.SUCCESS;
             }
@@ -108,7 +114,7 @@ public class Database {
         String insertStudentSql = "INSERT INTO students (user_id, elo_point, penalty_points, realibility_score, matches_played, win_rate, is_public_profile, is_elo_matchmaking_enabled) " +
                                   "VALUES (?, 1000, 0, 100.0, 0, 0.0, TRUE, TRUE)";
 
-        try (Connection conn = getConnection()) {
+        try{
 
             try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
                 gcStmt.executeUpdate();
@@ -194,7 +200,7 @@ public class Database {
         
         String insertSql = "INSERT INTO users (full_name, bilkent_email, student_id, password_hash, role, is_activated) VALUES (?, ?, NULL, ?, 'admin', FALSE)";
 
-        try (Connection conn = getConnection()) {
+        try {
 
             try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
                 gcStmt.executeUpdate();
@@ -253,7 +259,7 @@ public class Database {
     public DbStatus loginStudent(String email, String plainPassword) {
         String sql = "SELECT password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
 
-        try (Connection conn = getConnection();
+        try (
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, email);
@@ -304,7 +310,7 @@ public class Database {
         
         String sql = "SELECT password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
 
-        try (Connection conn = getConnection();
+        try (
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, email);
@@ -357,7 +363,7 @@ public class Database {
     public DbStatus setProfileActivation(String email) {
         String updateSql = "UPDATE users SET is_activated = TRUE WHERE bilkent_email = ?";
 
-        try (Connection conn = getConnection();
+        try (
              PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
 
             updateStmt.setString(1, email);
@@ -393,7 +399,7 @@ public class Database {
         
         String gcSql = "DELETE FROM activation WHERE created_at < NOW() - INTERVAL '30 minutes'";
 
-        try (Connection conn = getConnection();
+        try (
              PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
 
             selectStmt.setString(1, email);
@@ -449,7 +455,7 @@ public class Database {
         String insertActivationSql = "INSERT INTO activation (user_id, activation_code) VALUES (?, ?)";
         String activationCode = generateRandomCode(6); // Creates a random 6-digit code
 
-        try (Connection conn = getConnection();
+        try (
             PreparedStatement findUserStmt = conn.prepareStatement(findUserSql)) {
             EmailService emailService = new EmailService();
             findUserStmt.setString(1, email);
