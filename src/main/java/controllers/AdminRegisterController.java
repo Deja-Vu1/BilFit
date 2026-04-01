@@ -27,7 +27,7 @@ public class AdminRegisterController {
     @FXML private PasswordField passwordField;
 
     private boolean isProcessing = false;
-    private Database db = new Database();
+    private Database db = Database.getInstance();
     private AuthManager authManager = new AuthManager(db);
 
     @FXML

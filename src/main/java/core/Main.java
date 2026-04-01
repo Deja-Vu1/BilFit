@@ -34,7 +34,7 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         // Veritabanı bağlantısını ana thread'de kontrol ediyoruz
-        Database myDB = new Database();
+        Database myDB = Database.getInstance();
         if (myDB.testConnection() == DbStatus.SUCCESS){
             System.out.println("Veritabanı bağlantısı başarılı!");
         } else {
