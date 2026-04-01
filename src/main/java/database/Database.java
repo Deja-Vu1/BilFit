@@ -14,13 +14,34 @@ import java.util.UUID;
 
 public class Database {
 
+    // 1. Uygulama boyunca yaşayacak TEK ortak nesne
+    private static Database instance;
+
     private String dbUrl;
     private String dbUser;
     private String dbPassword;
     private String salt;
+    private Connection conn;
 
-    public Database() {
+    // 2. Constructor'ı "public" yerine "private" yapıyoruz.
+    // Bu sayede dışarıdan kimse "new Database()" diyemez!
+    private Database() {
         loadProperties();
+        try {
+            getConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 3. Herkesin bu ortak nesneye ulaşmak için kullanacağı metod
+    public static Database getInstance() {
+        if (instance == null) {
+            // Eğer obje henüz hiç oluşturulmadıysa 1 kere oluştur
+            instance = new Database();
+        }
+        // Eğer zaten oluşturulduysa var olanı ver
+        return instance;
     }
 
     private void loadProperties() {
@@ -40,9 +61,13 @@ public class Database {
         }
     }
 
-    // Yardımcı metot: Bağlantıyı oluşturur
+    // Yardımcı metot: Bağlantıyı oluşturur veya kapalıysa yeniden açar
     private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+        // Bağlantı yoksa, kapandıysa veya geçerliliğini yitirdiyse yenisini aç
+        if (conn == null || conn.isClosed()) { // 2 saniye timeout ile kontrol et
+            conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+        }
+        return conn;
     }
 
     private String generateRandomCode(int length) {
@@ -59,7 +84,7 @@ public class Database {
      * Veritabanı bağlantısının başarılı olup olmadığını test eder.
      */
     public DbStatus testConnection() {
-        try (Connection conn = getConnection()) {
+        try{
             if (conn != null && !conn.isClosed()) {
                 return DbStatus.SUCCESS;
             }
@@ -108,13 +133,13 @@ public class Database {
         String insertStudentSql = "INSERT INTO students (user_id, elo_point, penalty_points, realibility_score, matches_played, win_rate, is_public_profile, is_elo_matchmaking_enabled) " +
                                   "VALUES (?, 1000, 0, 100.0, 0, 0.0, TRUE, TRUE)";
 
-        try (Connection conn = getConnection()) {
+        try{
 
-            try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
+            try (PreparedStatement gcStmt = getConnection().prepareStatement(gcSql)) {
                 gcStmt.executeUpdate();
             }
 
-            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
                 checkStmt.setString(1, bilkentMail);
                 checkStmt.setString(2, studentId);
 
@@ -133,7 +158,7 @@ public class Database {
             }
 
             UUID generatedUserId = null;
-            try (PreparedStatement insertUserStmt = conn.prepareStatement(insertUserSql)) {
+            try (PreparedStatement insertUserStmt = getConnection().prepareStatement(insertUserSql)) {
                 
                 insertUserStmt.setString(1, name);
                 insertUserStmt.setString(2, bilkentMail);
@@ -151,7 +176,7 @@ public class Database {
                 return DbStatus.QUERY_ERROR;
             }
 
-            try (PreparedStatement insertStudentStmt = conn.prepareStatement(insertStudentSql)) {
+            try (PreparedStatement insertStudentStmt = getConnection().prepareStatement(insertStudentSql)) {
                 insertStudentStmt.setObject(1, generatedUserId);
                 
                 int studentInsertedRows = insertStudentStmt.executeUpdate();
@@ -194,13 +219,13 @@ public class Database {
         
         String insertSql = "INSERT INTO users (full_name, bilkent_email, student_id, password_hash, role, is_activated) VALUES (?, ?, NULL, ?, 'admin', FALSE)";
 
-        try (Connection conn = getConnection()) {
+        try {
 
-            try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
+            try (PreparedStatement gcStmt = getConnection().prepareStatement(gcSql)) {
                 gcStmt.executeUpdate();
             }
 
-            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
                 checkStmt.setString(1, email);
 
                 try (ResultSet rs = checkStmt.executeQuery()) {
@@ -210,7 +235,7 @@ public class Database {
                 }
             }
 
-            try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
+            try (PreparedStatement insertStmt = getConnection().prepareStatement(insertSql)) {
                 
                 passwordHash = hashPassword(passwordHash); 
                 
@@ -253,8 +278,8 @@ public class Database {
     public DbStatus loginStudent(String email, String plainPassword) {
         String sql = "SELECT password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (
+             PreparedStatement stmt = getConnection().prepareStatement(sql)) {
 
             stmt.setString(1, email);
 
@@ -304,8 +329,8 @@ public class Database {
         
         String sql = "SELECT password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (
+             PreparedStatement stmt = getConnection().prepareStatement(sql)) {
 
             stmt.setString(1, email);
 
@@ -357,8 +382,8 @@ public class Database {
     public DbStatus setProfileActivation(String email) {
         String updateSql = "UPDATE users SET is_activated = TRUE WHERE bilkent_email = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+        try (
+             PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
 
             updateStmt.setString(1, email);
             int updated = updateStmt.executeUpdate();
@@ -393,8 +418,8 @@ public class Database {
         
         String gcSql = "DELETE FROM activation WHERE created_at < NOW() - INTERVAL '30 minutes'";
 
-        try (Connection conn = getConnection();
-             PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+        try (
+             PreparedStatement selectStmt = getConnection().prepareStatement(selectSql)) {
 
             selectStmt.setString(1, email);
             
@@ -407,21 +432,21 @@ public class Database {
                     }
                     
                     if (dbCode.equals(inputCode)) {
-                        try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                        try (PreparedStatement deleteStmt = getConnection().prepareStatement(deleteSql)) {
                             deleteStmt.setString(1, email);
                             deleteStmt.executeUpdate();
                         }
                         
                         return DbStatus.SUCCESS; // Correct code provided
                     } else {
-                        try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
+                        try (PreparedStatement gcStmt = getConnection().prepareStatement(gcSql)) {
                             gcStmt.executeUpdate();
                         }
                         
                         return DbStatus.INVALID_CODE; // Wrong code provided
                     }
                 } else {
-                    try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
+                    try (PreparedStatement gcStmt = getConnection().prepareStatement(gcSql)) {
                             gcStmt.executeUpdate();
                         }
                     return DbStatus.EXPIRED_CODE; 
@@ -449,8 +474,8 @@ public class Database {
         String insertActivationSql = "INSERT INTO activation (user_id, activation_code) VALUES (?, ?)";
         String activationCode = generateRandomCode(6); // Creates a random 6-digit code
 
-        try (Connection conn = getConnection();
-            PreparedStatement findUserStmt = conn.prepareStatement(findUserSql)) {
+        try (
+            PreparedStatement findUserStmt = getConnection().prepareStatement(findUserSql)) {
             EmailService emailService = new EmailService();
             findUserStmt.setString(1, email);
             ResultSet rs = findUserStmt.executeQuery();
@@ -460,7 +485,7 @@ public class Database {
                 // PostgreSQL sürücüsü UUID'yi doğrudan java.util.UUID olarak döndürür
                 UUID userId = rs.getObject("id", UUID.class);
 
-                try (PreparedStatement updateStmt = conn.prepareStatement(updateActivationSql)) {
+                try (PreparedStatement updateStmt = getConnection().prepareStatement(updateActivationSql)) {
                     updateStmt.setString(1, activationCode);
                     
                     // 2. DÜZELTME: PreparedStatement içine UUID'yi setObject ile yerleştiriyoruz
@@ -468,7 +493,7 @@ public class Database {
                     int updatedRows = updateStmt.executeUpdate();
 
                     if (updatedRows == 0) {
-                        try (PreparedStatement insertStmt = conn.prepareStatement(insertActivationSql)) {
+                        try (PreparedStatement insertStmt = getConnection().prepareStatement(insertActivationSql)) {
                             // 3. DÜZELTME: INSERT için de setObject kullanıyoruz
                             insertStmt.setObject(1, userId);
                             insertStmt.setString(2, activationCode);
