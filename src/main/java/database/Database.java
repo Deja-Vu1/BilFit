@@ -624,4 +624,42 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Updates the ELO matchmaking status for a student.
+     * Finds the user by email and updates their preference in the students table.
+     * @param mail Student's Bilkent email address
+     * @param enabled True to enable ELO matchmaking, false to disable
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateEloMatchingStatus(String mail, boolean enabled) {
+        
+        // İç içe sorgu (Subquery) sayesinde e-posta üzerinden doğrudan students tablosunu güncelliyoruz
+        String updateSql = "UPDATE students " +
+                           "SET is_elo_matchmaking_enabled = ? " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+
+            stmt.setBoolean(1, enabled);
+            stmt.setString(2, mail);
+
+            // executeUpdate() güncellenen satır sayısını döndürür
+            int updatedRows = stmt.executeUpdate();
+
+            // Eğer 0'dan büyükse işlem başarılıdır. 
+            // 0 dönerse, bu e-postaya sahip bir kullanıcı (veya students tablosunda profili) yok demektir.
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
