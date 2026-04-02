@@ -7,7 +7,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
@@ -15,28 +14,25 @@ import javafx.scene.Node;
 
 import database.Database;
 import database.DbStatus;
-import managers.AuthManager;
 
 import java.io.IOException;
+import java.net.URL;
 
-public class StudentLoginController {
+public class ResetPasswordController {
 
     @FXML private TextField emailField;
-    @FXML private PasswordField passwordField;
 
     private boolean isProcessing = false;
     private Database db = Database.getInstance();
-    private AuthManager authManager = new AuthManager(db);
 
     @FXML
-    public void attemptLogin(ActionEvent event) {
+    public void sendResetCode(ActionEvent event) { 
         if (isProcessing) return;
 
         String emailInput = emailField.getText();
-        String passwordInput = passwordField.getText();
 
-        if (emailInput == null || emailInput.isEmpty() || passwordInput == null || passwordInput.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Uyarı", "E-posta veya şifre alanları boş bırakılamaz.");
+        if (emailInput == null || emailInput.trim().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Uyarı", "Lütfen Bilkent e-posta adresinizi girin.");
             return;
         }
 
@@ -46,26 +42,23 @@ public class StudentLoginController {
         
         clickedButton.getParent().requestFocus();
         clickedButton.setDisable(true);
-        clickedButton.setText("Giriş Yapılıyor...");
+        clickedButton.setText("Kod Gönderiliyor...");
 
         new Thread(() -> {
-            DbStatus loginStatus = authManager.loginStudent(emailInput, passwordInput);
+            DbStatus status = db.createActivationCode(emailInput);
 
             Platform.runLater(() -> {
                 isProcessing = false;
                 clickedButton.setDisable(false);
                 clickedButton.setText(originalButtonText);
 
-                switch (loginStatus) {
+                switch (status) {
                     case SUCCESS:
-                        deployHomepage(event);
+                        // POPUP KALDIRILDI! Başarılıysa doğrudan aktivasyon ekranına geçiyoruz.
+                        goToActivationScreen(event, emailInput);
                         break;
-                    case ACCOUNT_NOT_ACTIVATED:
-                        showAlert(Alert.AlertType.INFORMATION, "Aktivasyon Gerekli", "Hesabınız henüz aktive edilmemiş. Lütfen e-postanızı kontrol edin.");
-                        break;
-                    case INVALID_CREDENTIALS:
                     case DATA_NOT_FOUND:
-                        showAlert(Alert.AlertType.ERROR, "Giriş Başarısız", "Hatalı e-posta veya şifre girdiniz.");
+                        showAlert(Alert.AlertType.ERROR, "Hata", "Bu e-posta adresine kayıtlı bir hesap bulunamadı.");
                         break;
                     case CONNECTION_ERROR:
                         showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
@@ -78,40 +71,16 @@ public class StudentLoginController {
         }).start();
     }
 
-    public void deployHomepage(ActionEvent event) {
+    private void goToActivationScreen(ActionEvent event, String email) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/MainDashboardView.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.getScene().setRoot(root);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+            // ActivationController'a bunun bir ŞİFRE SIFIRLAMA işlemi olduğunu söylüyoruz
+            ActivationController.emailToActivate = email;
+            ActivationController.currentContext = ActivationController.ActivationContext.PASSWORD_RESET;
 
-    @FXML
-    public void goToRegister(MouseEvent event) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentRegisterView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ActivationView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @FXML
-    public void goToForgotPassword(MouseEvent event) {
-        try {
-            // Şifre sıfırlama ekranına (ResetPasswordView) yönlendiriyoruz
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ResetPasswordView.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            
-            // Full screen / mevcut pencere koruması: sadece root değişiyor
-            stage.getScene().setRoot(root);
-            
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -120,7 +89,7 @@ public class StudentLoginController {
     @FXML
     public void goBack(MouseEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
@@ -135,8 +104,12 @@ public class StudentLoginController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
-        alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
-        // Eğer sahnemiz aktifse, pop-up'ın sahibini (owner) ana ekran olarak ayarlıyoruz.
+        
+        URL cssUrl = getClass().getResource("/views/dashboard/bilfit-exact.css");
+        if (cssUrl != null) {
+            alert.getDialogPane().getStylesheets().add(cssUrl.toExternalForm());
+        }
+
         if (emailField.getScene() != null) {
             Stage stage = (Stage) emailField.getScene().getWindow();
             alert.initOwner(stage);
