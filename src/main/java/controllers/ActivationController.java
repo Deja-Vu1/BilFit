@@ -21,10 +21,12 @@ public class ActivationController {
         
         System.out.println("Verifying Activation Code: " + code);
         
-        if (code.isEmpty()) {
+        /* TODO: Kodu doğrula
+                if (code.isEmpty()) {
             System.out.println("Error: Activation code cannot be empty.");
             return;
         }
+            */
     }
 
     @FXML
