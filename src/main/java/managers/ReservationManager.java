@@ -26,7 +26,7 @@ public class ReservationManager {
             return null;
         }
 
-        String generatedResId = db.insertReservation(student.getStudentId(), facility.getName(), date, timeSlot);
+        String generatedResId = db.insertReservation(student.getBilkentEmail(), facility.getName(), date, timeSlot);
         
         if (generatedResId != null) {
             Reservation newReservation = new Reservation(generatedResId, facility, date, timeSlot);

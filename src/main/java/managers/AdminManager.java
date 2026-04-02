@@ -17,7 +17,7 @@ public class AdminManager {
     }
 
     public DbStatus banStudent(Admin admin, Student student) {
-        DbStatus status = db.updateStudentBanStatus(student.getStudentId(), true);
+        DbStatus status = db.updateStudentBanStatus(student.getBilkentEmail(), true);
         
         if (status == DbStatus.SUCCESS) {
             student.setBanned(true);
@@ -41,10 +41,11 @@ public class AdminManager {
     }
 
     public DbStatus givePenaltyPoint(Student targetStudent, int points) {
-        DbStatus status = db.updateStudentPenalty(targetStudent.getStudentId(), targetStudent.getPenaltyPoints() + points);
+        int newPoints = targetStudent.getPenaltyPoints() + points;
+        DbStatus status = db.updateStudentPenalty(targetStudent.getBilkentEmail(), newPoints);
         
         if (status == DbStatus.SUCCESS) {
-            targetStudent.setPenaltyPoints(targetStudent.getPenaltyPoints() + points);
+            targetStudent.setPenaltyPoints(newPoints);
         }
         
         return status;
@@ -78,7 +79,7 @@ public class AdminManager {
     }
 
     public DbStatus updatePassword(Admin admin, String newPassword) {
-        DbStatus status = db.updateUserPassword(admin.getBilkentEmail(), newPassword);
+        DbStatus status = db.updatePassword(admin.getBilkentEmail(), newPassword);
         
         if (status == DbStatus.SUCCESS) {
             admin.setPassword(newPassword);

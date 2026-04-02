@@ -2,7 +2,6 @@ package managers;
 
 import database.Database;
 import database.DbStatus;
-import javafx.scene.chart.PieChart.Data;
 
 public class AuthManager {
 
@@ -17,13 +16,7 @@ public class AuthManager {
     }
 
     public DbStatus registerAdmin(String email, String password, String activationCode, String fullName) {
-        DbStatus verificationStatus = db.verifyActivationCode(email, activationCode);
-        
-        if (verificationStatus != DbStatus.SUCCESS) {
-            return verificationStatus;
-        }
-
-        return db.registerAdmin(fullName, email, password);
+        return db.registerAdmin(fullName, email, password, activationCode);
     }
 
     public DbStatus loginStudent(String email, String password) {

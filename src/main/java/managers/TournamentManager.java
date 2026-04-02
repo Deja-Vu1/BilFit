@@ -49,7 +49,7 @@ public class TournamentManager {
             }
         }
 
-        DbStatus status = db.insertTournamentParticipant(tournament.getTournamentId(), student.getStudentId());
+        DbStatus status = db.insertTournamentParticipant(tournament.getTournamentId(), student.getBilkentEmail());
         
         if (status == DbStatus.SUCCESS) {
             Team soloTeam = new Team(student.getStudentId() + "_T", student.getNickname(), "SOLO", 1, false, student);

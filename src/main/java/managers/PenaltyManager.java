@@ -24,7 +24,7 @@ public class PenaltyManager {
         }
 
         int newPoints = student.getPenaltyPoints() + 1;
-        DbStatus penaltyStatus = db.updateStudentPenalty(student.getStudentId(), newPoints);
+        DbStatus penaltyStatus = db.updateStudentPenalty(student.getBilkentEmail(), newPoints);
         if (penaltyStatus != DbStatus.SUCCESS) {
             return penaltyStatus;
         }

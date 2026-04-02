@@ -23,7 +23,7 @@ public class DuelloManager {
             return DbStatus.QUERY_ERROR;
         }
 
-        DbStatus status = db.insertDuello(duello.getReservationId(), creator.getStudentId());
+        DbStatus status = db.insertDuello(duello.getReservationId(), creator.getBilkentEmail());
         
         if (status == DbStatus.SUCCESS) {
             duello.setMatched(false);
@@ -39,7 +39,7 @@ public class DuelloManager {
         if (duello.isCancelled() || !student.isCanAttend() || duello.isMatched() || duello.getEmptySlots() <= 0 || duello.getAttendees().contains(student)) {
             return DbStatus.QUERY_ERROR;
         }
-        return db.insertDuelloRequest(duello.getReservationId(), student.getStudentId());
+        return db.insertDuelloRequest(duello.getReservationId(), student.getBilkentEmail());
     }
 
     public DbStatus acceptDuelloRequest(Duello duello, Student student) {
@@ -47,7 +47,7 @@ public class DuelloManager {
             return DbStatus.QUERY_ERROR;
         }
 
-        DbStatus status = db.updateDuelloParticipant(duello.getReservationId(), student.getStudentId());
+        DbStatus status = db.updateDuelloParticipant(duello.getReservationId(), student.getBilkentEmail());
         
         if (status == DbStatus.SUCCESS) {
             duello.getAttendees().add(student);
@@ -67,7 +67,7 @@ public class DuelloManager {
             return DbStatus.QUERY_ERROR;
         }
 
-        DbStatus status = db.verifyAndJoinDuello(duello.getReservationId(), student.getStudentId(), code);
+        DbStatus status = db.verifyAndJoinDuello(duello.getReservationId(), student.getBilkentEmail(), code);
         
         if (status == DbStatus.SUCCESS) {
             duello.getAttendees().add(student);
@@ -89,7 +89,7 @@ public class DuelloManager {
             SportType sport = duello.getFacility().getSportType();
             String matchId = UUID.randomUUID().toString();
             
-            DbStatus matchStatus = db.insertMatch(matchId, p1.getStudentId(), p2.getStudentId(), sport.name());
+            DbStatus matchStatus = db.insertMatch(matchId, p1.getBilkentEmail(), p2.getBilkentEmail(), sport.name());
             
             if (matchStatus == DbStatus.SUCCESS) {
                 Team t1 = new Team(p1.getStudentId() + "_T", p1.getNickname(), "SOLO", 1, false, p1);

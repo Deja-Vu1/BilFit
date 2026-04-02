@@ -41,7 +41,7 @@ public class StudentManager {
     }
 
     public DbStatus updateProfileVisibility(Student student, boolean isPublic) {
-        DbStatus status = db.updateStudentProfileVisibility(student.getStudentId(), isPublic);
+        DbStatus status = db.updateStudentProfileVisibility(student.getBilkentEmail(), isPublic);
         
         if (status == DbStatus.SUCCESS) {
             student.setPublicProfile(isPublic);
@@ -50,12 +50,11 @@ public class StudentManager {
     }
 
     public DbStatus rateOpponent(Student target, double score) {
-        return db.insertStudentRating(target.getStudentId(), score);
+        return db.insertStudentRating(target.getBilkentEmail(), score);
     }
 
-    //NOT BURADAKİ STRİNG METODUNUN İÇİNDE DB DE STUDENT EMAİL ALIYORUZ BURADAKİ KODDA ONU DEĞİŞTİR !!!!!
     public DbStatus sendFriendRequest(Student sender, Student target) {
-        DbStatus status = db.insertFriendRequest(sender.getStudentId(), target.getStudentId());
+        DbStatus status = db.insertFriendRequest(sender.getBilkentEmail(), target.getBilkentEmail());
         
         if (status == DbStatus.SUCCESS && !target.getFriendRequests().contains(sender)) {
             target.getFriendRequests().add(sender);
@@ -64,7 +63,7 @@ public class StudentManager {
     }
 
     public DbStatus acceptFriendRequest(Student receiver, Student requester) {
-        DbStatus status = db.acceptFriendRequest(receiver.getStudentId(), requester.getStudentId());
+        DbStatus status = db.acceptFriendRequest(requester.getBilkentEmail(), receiver.getBilkentEmail());
         
         if (status == DbStatus.SUCCESS) {
             receiver.getFriends().add(requester);
@@ -75,7 +74,7 @@ public class StudentManager {
     }
 
     public DbStatus removeFriend(Student student, Student target) {
-        DbStatus status = db.deleteFriend(student.getStudentId(), target.getStudentId());
+        DbStatus status = db.deleteFriend(student.getBilkentEmail(), target.getBilkentEmail());
         
         if (status == DbStatus.SUCCESS) {
             student.getFriends().remove(target);
@@ -95,7 +94,7 @@ public class StudentManager {
     }
 
     public DbStatus updatePassword(Student student, String newPassword) {
-        DbStatus status = db.updateUserPassword(student.getBilkentEmail(), newPassword);
+        DbStatus status = db.updatePassword(student.getBilkentEmail(), newPassword);
         
         if (status == DbStatus.SUCCESS) {
             student.setPassword(newPassword);

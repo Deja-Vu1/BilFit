@@ -14,10 +14,10 @@ public class TeamManager {
     }
 
     public DbStatus createTeam(Team team) {
-        DbStatus status = db.insertTeam(team.getTeamId(), team.getTeamName(), team.getCaptain().getStudentId());
+        DbStatus status = db.insertTeam(team.getTeamId(), team.getTeamName(), team.getCaptain().getBilkentEmail());
         
         if (status == DbStatus.SUCCESS) {
-            db.insertTeamMember(team.getTeamId(), team.getCaptain().getStudentId(), team.getAccessCode());
+            db.insertTeamMember(team.getTeamId(), team.getCaptain().getBilkentEmail(), team.getAccessCode());
         }
         
         return status;
@@ -28,7 +28,7 @@ public class TeamManager {
             return DbStatus.QUERY_ERROR;
         }
 
-        DbStatus status = db.insertTeamMember(team.getTeamId(), student.getStudentId(), inputCode);
+        DbStatus status = db.insertTeamMember(team.getTeamId(), student.getBilkentEmail(), inputCode);
         
         if (status == DbStatus.SUCCESS) {
             team.getMembers().add(student);
@@ -42,7 +42,7 @@ public class TeamManager {
             return DbStatus.QUERY_ERROR;
         }
 
-        DbStatus status = db.deleteTeamMember(team.getTeamId(), student.getStudentId());
+        DbStatus status = db.deleteTeamMember(team.getTeamId(), student.getBilkentEmail());
         
         if (status == DbStatus.SUCCESS) {
             team.getMembers().remove(student);
