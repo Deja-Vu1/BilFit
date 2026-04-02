@@ -19,14 +19,14 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F4F4;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminPasswordActivationController">
+<StackPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F4F4;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.RegisterActivationController">
     <stylesheets>
         <URL value="@auth-styles.css" />
     </stylesheets>
     <children>
-        <VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="550.0" prefWidth="400.0" spacing="15.0" styleClass="auth-card">
+        <VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="400.0" prefWidth="400.0" spacing="15.0" styleClass="auth-card">
             <children>
-                <ImageView fx:id="logoImageView" fitHeight="120.0" fitWidth="280.0" pickOnBounds="true" preserveRatio="true">
+                <ImageView fx:id="logoImageView" fitHeight="100.0" fitWidth="250.0" pickOnBounds="true" preserveRatio="true">
                     <image>
                         <Image url="@../../images/bilfit_logo.png" />
                     </image>
@@ -35,37 +35,28 @@
                 
                 <Label text="Activation Code">
                     <font>
-                        <Font name="System Bold" size="24.0" />
+                        <Font name="System Bold" size="20.0" />
                     </font>
                 </Label>
                 
                 <VBox alignment="CENTER_LEFT" spacing="5.0">
-                    <children>
-                        <Label text="Enter Activation Code" />
-                        <TextField fx:id="emailField" prefHeight="35.0" styleClass="input-field" />
-                    </children>
+                   <children>
+                       <Label text="Enter Activation Code:" />
+                       <TextField fx:id="activationCodeField" prefHeight="35.0" promptText="Activation code" styleClass="input-field" />
+                   </children>
                 </VBox>
                 
-                <VBox alignment="CENTER_LEFT" spacing="5.0" />
-                
-                <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#submitCode" prefHeight="40.0" styleClass="admin-button" text="Submit">
+                <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#submitCode" prefHeight="40.0" styleClass="student-button" text="Submit">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>
                 </Button>
                 
-                <VBox alignment="CENTER" spacing="10.0">
-                    <children>
-                        <Label onMouseClicked="#goBack" styleClass="link-label" text="back">
-                            <VBox.margin>
-                                <Insets top="10.0" />
-                            </VBox.margin>
-                        </Label>
-                    </children>
+                <Label onMouseClicked="#goBack" styleClass="link-label" text="back">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>
-                </VBox>
+                </Label>
             </children>
             <padding>
                 <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
