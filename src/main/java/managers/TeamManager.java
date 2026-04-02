@@ -14,54 +14,86 @@ public class TeamManager {
     }
 
     public DbStatus createTeam(Team team) {
-        DbStatus status = db.insertTeam(team.getTeamId(), team.getTeamName(), team.getCaptain().getStudentId());
+        if (team == null || team.getCaptain() == null) return DbStatus.QUERY_ERROR;
+
+        DbStatus status = db.insertTeam(team.getTeamId(), team.getTeamName(), team.getCaptain().getBilkentEmail());
         
         if (status == DbStatus.SUCCESS) {
-            db.insertTeamMember(team.getTeamId(), team.getCaptain().getStudentId(), team.getAccessCode());
+            DbStatus memberStatus = db.insertTeamMember(team.getTeamId(), team.getCaptain().getBilkentEmail(), team.getAccessCode());
+            if (memberStatus == DbStatus.SUCCESS && !team.getMembers().contains(team.getCaptain())) {
+                team.getMembers().add(team.getCaptain());
+            }
         }
-        
         return status;
     }
 
     public DbStatus addMemberToTeam(Team team, Student student, String inputCode) {
+        if (team == null || student == null || inputCode == null) return DbStatus.QUERY_ERROR;
         if (team.getMembers().size() >= team.getMaxCapacity() || !team.getAccessCode().equals(inputCode) || team.getMembers().contains(student)) {
             return DbStatus.QUERY_ERROR;
         }
 
-        DbStatus status = db.insertTeamMember(team.getTeamId(), student.getStudentId(), inputCode);
-        
+        DbStatus status = db.insertTeamMember(team.getTeamId(), student.getBilkentEmail(), inputCode);
         if (status == DbStatus.SUCCESS) {
             team.getMembers().add(student);
         }
-        
         return status;
     }
 
     public DbStatus removeMemberFromTeam(Team team, Student student) {
-        if (student.equals(team.getCaptain())) {
+        if (team == null || student == null || !team.getMembers().contains(student)) {
             return DbStatus.QUERY_ERROR;
         }
 
-        DbStatus status = db.deleteTeamMember(team.getTeamId(), student.getStudentId());
-        
+        if (student.getBilkentEmail().equals(team.getCaptain().getBilkentEmail())) {
+            if (team.getMembers().size() > 1) {
+                Student newCaptain = null;
+                for (Student s : team.getMembers()) {
+                    if (!s.getBilkentEmail().equals(student.getBilkentEmail())) {
+                        newCaptain = s;
+                        break;
+                    }
+                }
+                if (newCaptain != null) {
+                    DbStatus transferStatus = transferCaptaincy(team, student, newCaptain);
+                    if (transferStatus != DbStatus.SUCCESS) {
+                        return transferStatus;
+                    }
+                }
+            } else {
+                return disbandTeam(team, student);
+            }
+        }
+
+        DbStatus status = db.deleteTeamMember(team.getTeamId(), student.getBilkentEmail());
         if (status == DbStatus.SUCCESS) {
             team.getMembers().remove(student);
         }
-        
+        return status;
+    }
+
+    public DbStatus transferCaptaincy(Team team, Student oldCaptain, Student newCaptain) {
+        if (team == null || oldCaptain == null || newCaptain == null) return DbStatus.QUERY_ERROR;
+        if (!team.getCaptain().getBilkentEmail().equals(oldCaptain.getBilkentEmail()) || !team.getMembers().contains(newCaptain)) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        DbStatus status = db.updateTeamCaptain(team.getTeamId(), newCaptain.getBilkentEmail());
+        if (status == DbStatus.SUCCESS) {
+            team.setCaptain(newCaptain);
+        }
         return status;
     }
 
     public DbStatus disbandTeam(Team team, Student requester) {
-        if (!requester.equals(team.getCaptain())) {
+        if (team == null || requester == null || !requester.getBilkentEmail().equals(team.getCaptain().getBilkentEmail())) {
             return DbStatus.QUERY_ERROR;
         }
 
         DbStatus status = db.deleteTeam(team.getTeamId());
-        
         if (status == DbStatus.SUCCESS) {
             team.getMembers().clear();
         }
-        
         return status;
     }
 }

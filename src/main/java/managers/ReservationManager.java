@@ -16,18 +16,17 @@ public class ReservationManager {
     }
 
     public Reservation makeReservation(Student student, Facility facility, LocalDate date, String timeSlot) {
+        if (student == null || facility == null || date == null || timeSlot == null) return null;
         if (!student.isCanAttend() || facility.isUnderMaintenance()) {
             return null; 
         }
 
         boolean isAvailable = db.checkFacilityAvailability(facility.getName(), date, timeSlot);
-        
         if (!isAvailable) {
             return null;
         }
 
-        String generatedResId = db.insertReservation(student.getStudentId(), facility.getName(), date, timeSlot);
-        
+        String generatedResId = db.insertReservation(student.getBilkentEmail(), facility.getName(), date, timeSlot);
         if (generatedResId != null) {
             Reservation newReservation = new Reservation(generatedResId, facility, date, timeSlot);
             newReservation.getAttendees().add(student);

@@ -14,7 +14,7 @@ public class PenaltyManager {
     }
 
     public DbStatus processNoShow(Student student, Reservation reservation) {
-        if (reservation.isCancelled()) {
+        if (student == null || reservation == null || reservation.isCancelled()) {
             return DbStatus.QUERY_ERROR;
         }
 
@@ -24,19 +24,17 @@ public class PenaltyManager {
         }
 
         int newPoints = student.getPenaltyPoints() + 1;
-        DbStatus penaltyStatus = db.updateStudentPenalty(student.getStudentId(), newPoints);
-        if (penaltyStatus != DbStatus.SUCCESS) {
-            return penaltyStatus;
+        DbStatus penaltyStatus = db.updateStudentPenalty(student.getBilkentEmail(), newPoints);
+        if (penaltyStatus == DbStatus.SUCCESS) {
+            reservation.setHasAttended(false);
+            student.setPenaltyPoints(newPoints);
         }
-
-        reservation.setHasAttended(false);
-        student.setPenaltyPoints(newPoints);
         
-        return DbStatus.SUCCESS;
+        return penaltyStatus;
     }
 
     public DbStatus processAttendance(Student student, Reservation reservation) {
-        if (reservation.isCancelled()) {
+        if (student == null || reservation == null || reservation.isCancelled()) {
             return DbStatus.QUERY_ERROR;
         }
 

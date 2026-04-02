@@ -2,7 +2,8 @@ package managers;
 
 import database.Database;
 import database.DbStatus;
-import javafx.scene.chart.PieChart.Data;
+import models.Admin;
+import models.Student;
 
 public class AuthManager {
 
@@ -13,33 +14,53 @@ public class AuthManager {
     }
 
     public DbStatus registerStudent(String email, String password, String studentId, String fullName) {
+        if (email == null || !email.endsWith("@bilkent.edu.tr") || password == null || password.length() < 6 || studentId == null || fullName == null) {
+            return DbStatus.QUERY_ERROR;
+        }
         return db.registerStudent(fullName, email, studentId, password);
     }
 
     public DbStatus registerAdmin(String email, String password, String activationCode, String fullName) {
-        DbStatus verificationStatus = db.verifyActivationCode(email, activationCode);
-        
-        if (verificationStatus != DbStatus.SUCCESS) {
-            return verificationStatus;
+        if (email == null || !email.endsWith("@bilkent.edu.tr") || password == null || password.length() < 6 || activationCode == null || fullName == null) {
+            return DbStatus.QUERY_ERROR;
         }
-
-        return db.registerAdmin(fullName, email, password);
+        return db.registerAdmin(fullName, email, password, activationCode);
     }
 
     public DbStatus loginStudent(String email, String password) {
-        return db.loginStudent(email, password);
+        if (email == null || password == null) return DbStatus.QUERY_ERROR;
+        
+        DbStatus status = db.loginStudent(email, password);
+        if (status == DbStatus.SUCCESS) {
+            Student student = new Student("", email, "", "", "");
+            DbStatus dataStatus = db.fillStudentDataByEmail(student, email);
+            if (dataStatus == DbStatus.SUCCESS) {
+                SessionManager.getInstance().setCurrentUser(student);
+            }
+        }
+        return status;
     }
 
     public DbStatus loginAdmin(String email, String password) {
-        return db.loginAdmin(email, password);
+        if (email == null || password == null) return DbStatus.QUERY_ERROR;
+        
+        DbStatus status = db.loginAdmin(email, password);
+        if (status == DbStatus.SUCCESS) {
+            Admin admin = new Admin("", email, "", "", "");
+            DbStatus dataStatus = db.fillAdminDataByEmail(admin, email);
+            if (dataStatus == DbStatus.SUCCESS) {
+                SessionManager.getInstance().setCurrentUser(admin);
+            }
+        }
+        return status;
     }
 
     public DbStatus activateAccount(String email, String activationCode) {
+        if (email == null || activationCode == null) return DbStatus.QUERY_ERROR;
         DbStatus status = db.verifyActivationCode(email, activationCode);
         if (status == DbStatus.SUCCESS){
             return db.setProfileActivation(email);
         }
         return status;
     }
-    
 }

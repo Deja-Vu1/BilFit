@@ -11,6 +11,7 @@ public class Student extends User {
     private int eloPoint;
     private int penaltyPoints;
     private double reliabilityScore;
+    private int ratingCount;
     private List<SportType> interests;
     private List<String> badges;
     private int matchesPlayed;
@@ -29,6 +30,7 @@ public class Student extends User {
         this.eloPoint = 1000;
         this.penaltyPoints = 0;
         this.reliabilityScore = 100.0;
+        this.ratingCount = 0;
         this.matchesPlayed = 0;
         this.matchesWon = 0;
         this.winRate = 0.0;
@@ -50,6 +52,8 @@ public class Student extends User {
     public void setPenaltyPoints(int penaltyPoints) { this.penaltyPoints = penaltyPoints; }
     public double getReliabilityScore() { return reliabilityScore; }
     public void setReliabilityScore(double reliabilityScore) { this.reliabilityScore = reliabilityScore; }
+    public int getRatingCount() { return ratingCount; }
+    public void setRatingCount(int ratingCount) { this.ratingCount = ratingCount; }
     public List<SportType> getInterests() { return interests; }
     public void setInterests(List<SportType> interests) { this.interests = interests; }
     public List<String> getBadges() { return badges; }

@@ -4,6 +4,7 @@ import database.Database;
 import database.DbStatus;
 import models.Notification;
 import models.User;
+import java.util.UUID;
 
 public class NotificationManager {
 
@@ -13,11 +14,23 @@ public class NotificationManager {
         this.db = db;
     }
 
-    public DbStatus sendToUser(User user, Notification notification) {
-        return db.insertNotification(user.getBilkentEmail(), notification.getTitle(), notification.getMessage());
+    public Notification sendToUser(User user, String title, String message) {
+        if (user == null || title == null || message == null || title.isEmpty()) return null;
+
+        String notifId = UUID.randomUUID().toString();
+        Notification notification = new Notification(notifId, title, message);
+        
+        DbStatus status = db.insertNotification(user.getBilkentEmail(), notification.getTitle(), notification.getMessage());
+        return status == DbStatus.SUCCESS ? notification : null;
     }
 
-    public DbStatus broadcastToAll(Notification notification) {
-        return db.insertNotification("BROADCAST", notification.getTitle(), notification.getMessage());
+    public Notification broadcastToAll(String title, String message) {
+        if (title == null || message == null || title.isEmpty()) return null;
+
+        String notifId = UUID.randomUUID().toString();
+        Notification notification = new Notification(notifId, title, message);
+        
+        DbStatus status = db.insertNotification("BROADCAST", notification.getTitle(), notification.getMessage());
+        return status == DbStatus.SUCCESS ? notification : null;
     }
 }
