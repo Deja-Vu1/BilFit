@@ -177,3 +177,40 @@
     -fx-background-radius: 12;
     -fx-font-weight: bold;
 }
+/* --- POP-UP (ALERT) TASARIMI --- */
+.dialog-pane {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E2E8F0;
+    -fx-border-width: 2px;
+    -fx-border-radius: 15px;
+    -fx-background-radius: 15px;
+    -fx-font-family: "Segoe UI", "Open Sans", Helvetica, sans-serif;
+}
+
+/* Üst kısımdaki ikon ve başlık alanı */
+.dialog-pane .header-panel {
+    -fx-background-color: transparent; 
+    -fx-pref-height: 0px; 
+}
+
+/* Mesaj yazısı */
+.dialog-pane .content {
+    -fx-text-fill: #2B3674;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 30 20 20 20; 
+}
+
+/* Pop-up içindeki Tamam/Cancel butonları */
+.dialog-pane .button {
+    -fx-background-color: #4318FF;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10px;
+    -fx-padding: 8 20 8 20;
+    -fx-cursor: hand;
+}
+
+.dialog-pane .button:hover {
+    -fx-background-color: #2B3674;
+}

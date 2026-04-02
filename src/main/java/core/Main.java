@@ -9,9 +9,6 @@ import javafx.stage.Stage;
 import javafx.scene.input.KeyCombination;
 import java.io.IOException;
 
-// HATALI IMPORTLAR SİLİNDİ:
-// import org.postgresql.shaded.com.ongres.scram.client.MessageFlow.Stage; <-- BU SİLİNDİ
-// import com.apple.eawt.Application; <-- BU SİLİNDİ (Sadece Mac'e özel ve JavaFX ile çakışır)
 
 public class Main extends Application {
 
@@ -42,7 +39,7 @@ public class Main extends Application {
         } else {
             System.out.println("Veritabanı bağlantı hatası!");
         }
-        
+
         // JavaFX uygulamasını başlat
         launch(args);
     }

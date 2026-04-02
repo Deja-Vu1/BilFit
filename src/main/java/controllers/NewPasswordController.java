@@ -15,7 +15,6 @@ public class NewPasswordController {
     public void goBack(MouseEvent event) {
         System.out.println("Redirecting to ResetPassword Screen");
         try {
-            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ResetPasswordView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
