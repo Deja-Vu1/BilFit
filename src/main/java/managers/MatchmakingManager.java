@@ -13,8 +13,8 @@ public class MatchmakingManager {
 
     private Database db;
 
-    public MatchmakingManager(Database db) {
-        this.db = db;
+    public MatchmakingManager() {
+        this.db = Database.getInstance();
     }
 
     public Match findSoloMatch(Student student, SportType sport) {

@@ -11,8 +11,8 @@ public class RecommendationManager {
     private static final double DEFAULT_THRESHOLD = 0.3;
     private Database db;
 
-    public RecommendationManager(Database db) {
-        this.db = db;
+    public RecommendationManager() {
+        this.db = Database.getInstance();
     }
 
     public List<Student> getRecommendations(Student targetStudent) {

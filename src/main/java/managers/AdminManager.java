@@ -12,8 +12,8 @@ public class AdminManager {
 
     private Database db;
 
-    public AdminManager(Database db) {
-        this.db = db;
+    public AdminManager() {
+        this.db = Database.getInstance();
     }
 
     public DbStatus banStudent(Admin admin, Student student) {
@@ -21,7 +21,6 @@ public class AdminManager {
         
         if (status == DbStatus.SUCCESS) {
             student.setBanned(true);
-            // student.setPublicProfile(false);
         }
         
         return status;

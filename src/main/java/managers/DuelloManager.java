@@ -14,8 +14,8 @@ public class DuelloManager {
 
     private Database db;
 
-    public DuelloManager(Database db) {
-        this.db = db;
+    public DuelloManager() {
+        this.db = Database.getInstance();
     }
 
     public DbStatus createDuello(Duello duello, Student creator) {

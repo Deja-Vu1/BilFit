@@ -11,8 +11,8 @@ public class TournamentManager {
 
     private Database db;
 
-    public TournamentManager(Database db) {
-        this.db = db;
+    public TournamentManager() {
+        this.db = Database.getInstance();
     }
 
     public DbStatus createTournament(Tournament tournament) {

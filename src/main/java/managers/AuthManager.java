@@ -7,12 +7,12 @@ public class AuthManager {
 
     private Database db;
 
-    public AuthManager(Database db) {
-        this.db = db;
+    public AuthManager() {
+        this.db = Database.getInstance();
     }
 
     public DbStatus registerStudent(String email, String password, String studentId, String fullName) {
-        return db.registerUser(email, password, studentId, fullName, null, "STUDENT");
+        return db.registerStudent(fullName, email, studentId, password);
     }
 
     public DbStatus registerAdmin(String email, String password, String activationCode, String fullName) {
@@ -22,15 +22,15 @@ public class AuthManager {
             return verificationStatus;
         }
 
-        return db.registerUser(email, password, null, fullName, activationCode, "ADMIN");
+        return db.registerAdmin(fullName, email, password);
     }
 
     public DbStatus loginStudent(String email, String password) {
-        return db.login(email, password);
+        return db.loginStudent(email, password);
     }
 
     public DbStatus loginAdmin(String email, String password) {
-        return db.login(email, password);
+        return db.loginAdmin(email, password);
     }
 
     public DbStatus activateAccount(String email, String activationCode) {

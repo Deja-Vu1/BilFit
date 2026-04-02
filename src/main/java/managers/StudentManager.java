@@ -9,12 +9,12 @@ public class StudentManager {
 
     private Database db;
 
-    public StudentManager(Database db) {
-        this.db = db;
+    public StudentManager() {
+        this.db = Database.getInstance();
     }
 
     public DbStatus addInterest(Student student, SportType sport) {
-        DbStatus status = db.insertStudentInterest(student.getStudentId(), sport.name());
+        DbStatus status = db.insertStudentInterest(student.getBilkentEmail(), sport.name());
         
         if (status == DbStatus.SUCCESS && !student.getInterests().contains(sport)) {
             student.getInterests().add(sport);
@@ -23,7 +23,7 @@ public class StudentManager {
     }
 
     public DbStatus removeInterest(Student student, SportType sport) {
-        DbStatus status = db.deleteStudentInterest(student.getStudentId(), sport.name());
+        DbStatus status = db.deleteStudentInterest(student.getBilkentEmail(), sport.name());
         
         if (status == DbStatus.SUCCESS) {
             student.getInterests().remove(sport);
@@ -32,7 +32,7 @@ public class StudentManager {
     }
 
     public DbStatus toggleEloMatching(Student student, boolean enabled) {
-        DbStatus status = db.updateEloMatchingStatus(student.getStudentId(), enabled);
+        DbStatus status = db.updateEloMatchingStatus(student.getBilkentEmail(), enabled);
         
         if (status == DbStatus.SUCCESS) {
             student.setEloMatchingEnabled(enabled);

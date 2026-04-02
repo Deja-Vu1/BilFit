@@ -9,8 +9,8 @@ public class PenaltyManager {
 
     private Database db;
 
-    public PenaltyManager(Database db) {
-        this.db = db;
+    public PenaltyManager() {
+        this.db = Database.getInstance();
     }
 
     public DbStatus processNoShow(Student student, Reservation reservation) {
