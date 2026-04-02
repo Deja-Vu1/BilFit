@@ -205,18 +205,22 @@ public class Database {
 
     /**
      * Registers a new admin to the database.
+     * Requires a valid code from the 'admin_activation' table to proceed.
      * Checks for duplicate email before insertion.
      * student_id is implicitly set to NULL and role is set to 'admin'.
      * @param name Admin's full name
      * @param email Admin's email address
      * @param passwordHash Admin's hashed password
-     * @return DbStatus indicating SUCCESS, EMAIL_ALREADY_EXISTS, QUERY_ERROR, etc.
+     * @param adminActivationCode The special code required to register as an admin
+     * @return DbStatus indicating SUCCESS, EMAIL_ALREADY_EXISTS, INVALID_CODE, QUERY_ERROR, etc.
      */
-    public DbStatus registerAdmin(String name, String email, String passwordHash) {
+    public DbStatus registerAdmin(String name, String email, String passwordHash, String adminActivationCode) {
         
         String gcSql = "DELETE FROM users WHERE is_activated = FALSE AND created_at < NOW() - INTERVAL '30 minutes'";
+        String checkEmailSql = "SELECT bilkent_email FROM users WHERE bilkent_email = ?";
         
-        String checkSql = "SELECT bilkent_email FROM users WHERE bilkent_email = ?";
+        String checkAdminCodeSql = "SELECT id FROM admin_activation WHERE activation_code = ?";
+        String deleteAdminCodeSql = "DELETE FROM admin_activation WHERE activation_code = ?";
         
         String insertSql = "INSERT INTO users (full_name, bilkent_email, student_id, password_hash, role, is_activated) VALUES (?, ?, NULL, ?, 'admin', FALSE)";
 
@@ -226,12 +230,23 @@ public class Database {
                 gcStmt.executeUpdate();
             }
 
-            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
+            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkEmailSql)) {
                 checkStmt.setString(1, email);
 
                 try (ResultSet rs = checkStmt.executeQuery()) {
                     if (rs.next()) {
                         return DbStatus.EMAIL_ALREADY_EXISTS; 
+                    }
+                }
+            }
+
+            try (PreparedStatement checkCodeStmt = getConnection().prepareStatement(checkAdminCodeSql)) {
+                
+                checkCodeStmt.setString(1, adminActivationCode); 
+
+                try (ResultSet rs = checkCodeStmt.executeQuery()) {
+                    if (!rs.next()) {
+                        return DbStatus.INVALID_CODE; 
                     }
                 }
             }
@@ -247,6 +262,12 @@ public class Database {
                 int insertedRows = insertStmt.executeUpdate();
                 
                 if (insertedRows > 0) {
+                    
+                    try (PreparedStatement deleteCodeStmt = getConnection().prepareStatement(deleteAdminCodeSql)) {
+                        deleteCodeStmt.setString(1, adminActivationCode);
+                        deleteCodeStmt.executeUpdate();
+                    }
+
                     createActivationCode(email);
                     return DbStatus.SUCCESS;
                 }
@@ -268,7 +289,6 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
 /**
      * Authenticates a student based on email and password.
      * Ensures the account is activated and the user has the 'student' role.
