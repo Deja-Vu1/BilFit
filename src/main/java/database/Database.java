@@ -924,4 +924,35 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Updates the full name (nickname) of a user.
+     * Overwrites the 'full_name' column in the 'users' table with the provided nickname.
+     * @param email User's Bilkent email address
+     * @param newNickname The new nickname/full name to be set
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateUserNickname(String email, String newNickname) {
+        
+        String updateSql = "UPDATE users SET full_name = ? WHERE bilkent_email = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+
+            stmt.setString(1, newNickname);
+            stmt.setString(2, email);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
