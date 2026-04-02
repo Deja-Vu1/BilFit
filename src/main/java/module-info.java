@@ -10,6 +10,10 @@ module bilfit {
     opens core to javafx.graphics, javafx.fxml;
     opens controllers to javafx.fxml;
     opens database to java.sql;
+    opens models to javafx.base;
     
     exports core;
+    exports controllers;
+    exports models;
+    exports managers;
 }
