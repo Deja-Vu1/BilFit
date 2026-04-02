@@ -40,7 +40,7 @@ public class Main extends Application {
         } else {
             System.out.println("Veritabanı bağlantı hatası!");
         }
-        
+
         // JavaFX uygulamasını başlat
         launch(args);
     }
