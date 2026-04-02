@@ -5,6 +5,7 @@ module bilfit {
     requires org.postgresql.jdbc;
     requires jakarta.mail;
     requires javafx.graphics;
+    requires javafx.base;
 
     opens core to javafx.graphics, javafx.fxml;
     opens controllers to javafx.fxml;
