@@ -664,4 +664,34 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Updates a user's password directly without any prior verification.
+     * @param email User's Bilkent email address
+     * @param newPassword The new raw password to be set
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, CONNECTION_ERROR, or QUERY_ERROR
+     */
+    public DbStatus updatePassword(String email, String newPassword) {
+        String updateSql = "UPDATE users SET password_hash = ? WHERE bilkent_email = ?";
+
+        try (PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
+            
+            String newPasswordHash = hashPassword(newPassword);
+            
+            updateStmt.setString(1, newPasswordHash);
+            updateStmt.setString(2, email);
+
+            int updatedRows = updateStmt.executeUpdate();
+            
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }

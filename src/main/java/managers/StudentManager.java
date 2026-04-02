@@ -10,32 +10,32 @@ public class StudentManager {
     private Database db;
 
     public StudentManager(Database db) {
-        this.db = db;
+        this.db =  db;
     }
 
     public DbStatus addInterest(Student student, SportType sport) {
-        DbStatus status = db.insertStudentInterest(student.getStudentId(), sport.name());
+        DbStatus status = db.insertStudentInterest(student.getBilkentEmail(), sport.name());
         
-        if (status == DbStatus.SUCCESS) {
-            student.addInterest(sport);
+        if (status == DbStatus.SUCCESS && !student.getInterests().contains(sport)) {
+            student.getInterests().add(sport);
         }
         return status;
     }
 
     public DbStatus removeInterest(Student student, SportType sport) {
-        DbStatus status = db.deleteStudentInterest(student.getStudentId(), sport.name());
+        DbStatus status = db.deleteStudentInterest(student.getBilkentEmail(), sport.name());
         
         if (status == DbStatus.SUCCESS) {
-            student.removeInterest(sport);
+            student.getInterests().remove(sport);
         }
         return status;
     }
 
     public DbStatus toggleEloMatching(Student student, boolean enabled) {
-        DbStatus status = db.updateEloMatchingStatus(student.getStudentId(), enabled);
+        DbStatus status = db.updateEloMatchingStatus(student.getBilkentEmail(), enabled);
         
         if (status == DbStatus.SUCCESS) {
-            student.toggleEloMatching(enabled);
+            student.setEloMatchingEnabled(enabled);
         }
         return status;
     }
@@ -44,7 +44,7 @@ public class StudentManager {
         DbStatus status = db.updateStudentProfileVisibility(student.getStudentId(), isPublic);
         
         if (status == DbStatus.SUCCESS) {
-            student.updateProfileVisibility(isPublic);
+            student.setPublicProfile(isPublic);
         }
         return status;
     }
@@ -54,14 +54,21 @@ public class StudentManager {
     }
 
     public DbStatus sendFriendRequest(Student sender, Student target) {
-        return db.insertFriendRequest(sender.getStudentId(), target.getStudentId());
+        DbStatus status = db.insertFriendRequest(sender.getStudentId(), target.getStudentId());
+        
+        if (status == DbStatus.SUCCESS && !target.getFriendRequests().contains(sender)) {
+            target.getFriendRequests().add(sender);
+        }
+        return status;
     }
 
     public DbStatus acceptFriendRequest(Student receiver, Student requester) {
         DbStatus status = db.acceptFriendRequest(receiver.getStudentId(), requester.getStudentId());
         
         if (status == DbStatus.SUCCESS) {
-            receiver.acceptFriendRequest(requester);
+            receiver.getFriends().add(requester);
+            receiver.getFriendRequests().remove(requester);
+            requester.getFriends().add(receiver);
         }
         return status;
     }
@@ -70,8 +77,29 @@ public class StudentManager {
         DbStatus status = db.deleteFriend(student.getStudentId(), target.getStudentId());
         
         if (status == DbStatus.SUCCESS) {
-            student.removeFriend(target);
+            student.getFriends().remove(target);
+            target.getFriends().remove(student);
         }
+        return status;
+    }
+
+    public DbStatus updateNickname(Student student, String newNickname) {
+        DbStatus status = db.updateUserNickname(student.getBilkentEmail(), newNickname);
+        
+        if (status == DbStatus.SUCCESS) {
+            student.setNickname(newNickname);
+        }
+        
+        return status;
+    }
+
+    public DbStatus updatePassword(Student student, String newPassword) {
+        DbStatus status = db.updateUserPassword(student.getBilkentEmail(), newPassword);
+        
+        if (status == DbStatus.SUCCESS) {
+            student.setPassword(newPassword);
+        }
+        
         return status;
     }
 }
