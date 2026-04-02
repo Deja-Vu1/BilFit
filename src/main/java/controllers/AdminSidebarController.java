@@ -37,7 +37,7 @@ public class AdminSidebarController {
             clickedButton.getStyleClass().add("active");
         }
     }
-        @FXML
+    @FXML
     public void setMainController(AdminMainController controller) {
         updateActiveButton(btnHome);
         this.mainController = controller;

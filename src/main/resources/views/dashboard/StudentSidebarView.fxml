@@ -50,6 +50,7 @@
             <Button fx:id="btnTournaments" alignment="BASELINE_LEFT" onAction="#loadTournaments" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Tournaments" />
             <Button fx:id="btnELO" alignment="BASELINE_LEFT" onAction="#loadELO" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    ELO" />
             <Button fx:id="btnReservation" alignment="BASELINE_LEFT" onAction="#loadReservations" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Reservation" />
+            <Button fx:id="btnFriends" alignment="BASELINE_LEFT" onAction="#loadFriends" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Friends" />
          </VBox>
          <Region VBox.vgrow="ALWAYS" />
          <VBox alignment="CENTER" spacing="8.0">
