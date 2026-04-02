@@ -39,6 +39,11 @@ public class AuthManager {
     }
 
     public DbStatus activateAccount(String email, String activationCode) {
-        return db.verifyActivationCode(email, activationCode);
+        DbStatus status = db.verifyActivationCode(email, activationCode);
+        if (status == DbStatus.SUCCESS){
+            return db.setProfileActivation(email);
+        }
+        return status;
     }
+    
 }
