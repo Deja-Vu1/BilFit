@@ -53,6 +53,7 @@ public class StudentManager {
         return db.insertStudentRating(target.getStudentId(), score);
     }
 
+    //NOT BURADAKİ STRİNG METODUNUN İÇİNDE DB DE STUDENT EMAİL ALIYORUZ BURADAKİ KODDA ONU DEĞİŞTİR !!!!!
     public DbStatus sendFriendRequest(Student sender, Student target) {
         DbStatus status = db.insertFriendRequest(sender.getStudentId(), target.getStudentId());
         
