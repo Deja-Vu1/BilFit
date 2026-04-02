@@ -5,6 +5,7 @@ import java.io.IOException;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
@@ -110,11 +111,26 @@ public class AdminLoginController {
         Parent root = loader.load();
         Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
         stage.getScene().setRoot(root);
-
         } catch (IOException e) {
-            System.err.println("AdminMainView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
+    }
+
+
+    private void showAlert(Alert.AlertType alertType, String title, String message) {
+        Alert alert = new Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
+        alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
+        // Full-screen pop-up arkaya düşme sorunu çözümü
+        if (emailField != null && emailField.getScene() != null) {
+            Stage stage = (Stage) emailField.getScene().getWindow();
+            alert.initOwner(stage);
+        }
+        
+        alert.showAndWait();
     }
     
     @FXML

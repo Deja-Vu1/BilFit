@@ -2,6 +2,7 @@ package managers;
 
 import database.Database;
 import database.DbStatus;
+import javafx.scene.chart.PieChart.Data;
 
 public class AuthManager {
 
@@ -12,7 +13,7 @@ public class AuthManager {
     }
 
     public DbStatus registerStudent(String email, String password, String studentId, String fullName) {
-        return db.registerUser(email, password, null, "STUDENT");
+        return db.registerStudent(fullName, email, studentId, password);
     }
 
     public DbStatus registerAdmin(String email, String password, String activationCode, String fullName) {
@@ -22,18 +23,23 @@ public class AuthManager {
             return verificationStatus;
         }
 
-        return db.registerUser(email, password, activationCode, "ADMIN");
+        return db.registerAdmin(fullName, email, password);
     }
 
     public DbStatus loginStudent(String email, String password) {
-        return db.login(email, password);
+        return db.loginStudent(email, password);
     }
 
     public DbStatus loginAdmin(String email, String password) {
-        return db.login(email, password);
+        return db.loginAdmin(email, password);
     }
 
     public DbStatus activateAccount(String email, String activationCode) {
-        return db.verifyActivationCode(email, activationCode);
+        DbStatus status = db.verifyActivationCode(email, activationCode);
+        if (status == DbStatus.SUCCESS){
+            return db.setProfileActivation(email);
+        }
+        return status;
     }
+    
 }
