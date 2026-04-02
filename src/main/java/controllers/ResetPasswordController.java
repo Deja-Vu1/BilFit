@@ -37,9 +37,10 @@ public class ResetPasswordController {
         }
             */
            System.out.println("Mail doğrulandı, ActivationView'e yönlendiriliyor...");
-           checkActivationCode(event);
+           checkMail(event);
     }
-        public void checkActivationCode(ActionEvent event) {
+    @FXML
+        public void checkMail(ActionEvent event) {
         System.out.println("Redirecting to ActivationView");
          try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ActivationView.fxml"));
