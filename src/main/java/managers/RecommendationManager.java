@@ -1,6 +1,7 @@
 package managers;
 
 import database.Database;
+import models.SportType;
 import models.Student;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,8 +11,8 @@ public class RecommendationManager {
     private static final double DEFAULT_THRESHOLD = 0.3;
     private Database db;
 
-    public RecommendationManager(Database db) {
-        this.db = db;
+    public RecommendationManager() {
+        this.db = Database.getInstance();
     }
 
     public List<Student> getRecommendations(Student targetStudent) {
@@ -31,7 +32,7 @@ public class RecommendationManager {
                 continue;
             }
 
-            double similarityScore = targetStudent.calculateJaccardSimilarity(other);
+            double similarityScore = calculateJaccardSimilarity(targetStudent, other);
 
             if (similarityScore >= threshold) {
                 recommendedFriends.add(other);
@@ -39,5 +40,24 @@ public class RecommendationManager {
         }
 
         return recommendedFriends;
+    }
+
+    private double calculateJaccardSimilarity(Student s1, Student s2) {
+        List<SportType> interests1 = s1.getInterests();
+        List<SportType> interests2 = s2.getInterests();
+
+        if (interests1 == null || interests2 == null || (interests1.isEmpty() && interests2.isEmpty())) {
+            return 0.0;
+        }
+
+        int intersectionScore = 0;
+        for (SportType st : interests1) {
+            if (interests2.contains(st)) {
+                intersectionScore++;
+            }
+        }
+
+        int unionScore = interests1.size() + interests2.size() - intersectionScore;
+        return (double) intersectionScore / unionScore;
     }
 }

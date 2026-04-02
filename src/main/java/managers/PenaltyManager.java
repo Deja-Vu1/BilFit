@@ -7,46 +7,43 @@ import models.Student;
 
 public class PenaltyManager {
 
-    private static final double SUSPENSION_THRESHOLD = 50.0;
-    private static final int MAX_PENALTY_POINTS = 3;
     private Database db;
 
-    public PenaltyManager(Database db) {
-        this.db = db;
+    public PenaltyManager() {
+        this.db = Database.getInstance();
     }
 
     public DbStatus processNoShow(Student student, Reservation reservation) {
+        if (reservation.isCancelled()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
         DbStatus status = db.updateReservationAttendance(reservation.getReservationId(), false);
         if (status != DbStatus.SUCCESS) {
             return status;
         }
 
-        DbStatus penaltyStatus = db.updateStudentPenalty(student.getStudentId(), student.getPenaltyPoints() + 1);
+        int newPoints = student.getPenaltyPoints() + 1;
+        DbStatus penaltyStatus = db.updateStudentPenalty(student.getStudentId(), newPoints);
         if (penaltyStatus != DbStatus.SUCCESS) {
             return penaltyStatus;
         }
 
-        reservation.markAttendance(false);
-        student.addPenaltyPoint(1);
-        return checkSuspensionStatus(student);
+        reservation.setHasAttended(false);
+        student.setPenaltyPoints(newPoints);
+        
+        return DbStatus.SUCCESS;
     }
 
     public DbStatus processAttendance(Student student, Reservation reservation) {
+        if (reservation.isCancelled()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
         DbStatus status = db.updateReservationAttendance(reservation.getReservationId(), true);
         if (status == DbStatus.SUCCESS) {
-            reservation.markAttendance(true);
+            reservation.setHasAttended(true);
         }
         return status;
-    }
-
-    private DbStatus checkSuspensionStatus(Student student) {
-        if (student.getReliabilityScore() < SUSPENSION_THRESHOLD || student.getPenaltyPoints() >= MAX_PENALTY_POINTS) {
-            DbStatus status = db.updateStudentProfileVisibility(student.getStudentId(), false);
-            if (status == DbStatus.SUCCESS) {
-                student.updateProfileVisibility(false);
-            }
-            return status;
-        }
-        return DbStatus.SUCCESS;
     }
 }

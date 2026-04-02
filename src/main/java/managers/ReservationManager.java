@@ -1,7 +1,6 @@
 package managers;
 
 import java.time.LocalDate;
-import java.util.UUID;
 import database.Database;
 import database.DbStatus;
 import models.Facility;
@@ -12,23 +11,26 @@ public class ReservationManager {
 
     private Database db;
 
-    public ReservationManager(Database db) {
-        this.db = db;
+    public ReservationManager() {
+        this.db = Database.getInstance();
     }
 
     public Reservation makeReservation(Student student, Facility facility, LocalDate date, String timeSlot) {
+        if (!student.isCanAttend() || facility.isUnderMaintenance()) {
+            return null; 
+        }
+
         boolean isAvailable = db.checkFacilityAvailability(facility.getName(), date, timeSlot);
         
         if (!isAvailable) {
             return null;
         }
 
-        String uniqueResId = UUID.randomUUID().toString();
-        DbStatus status = db.insertReservation(uniqueResId, student.getStudentId(), facility.getName(), date, timeSlot);
+        String generatedResId = db.insertReservation(student.getStudentId(), facility.getName(), date, timeSlot);
         
-        if (status == DbStatus.SUCCESS) {
-            Reservation newReservation = new Reservation(uniqueResId, facility, date, timeSlot);
-            newReservation.createReservation(student);
+        if (generatedResId != null) {
+            Reservation newReservation = new Reservation(generatedResId, facility, date, timeSlot);
+            newReservation.getAttendees().add(student);
             return newReservation;
         }
         
@@ -42,7 +44,7 @@ public class ReservationManager {
 
         DbStatus status = db.deleteReservation(reservation.getReservationId());
         if (status == DbStatus.SUCCESS) {
-            reservation.cancelReservation();
+            reservation.setCancelled(true);
         }
         return status;
     }

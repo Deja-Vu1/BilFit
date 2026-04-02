@@ -9,23 +9,29 @@ public class TeamManager {
 
     private Database db;
 
-    public TeamManager(Database db) {
-        this.db = db;
+    public TeamManager() {
+        this.db = Database.getInstance();
     }
 
     public DbStatus createTeam(Team team) {
-        return db.insertTeam(team.getTeamName(), team.getCaptain().getStudentId());
+        DbStatus status = db.insertTeam(team.getTeamId(), team.getTeamName(), team.getCaptain().getStudentId());
+        
+        if (status == DbStatus.SUCCESS) {
+            db.insertTeamMember(team.getTeamId(), team.getCaptain().getStudentId(), team.getAccessCode());
+        }
+        
+        return status;
     }
 
     public DbStatus addMemberToTeam(Team team, Student student, String inputCode) {
-        if (team.isFull()) {
+        if (team.getMembers().size() >= team.getMaxCapacity() || !team.getAccessCode().equals(inputCode) || team.getMembers().contains(student)) {
             return DbStatus.QUERY_ERROR;
         }
 
-        DbStatus status = db.insertTeamMember(team.getTeamName(), student.getStudentId(), inputCode);
+        DbStatus status = db.insertTeamMember(team.getTeamId(), student.getStudentId(), inputCode);
         
         if (status == DbStatus.SUCCESS) {
-            team.addMember(student, inputCode);
+            team.getMembers().add(student);
         }
         
         return status;
@@ -36,10 +42,24 @@ public class TeamManager {
             return DbStatus.QUERY_ERROR;
         }
 
-        DbStatus status = db.deleteTeamMember(team.getTeamName(), student.getStudentId());
+        DbStatus status = db.deleteTeamMember(team.getTeamId(), student.getStudentId());
         
         if (status == DbStatus.SUCCESS) {
-            team.removeMember(student);
+            team.getMembers().remove(student);
+        }
+        
+        return status;
+    }
+
+    public DbStatus disbandTeam(Team team, Student requester) {
+        if (!requester.equals(team.getCaptain())) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        DbStatus status = db.deleteTeam(team.getTeamId());
+        
+        if (status == DbStatus.SUCCESS) {
+            team.getMembers().clear();
         }
         
         return status;
