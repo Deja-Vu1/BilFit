@@ -33,8 +33,8 @@ public class StudentRegisterController {
     @FXML private PasswordField passwordField;
 
     private boolean isProcessing = false;
-    private Database db = Database.getInstance();
-    private AuthManager authManager = new AuthManager(db);
+    /*private Database db = Database.getInstance();
+    private AuthManager authManager = new AuthManager(db);*/
 
     @FXML
     public void attemptRegister(ActionEvent event) {
@@ -45,7 +45,7 @@ public class StudentRegisterController {
         String studentId = studentIdField.getText();
         String password = passwordField.getText();
         
-        if (name == null || name.isEmpty() || email == null || email.isEmpty() || studentId == null || studentId.isEmpty() || password == null || password.isEmpty()) {
+        /*if (name == null || name.isEmpty() || email == null || email.isEmpty() || studentId == null || studentId.isEmpty() || password == null || password.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen tüm alanları doldurunuz.");
             return;
         }
@@ -89,7 +89,8 @@ public class StudentRegisterController {
                         break;
                 }
             });
-        }).start();
+        }).start();*/
+        goToActivation(event);
     }
 
     private void goToActivation(ActionEvent event) {

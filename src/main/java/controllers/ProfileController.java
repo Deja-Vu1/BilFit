@@ -22,7 +22,7 @@ public class ProfileController {
     @FXML private Label winRateLabel;
     @FXML private Label eloPointLabel;
 
-    private Database db = Database.getInstance();
+    /*private Database db = Database.getInstance();
 
     @FXML
     public void initialize() {
@@ -69,5 +69,5 @@ public class ProfileController {
                 e.printStackTrace();
             }
         }).start();
-    }
+    }*/
 }

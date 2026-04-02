@@ -52,7 +52,7 @@ public class AdminRegisterController {
         Button clickedButton = (Button) event.getSource();
         String originalText = clickedButton.getText();
         
-        clickedButton.getParent().requestFocus();
+        /*clickedButton.getParent().requestFocus();
         clickedButton.setDisable(true);
         clickedButton.setText("Kayıt Yapılıyor...");
 
@@ -84,7 +84,8 @@ public class AdminRegisterController {
                 }
             });
             
-        }).start();
+        }).start();*/
+        goToAdminLogin(event);
     }
 
      // Başarılı kayıttan sonra Login sayfasına yönlendiren yardımcı metod

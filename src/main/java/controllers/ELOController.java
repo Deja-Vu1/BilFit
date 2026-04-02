@@ -18,7 +18,7 @@ public class ELOController {
     @FXML private Label duelloSubInfoLabel;
 
     // Singleton Database connection
-    private Database db = Database.getInstance();
+    /*private Database db = Database.getInstance();*/
 
     @FXML
     public void initialize() {

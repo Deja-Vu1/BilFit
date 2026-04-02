@@ -29,14 +29,14 @@ public class ActivationController {
     public static String emailToActivate = "";
 
     private boolean isProcessing = false;
-    private Database db = Database.getInstance();
-    private AuthManager authManager = new AuthManager(db);
+    /*private Database db = Database.getInstance();
+    private AuthManager authManager = new AuthManager(db);*/
 
     @FXML
     public void submitCode(ActionEvent event) {
         if (isProcessing) return;
 
-        String code = activationCodeField.getText();
+        /*String code = activationCodeField.getText();
         
         if (code == null || code.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen 6 haneli aktivasyon kodunu giriniz.");
@@ -81,7 +81,8 @@ public class ActivationController {
                         break;
                 }
             });
-        }).start();
+        }).start();*/
+        goToLogin(event);
     }
 
     private void goToLogin(ActionEvent event) {

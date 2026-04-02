@@ -28,8 +28,8 @@ public class StudentLoginController {
     @FXML private PasswordField passwordField;
 
     private boolean isProcessing = false;
-    private Database db = Database.getInstance();
-    private AuthManager authManager = new AuthManager(db);
+    /*private Database db = Database.getInstance();
+    private AuthManager authManager = new AuthManager(db);*/
 
     @FXML
     public void attemptLogin(ActionEvent event) {
@@ -38,7 +38,7 @@ public class StudentLoginController {
         String emailInput = emailField.getText();
         String passwordInput = passwordField.getText();
 
-        if (emailInput == null || emailInput.isEmpty() || passwordInput == null || passwordInput.isEmpty()) {
+        /*if (emailInput == null || emailInput.isEmpty() || passwordInput == null || passwordInput.isEmpty()) {
             System.out.println("Error: Email or password fields cannot be empty.");
             return;
         }
@@ -78,12 +78,14 @@ public class StudentLoginController {
                         break;
                 }
             });
-        }).start();
+        }).start();*/
+                        System.out.println("Giriş başarılı!");
+                        deployHomepage(event);
     }
 
     public void deployHomepage(ActionEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/MainDashboardView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/StudentMainView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);

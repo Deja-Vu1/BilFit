@@ -15,7 +15,7 @@ public class ReservationController {
     @FXML private Button cancelButton;
 
     // Singleton Database instance
-    private Database db = Database.getInstance();
+    /*private Database db = Database.getInstance();*/
 
     @FXML
     public void initialize() {
