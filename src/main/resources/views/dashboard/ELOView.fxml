@@ -78,5 +78,5 @@
             <Button onAction="#handleRequestDuello" prefHeight="35.0" prefWidth="100.0" style="-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10;" text="Request" />
          </HBox>
       </VBox>
-   </center>
-</BorderPane>
+   </VBox>
+</VBox>

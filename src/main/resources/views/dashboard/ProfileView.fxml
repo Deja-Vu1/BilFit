@@ -2,111 +2,106 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
 <?import javafx.scene.text.Font?>
 
-<VBox spacing="30.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ProfileController">
+<VBox spacing="30.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ProfileController">
    <padding>
       <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
    </padding>
    
-   <VBox styleClass="content-card">
+   <VBox styleClass="content-card" VBox.vgrow="ALWAYS">
       <Label styleClass="content-title" text="User Profile">
          <VBox.margin>
             <Insets bottom="20.0" />
          </VBox.margin>
       </Label>
+      
       <HBox alignment="CENTER_LEFT" spacing="30">
          <Circle fill="#E2E8F0" radius="50.0" stroke="#4318FF" strokeType="INSIDE" strokeWidth="3.0" />
-   
-         <VBox spacing="10">
-            <Label fx:id="nameLabel" text="Yükleniyor..." textFill="#2b3674">
+         
+         <VBox alignment="CENTER_LEFT" spacing="10">
+            <Label fx:id="nameLabel" text="Loading..." textFill="#2b3674">
                <font>
                   <Font name="System Bold" size="22.0" />
                </font>
             </Label>
             <HBox spacing="10">
-               <Label fx:id="studentIdLabel" styleClass="modern-input" text="ID: Yükleniyor..." />
+               <Label fx:id="studentIdLabel" styleClass="modern-input" text="ID: Loading..." />
                <Label styleClass="modern-input" text="CS" />
                <Label styleClass="btn-success" text="🏋 GYM RAT" />
                <Label styleClass="tag-orange" text="🔥 100 Day Streak" />
             </HBox>
          </VBox>
-         <HBox spacing="30.0" VBox.vgrow="ALWAYS">
-            <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-color: #E2E8F0; -fx-border-radius: 20;" HBox.hgrow="ALWAYS"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
-               <HBox alignment="TOP_RIGHT"><Label styleClass="btn-secondary" text="All Sports" /></HBox>
+         
+         <Region HBox.hgrow="ALWAYS" />
+         
+         <HBox spacing="30.0" HBox.hgrow="ALWAYS">
+            
+            <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-color: #E2E8F0; -fx-border-radius: 20;" HBox.hgrow="ALWAYS">
+               <padding>
+                  <Insets bottom="30" left="30" right="30" top="30" />
+               </padding>
+               <HBox alignment="TOP_RIGHT">
+                  <Label styleClass="btn-secondary" text="All Sports" />
+               </HBox>
                <Region VBox.vgrow="ALWAYS" />
-               <Label text="46" textFill="#4318FF"><font><Font name="System Bold" size="48.0" /></font></Label>
-               <Label text="Matches Played" textFill="#2B3674"><font><Font name="System Bold" size="14.0" /></font></Label>
+               <Label fx:id="matchesPlayedLabel" text="0" textFill="#4318FF">
+                  <font>
+                     <Font name="System Bold" size="48.0" />
+                  </font>
+               </Label>
+               <Label text="Matches Played" textFill="#2B3674">
+                  <font>
+                     <Font name="System Bold" size="14.0" />
+                  </font>
+               </Label>
             </VBox>
-            <VBox style="-fx-background-color: #FCE8E8; -fx-background-radius: 20;" HBox.hgrow="ALWAYS"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
-               <HBox alignment="TOP_RIGHT"><Label styleClass="btn-danger" text="Ranked Only" /></HBox>
+            
+            <VBox style="-fx-background-color: #FCE8E8; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
+               <padding>
+                  <Insets bottom="30" left="30" right="30" top="30" />
+               </padding>
+               <HBox alignment="TOP_RIGHT">
+                  <Label styleClass="btn-danger" text="Ranked Only" />
+               </HBox>
                <Region VBox.vgrow="ALWAYS" />
-               <Label text="83%" textFill="#D93025"><font><Font name="System Bold" size="48.0" /></font></Label>
-               <Label text="Win Rate" textFill="#D93025"><font><Font name="System Bold" size="14.0" /></font></Label>
+               <Label fx:id="winRateLabel" text="0%" textFill="#D93025">
+                  <font>
+                     <Font name="System Bold" size="48.0" />
+                  </font>
+               </Label>
+               <Label text="Win Rate" textFill="#D93025">
+                  <font>
+                     <Font name="System Bold" size="14.0" />
+                  </font>
+               </Label>
             </VBox>
-            <VBox style="-fx-background-color: #E6F4EA; -fx-background-radius: 20;" HBox.hgrow="ALWAYS"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
-               <HBox alignment="TOP_RIGHT"><Label styleClass="btn-success" text="Football" /></HBox>
+            
+            <VBox style="-fx-background-color: #E6F4EA; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
+               <padding>
+                  <Insets bottom="30" left="30" right="30" top="30" />
+               </padding>
+               <HBox alignment="TOP_RIGHT">
+                  <Label styleClass="btn-success" text="Football" />
+               </HBox>
                <Region VBox.vgrow="ALWAYS" />
-               <Label text="1420" textFill="#1E8E3E"><font><Font name="System Bold" size="48.0" /></font></Label>
-               <Label text="ELO" textFill="#1E8E3E"><font><Font name="System Bold" size="14.0" /></font></Label>
+               <Label fx:id="eloPointLabel" text="0" textFill="#1E8E3E">
+                  <font>
+                     <Font name="System Bold" size="48.0" />
+                  </font>
+               </Label>
+               <Label text="ELO" textFill="#1E8E3E">
+                  <font>
+                     <Font name="System Bold" size="14.0" />
+                  </font>
+               </Label>
             </VBox>
+            
          </HBox>
-         <Region VBox.vgrow="ALWAYS" />
-         <Label fx:id="matchesPlayedLabel" text="0" textFill="#4318FF">
-            <font>
-               <Font name="System Bold" size="48.0" />
-            </font>
-         </Label>
-         <Label text="Matches Played" textFill="#2B3674">
-            <font>
-               <Font name="System Bold" size="14.0" />
-             </font>
-         </Label>
-      </VBox>
-      
-      <VBox style="-fx-background-color: #FCE8E8; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
-         <padding>
-            <Insets bottom="30" left="30" right="30" top="30" />
-         </padding>
-         <HBox alignment="TOP_RIGHT">
-            <Label styleClass="btn-danger" text="Ranked Only" />
-         </HBox>
-         <Region VBox.vgrow="ALWAYS" />
-         <Label fx:id="winRateLabel" text="0%" textFill="#D93025">
-             <font>
-               <Font name="System Bold" size="48.0" />
-            </font>
-         </Label>
-         <Label text="Win Rate" textFill="#D93025">
-            <font>
-               <Font name="System Bold" size="14.0" />
-             </font>
-         </Label>
-      </VBox>
-      
-      <VBox style="-fx-background-color: #E6F4EA; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
-         <padding>
-            <Insets bottom="30" left="30" right="30" top="30" />
-         </padding>
-         <HBox alignment="TOP_RIGHT">
-            <Label styleClass="btn-success" text="Football" />
-         </HBox>
-         <Region VBox.vgrow="ALWAYS" />
-         <Label fx:id="eloPointLabel" text="0" textFill="#1E8E3E">
-             <font>
-               <Font name="System Bold" size="48.0" />
-            </font>
-         </Label>
-         <Label text="ELO" textFill="#1E8E3E">
-            <font>
-               <Font name="System Bold" size="14.0" />
-            </font>
-         </Label>
-      </VBox>
-   </HBox>
+      </HBox>
+   </VBox>
 </VBox>
