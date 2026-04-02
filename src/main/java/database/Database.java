@@ -955,4 +955,83 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+/**
+     * Creates a new friend request between two students.
+     * Looks up both users by email and inserts a record with 'PENDING' status into the 'friendships' table.
+     * @param senderEmail The Bilkent email of the user sending the request
+     * @param targetEmail The Bilkent email of the user receiving the request
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if an email doesn't exist), or errors.
+     */
+    public DbStatus insertFriendRequest(String senderEmail, String targetEmail) {
+        
+        if (senderEmail != null && senderEmail.equalsIgnoreCase(targetEmail)) {
+            return DbStatus.QUERY_ERROR; 
+        }
+
+        String insertSql = "INSERT INTO friendships (requester_id, receiver_id, status) " +
+                           "SELECT sender.id, target.id, 'Pending' " +
+                           "FROM users sender, users target " +
+                           "WHERE sender.bilkent_email = ? AND target.bilkent_email = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(insertSql)) {
+
+            stmt.setString(1, senderEmail);
+            stmt.setString(2, targetEmail);
+
+            int insertedRows = stmt.executeUpdate();
+
+            return insertedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            if ("23505".equals(e.getSQLState())) {
+                return DbStatus.QUERY_ERROR; 
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Accepts a pending friend request.
+     * Updates the status of the friendship from 'Pending' to 'Accepted'.
+     * @param receiverEmail The Bilkent email of the user who received the request (the one accepting)
+     * @param requesterEmail The Bilkent email of the user who originally sent the request
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if no such pending request exists), or errors.
+     */
+    public DbStatus acceptFriendRequest(String requesterEmail, String receiverEmail) {
+        
+        String updateSql = "UPDATE friendships " +
+                           "SET status = 'Accepted' " +
+                           "WHERE requester_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                           "  AND receiver_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                           "  AND status = 'Pending'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+
+            stmt.setString(1, requesterEmail);
+            
+            stmt.setString(2, receiverEmail);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            // Veritabanı bağlantı hatası
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
