@@ -103,18 +103,30 @@ public class AdminLoginController {
         }
     }
     
-        public void deployHomepage(ActionEvent event) {
-        System.out.println("Redirecting to AdminMainView");
-         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/AdminMainView.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.getScene().setRoot(root);
+    public void deployHomepage(ActionEvent event) {
+    System.out.println("Redirecting to AdminMainView");
+        try {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/AdminMainView.fxml"));
+        Parent root = loader.load();
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        stage.getScene().setRoot(root);
 
         } catch (IOException e) {
             System.err.println("AdminMainView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
-        
+    }
+    
+    @FXML
+    public void goToAdminResetPassword(MouseEvent event){
+        try {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminResetPasswordView.fxml"));
+        Parent root = loader.load();
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        stage.getScene().setRoot(root);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
