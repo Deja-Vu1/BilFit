@@ -12,6 +12,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
 import java.util.UUID;
 
+import models.Student;
+
 public class Database {
 
     // 1. Uygulama boyunca yaşayacak TEK ortak nesne
@@ -205,18 +207,22 @@ public class Database {
 
     /**
      * Registers a new admin to the database.
+     * Requires a valid code from the 'admin_activation' table to proceed.
      * Checks for duplicate email before insertion.
      * student_id is implicitly set to NULL and role is set to 'admin'.
      * @param name Admin's full name
      * @param email Admin's email address
      * @param passwordHash Admin's hashed password
-     * @return DbStatus indicating SUCCESS, EMAIL_ALREADY_EXISTS, QUERY_ERROR, etc.
+     * @param adminActivationCode The special code required to register as an admin
+     * @return DbStatus indicating SUCCESS, EMAIL_ALREADY_EXISTS, INVALID_CODE, QUERY_ERROR, etc.
      */
-    public DbStatus registerAdmin(String name, String email, String passwordHash) {
+    public DbStatus registerAdmin(String name, String email, String passwordHash, String adminActivationCode) {
         
         String gcSql = "DELETE FROM users WHERE is_activated = FALSE AND created_at < NOW() - INTERVAL '30 minutes'";
+        String checkEmailSql = "SELECT bilkent_email FROM users WHERE bilkent_email = ?";
         
-        String checkSql = "SELECT bilkent_email FROM users WHERE bilkent_email = ?";
+        String checkAdminCodeSql = "SELECT id FROM admin_activation WHERE activation_code = ?";
+        String deleteAdminCodeSql = "DELETE FROM admin_activation WHERE activation_code = ?";
         
         String insertSql = "INSERT INTO users (full_name, bilkent_email, student_id, password_hash, role, is_activated) VALUES (?, ?, NULL, ?, 'admin', FALSE)";
 
@@ -226,12 +232,23 @@ public class Database {
                 gcStmt.executeUpdate();
             }
 
-            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
+            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkEmailSql)) {
                 checkStmt.setString(1, email);
 
                 try (ResultSet rs = checkStmt.executeQuery()) {
                     if (rs.next()) {
                         return DbStatus.EMAIL_ALREADY_EXISTS; 
+                    }
+                }
+            }
+
+            try (PreparedStatement checkCodeStmt = getConnection().prepareStatement(checkAdminCodeSql)) {
+                
+                checkCodeStmt.setString(1, adminActivationCode); 
+
+                try (ResultSet rs = checkCodeStmt.executeQuery()) {
+                    if (!rs.next()) {
+                        return DbStatus.INVALID_CODE; 
                     }
                 }
             }
@@ -247,6 +264,12 @@ public class Database {
                 int insertedRows = insertStmt.executeUpdate();
                 
                 if (insertedRows > 0) {
+                    
+                    try (PreparedStatement deleteCodeStmt = getConnection().prepareStatement(deleteAdminCodeSql)) {
+                        deleteCodeStmt.setString(1, adminActivationCode);
+                        deleteCodeStmt.executeUpdate();
+                    }
+
                     createActivationCode(email);
                     return DbStatus.SUCCESS;
                 }
@@ -268,24 +291,27 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
-    /**
+/**
      * Authenticates a student based on email and password.
      * Ensures the account is activated and the user has the 'student' role.
+     * If authentication is successful, updates the 'last_seen' timestamp in the students table.
      * @param email Student's Bilkent email address
      * @param plainPassword The raw password entered by the user
      * @return DbStatus indicating SUCCESS, ACCOUNT_NOT_ACTIVATED, INVALID_CREDENTIALS, etc.
      */
     public DbStatus loginStudent(String email, String plainPassword) {
-        String sql = "SELECT password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
 
-        try (
-             PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+        String selectSql = "SELECT id, password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
+        
+        String updateLastSeenSql = "UPDATE students SET last_seen = CURRENT_TIMESTAMP WHERE user_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(selectSql)) {
 
             stmt.setString(1, email);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
+                    java.util.UUID userId = rs.getObject("id", java.util.UUID.class);
                     boolean isActivated = rs.getBoolean("is_activated");
                     String role = rs.getString("role");
                     String dbPasswordHash = rs.getString("password_hash");
@@ -301,6 +327,12 @@ public class Database {
                     boolean isPasswordCorrect = verifyPassword(plainPassword, dbPasswordHash); 
                     
                     if (isPasswordCorrect) {
+                        // Şifre doğruysa students tablosundaki last_seen kolonunu güncelle
+                        try (PreparedStatement updateStmt = getConnection().prepareStatement(updateLastSeenSql)) {
+                            updateStmt.setObject(1, userId);
+                            updateStmt.executeUpdate();
+                        }
+                        
                         return DbStatus.SUCCESS;
                     } else {
                         return DbStatus.INVALID_CREDENTIALS;
@@ -318,7 +350,6 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
     /**
      * Authenticates an admin based on email and password.
      * Ensures the account is activated and the user has the 'admin' role.
@@ -691,6 +722,170 @@ public class Database {
             if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
                 return DbStatus.CONNECTION_ERROR;
             }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the public profile visibility status for a student.
+     * Finds the user by email and updates their preference in the students table.
+     * @param email Student's Bilkent email address
+     * @param isPublic True to make the profile public, false to make it private
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateStudentProfileVisibility(String email, boolean isPublic) {
+        
+        String updateSql = "UPDATE students " +
+                           "SET is_public_profile = ? " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+
+            stmt.setBoolean(1, isPublic);
+            stmt.setString(2, email);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Fetches student records from the 'users' and 'students' tables
+     * and updates the provided Student object with this data.
+     * @param student The existing Student object to be updated
+     * @param email Student's Bilkent email address to query the database
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus fillStudentDataByEmail(Student student, String email) {
+        
+        // Null kontrolü, gelen objenin boş olmasını engeller
+        if (student == null) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // users ve students tablolarını birleştiren JOIN sorgusu (bilkent_email eklendi)
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.password_hash, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+                     "FROM users u " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE u.bilkent_email = ? AND u.role = 'student'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, email);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    // 1. Üst sınıf (User) verilerini güncelle
+                    student.setFullName(rs.getString("full_name"));
+                    student.setBilkentEmail(rs.getString("bilkent_email"));
+                    student.setPassword(rs.getString("password_hash"));
+                    // Not: 'nickname' DB'de olmadığı için mevcut objenin değerine dokunmuyoruz.
+                    
+                    // 2. Öğrenciye (Student) özel metrikleri set et
+                    student.setStudentId(rs.getString("uni_id"));
+                    student.setEloPoint(rs.getInt("elo_point"));
+                    student.setPenaltyPoints(rs.getInt("penalty_points"));
+                    student.setReliabilityScore(rs.getDouble("reliability_score"));
+                    student.setMatchesPlayed(rs.getInt("matches_played"));
+                    student.setWinRate(rs.getDouble("win_rate"));
+                    student.setPublicProfile(rs.getBoolean("is_public_profile"));
+                    student.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+                    
+                    // matchesWon hesaplaması
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    student.setMatchesWon(matchesWon);
+
+                    return DbStatus.SUCCESS;
+                } else {
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the ELO score for a student.
+     * Finds the user by email and updates their elo_point in the students table.
+     * @param email Student's Bilkent email address
+     * @param score The new ELO score to be set
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateStudentElo(String email, int score) {
+        
+        String updateSql = "UPDATE students " +
+                           "SET elo_point = ? " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+
+            stmt.setInt(1, score);
+            stmt.setString(2, email);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the penalty points for a student.
+     * Finds the user by their Bilkent email address and updates their penalty_points in the students table.
+     * @param email Student's Bilkent email address
+     * @param newPenaltyPoints The new total penalty points to be set
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateStudentPenalty(String email, int newPenaltyPoints) {
+        
+        String updateSql = "UPDATE students " +
+                           "SET penalty_points = ? " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+
+            stmt.setInt(1, newPenaltyPoints);
+            stmt.setString(2, email);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
             return DbStatus.QUERY_ERROR;
         }
     }

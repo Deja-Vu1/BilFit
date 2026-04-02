@@ -15,6 +15,10 @@ public class DatabaseTest {
             System.err.println("- Database connection FAILED! Please check the database server and settings.");
         }
 
-        // myDB.deleteStudentInterest("mail", "Basketball");
+        if (myDB.loginStudent("talha.zorlu@ug.bilkent.edu.tr", "1") == DbStatus.SUCCESS) {
+            System.out.println("+ Login successful!");
+        } else {
+            System.err.println("- Login failed.");
+        }
     }
 }
