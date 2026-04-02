@@ -41,8 +41,28 @@ public class TeamManager {
     }
 
     public DbStatus removeMemberFromTeam(Team team, Student student) {
-        if (team == null || student == null || student.equals(team.getCaptain())) {
+        if (team == null || student == null || !team.getMembers().contains(student)) {
             return DbStatus.QUERY_ERROR;
+        }
+
+        if (student.getBilkentEmail().equals(team.getCaptain().getBilkentEmail())) {
+            if (team.getMembers().size() > 1) {
+                Student newCaptain = null;
+                for (Student s : team.getMembers()) {
+                    if (!s.getBilkentEmail().equals(student.getBilkentEmail())) {
+                        newCaptain = s;
+                        break;
+                    }
+                }
+                if (newCaptain != null) {
+                    DbStatus transferStatus = transferCaptaincy(team, student, newCaptain);
+                    if (transferStatus != DbStatus.SUCCESS) {
+                        return transferStatus;
+                    }
+                }
+            } else {
+                return disbandTeam(team, student);
+            }
         }
 
         DbStatus status = db.deleteTeamMember(team.getTeamId(), student.getBilkentEmail());
@@ -52,8 +72,21 @@ public class TeamManager {
         return status;
     }
 
+    public DbStatus transferCaptaincy(Team team, Student oldCaptain, Student newCaptain) {
+        if (team == null || oldCaptain == null || newCaptain == null) return DbStatus.QUERY_ERROR;
+        if (!team.getCaptain().getBilkentEmail().equals(oldCaptain.getBilkentEmail()) || !team.getMembers().contains(newCaptain)) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        DbStatus status = db.updateTeamCaptain(team.getTeamId(), newCaptain.getBilkentEmail());
+        if (status == DbStatus.SUCCESS) {
+            team.setCaptain(newCaptain);
+        }
+        return status;
+    }
+
     public DbStatus disbandTeam(Team team, Student requester) {
-        if (team == null || requester == null || !requester.equals(team.getCaptain())) {
+        if (team == null || requester == null || !requester.getBilkentEmail().equals(team.getCaptain().getBilkentEmail())) {
             return DbStatus.QUERY_ERROR;
         }
 

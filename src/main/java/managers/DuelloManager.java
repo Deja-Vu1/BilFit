@@ -13,15 +13,19 @@ import java.util.UUID;
 public class DuelloManager {
 
     private Database db;
+    private NotificationManager notifManager;
 
     public DuelloManager(Database db) {
         this.db = db;
+        this.notifManager = new NotificationManager(db);
     }
 
     public DbStatus createDuello(Duello duello, Student creator) {
         if (duello == null || creator == null || !creator.isCanAttend()) {
             return DbStatus.QUERY_ERROR;
         }
+
+        duello.setEmptySlots(1);
 
         DbStatus status = db.insertDuello(duello.getReservationId(), creator.getBilkentEmail());
         if (status == DbStatus.SUCCESS) {
@@ -34,10 +38,19 @@ public class DuelloManager {
     }
 
     public DbStatus requestToJoinDuello(Duello duello, Student student) {
-        if (duello == null || student == null || duello.isCancelled() || !student.isCanAttend() || duello.isMatched() || duello.getEmptySlots() <= 0 || duello.getAttendees().contains(student)) {
+        if (duello == null || student == null || duello.isCancelled() || !student.isCanAttend() || duello.isMatched() || duello.getEmptySlots() <= 0) {
             return DbStatus.QUERY_ERROR;
         }
-        return db.insertDuelloRequest(duello.getReservationId(), student.getBilkentEmail());
+        
+        if (duello.getAttendees().contains(student)) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        DbStatus status = db.insertDuelloRequest(duello.getReservationId(), student.getBilkentEmail());
+        if (status == DbStatus.SUCCESS) {
+            notifManager.sendToUser(duello.getAttendees().get(0), "New Duello Request", student.getNickname() + " wants to join your duello.");
+        }
+        return status;
     }
 
     public DbStatus acceptDuelloRequest(Duello duello, Student student) {
@@ -51,9 +64,29 @@ public class DuelloManager {
             duello.setEmptySlots(duello.getEmptySlots() - 1);
             
             if (duello.getEmptySlots() <= 0) {
-                duello.setMatched(true);
                 finalizeDuelloMatch(duello);
             }
+        }
+        return status;
+    }
+
+    public DbStatus declineDuelloRequest(Duello duello, Student student) {
+        if (duello == null || student == null) return DbStatus.QUERY_ERROR;
+        
+        return db.deleteDuelloRequest(duello.getReservationId(), student.getBilkentEmail());
+    }
+
+    public DbStatus cancelDuello(Duello duello, Student creator) {
+        if (duello == null || creator == null || duello.isMatched()) return DbStatus.QUERY_ERROR;
+        
+        if(duello.getAttendees().isEmpty() || !duello.getAttendees().get(0).getBilkentEmail().equals(creator.getBilkentEmail())) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        DbStatus status = db.deleteDuello(duello.getReservationId());
+        if(status == DbStatus.SUCCESS) {
+            duello.setCancelled(true);
+            duello.getAttendees().clear();
         }
         return status;
     }
@@ -70,7 +103,6 @@ public class DuelloManager {
             duello.setEmptySlots(duello.getEmptySlots() - 1);
             
             if (duello.getEmptySlots() <= 0) {
-                duello.setMatched(true);
                 finalizeDuelloMatch(duello);
             }
         }
@@ -78,7 +110,7 @@ public class DuelloManager {
     }
 
     private void finalizeDuelloMatch(Duello duello) {
-        if (duello.getAttendees().size() >= 2) {
+        if (duello.getAttendees().size() == 2) {
             Student p1 = duello.getAttendees().get(0);
             Student p2 = duello.getAttendees().get(1);
             SportType sport = duello.getFacility().getSportType();
@@ -91,6 +123,13 @@ public class DuelloManager {
                 Team t2 = new Team(p2.getStudentId() + "_T", p2.getNickname(), "SOLO", 1, false, p2);
                 Match m = new Match(matchId, LocalDateTime.now(), sport, t1, t2);
                 duello.setScheduledMatch(m);
+                duello.setMatched(true);
+
+                notifManager.sendToUser(p1, "Duello Matched", "An opponent has been found for your duello!");
+                notifManager.sendToUser(p2, "Duello Matched", "Your duello match is ready!");
+            } else {
+                duello.setEmptySlots(1);
+                duello.getAttendees().remove(p2);
             }
         }
     }

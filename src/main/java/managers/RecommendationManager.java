@@ -21,7 +21,7 @@ public class RecommendationManager {
 
     public List<Student> getRecommendations(Student targetStudent, double threshold) {
         List<Student> recommendedFriends = new ArrayList<>();
-        if (targetStudent == null) return recommendedFriends;
+        if (targetStudent == null || threshold < 0.0 || threshold > 1.0) return recommendedFriends;
 
         List<Student> allPublicStudents = db.getAllPublicStudents();
         if (allPublicStudents == null || allPublicStudents.isEmpty()) {
@@ -29,8 +29,29 @@ public class RecommendationManager {
         }
 
         for (Student other : allPublicStudents) {
-            // Kendi kendini ve zaten arkadaşı olanları önerilerden çıkarıyoruz!
-            if (other == null || targetStudent.getStudentId().equals(other.getStudentId()) || targetStudent.getFriends().contains(other)) {
+            if (other == null || targetStudent.getBilkentEmail().equals(other.getBilkentEmail())) {
+                continue;
+            }
+            
+            boolean isAlreadyConnected = false;
+            
+            for (Student friend : targetStudent.getFriends()) {
+                if(friend.getBilkentEmail().equals(other.getBilkentEmail())) {
+                    isAlreadyConnected = true;
+                    break;
+                }
+            }
+            
+            if(!isAlreadyConnected) {
+                for (Student request : targetStudent.getFriendRequests()) {
+                    if(request.getBilkentEmail().equals(other.getBilkentEmail())) {
+                        isAlreadyConnected = true;
+                        break;
+                    }
+                }
+            }
+            
+            if(isAlreadyConnected) {
                 continue;
             }
 
