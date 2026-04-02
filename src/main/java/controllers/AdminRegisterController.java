@@ -20,7 +20,18 @@ public class AdminRegisterController {
 
     @FXML
     public void attemptAdminRegister(ActionEvent event) {
-        String name = fullnameField.getText();
+
+         try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/AdminMainView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);;
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        /*String name = fullnameField.getText();
         String email = emailField.getText();
         String password = passwordField.getText();
         
@@ -28,13 +39,12 @@ public class AdminRegisterController {
         if (name.isEmpty() || email.isEmpty() || password.isEmpty()) {
             System.out.println("Error: All fields must be filled.");
             return;
-        }
+        }*/
     }
 
     @FXML
     public void goBack(MouseEvent event) {
         try {
-            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
