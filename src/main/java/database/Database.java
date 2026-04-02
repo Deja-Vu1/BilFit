@@ -703,4 +703,37 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Updates the public profile visibility status for a student.
+     * Finds the user by email and updates their preference in the students table.
+     * @param email Student's Bilkent email address
+     * @param isPublic True to make the profile public, false to make it private
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateStudentProfileVisibility(String email, boolean isPublic) {
+        
+        String updateSql = "UPDATE students " +
+                           "SET is_public_profile = ? " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+
+            stmt.setBoolean(1, isPublic);
+            stmt.setString(2, email);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
