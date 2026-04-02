@@ -4,16 +4,13 @@ import models.User;
 
 public class SessionManager {
     
-    private static SessionManager instance;
+    // Eager initialization - JavaFX için Thread-Safe yapı
+    private static final SessionManager instance = new SessionManager();
     private User currentUser;
 
-    private SessionManager() {
-    }
+    private SessionManager() {}
 
     public static SessionManager getInstance() {
-        if (instance == null) {
-            instance = new SessionManager();
-        }
         return instance;
     }
 

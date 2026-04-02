@@ -20,15 +20,17 @@ public class RecommendationManager {
     }
 
     public List<Student> getRecommendations(Student targetStudent, double threshold) {
-        List<Student> allPublicStudents = db.getAllPublicStudents();
         List<Student> recommendedFriends = new ArrayList<>();
+        if (targetStudent == null) return recommendedFriends;
 
+        List<Student> allPublicStudents = db.getAllPublicStudents();
         if (allPublicStudents == null || allPublicStudents.isEmpty()) {
             return recommendedFriends;
         }
 
         for (Student other : allPublicStudents) {
-            if (targetStudent.getStudentId().equals(other.getStudentId())) {
+            // Kendi kendini ve zaten arkadaşı olanları önerilerden çıkarıyoruz!
+            if (other == null || targetStudent.getStudentId().equals(other.getStudentId()) || targetStudent.getFriends().contains(other)) {
                 continue;
             }
 
@@ -38,7 +40,6 @@ public class RecommendationManager {
                 recommendedFriends.add(other);
             }
         }
-
         return recommendedFriends;
     }
 

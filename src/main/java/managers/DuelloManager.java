@@ -19,36 +19,33 @@ public class DuelloManager {
     }
 
     public DbStatus createDuello(Duello duello, Student creator) {
-        if (!creator.isCanAttend()) {
+        if (duello == null || creator == null || !creator.isCanAttend()) {
             return DbStatus.QUERY_ERROR;
         }
 
         DbStatus status = db.insertDuello(duello.getReservationId(), creator.getBilkentEmail());
-        
         if (status == DbStatus.SUCCESS) {
             duello.setMatched(false);
             if (!duello.getAttendees().contains(creator)) {
                 duello.getAttendees().add(creator);
             }
         }
-        
         return status;
     }
 
     public DbStatus requestToJoinDuello(Duello duello, Student student) {
-        if (duello.isCancelled() || !student.isCanAttend() || duello.isMatched() || duello.getEmptySlots() <= 0 || duello.getAttendees().contains(student)) {
+        if (duello == null || student == null || duello.isCancelled() || !student.isCanAttend() || duello.isMatched() || duello.getEmptySlots() <= 0 || duello.getAttendees().contains(student)) {
             return DbStatus.QUERY_ERROR;
         }
         return db.insertDuelloRequest(duello.getReservationId(), student.getBilkentEmail());
     }
 
     public DbStatus acceptDuelloRequest(Duello duello, Student student) {
-        if (duello.isCancelled() || duello.isMatched() || duello.getEmptySlots() <= 0 || duello.getAttendees().contains(student)) {
+        if (duello == null || student == null || duello.isCancelled() || duello.isMatched() || duello.getEmptySlots() <= 0 || duello.getAttendees().contains(student)) {
             return DbStatus.QUERY_ERROR;
         }
 
         DbStatus status = db.updateDuelloParticipant(duello.getReservationId(), student.getBilkentEmail());
-        
         if (status == DbStatus.SUCCESS) {
             duello.getAttendees().add(student);
             duello.setEmptySlots(duello.getEmptySlots() - 1);
@@ -58,17 +55,16 @@ public class DuelloManager {
                 finalizeDuelloMatch(duello);
             }
         }
-        
         return status;
     }
 
     public DbStatus joinDuelloWithCode(Duello duello, Student student, String code) {
+        if (duello == null || student == null || code == null) return DbStatus.QUERY_ERROR;
         if (duello.isCancelled() || !student.isCanAttend() || !code.equals(duello.getAccessCode()) || duello.isMatched() || duello.getEmptySlots() <= 0 || duello.getAttendees().contains(student)) {
             return DbStatus.QUERY_ERROR;
         }
 
         DbStatus status = db.verifyAndJoinDuello(duello.getReservationId(), student.getBilkentEmail(), code);
-        
         if (status == DbStatus.SUCCESS) {
             duello.getAttendees().add(student);
             duello.setEmptySlots(duello.getEmptySlots() - 1);
@@ -78,12 +74,11 @@ public class DuelloManager {
                 finalizeDuelloMatch(duello);
             }
         }
-        
         return status;
     }
 
     private void finalizeDuelloMatch(Duello duello) {
-        if (duello.getAttendees().size() == 2) {
+        if (duello.getAttendees().size() >= 2) {
             Student p1 = duello.getAttendees().get(0);
             Student p2 = duello.getAttendees().get(1);
             SportType sport = duello.getFacility().getSportType();
