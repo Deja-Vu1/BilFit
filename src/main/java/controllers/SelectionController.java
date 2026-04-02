@@ -49,7 +49,7 @@ public class SelectionController implements Initializable {
         System.out.println("Öğrenci giriş ekranına yönlendiriliyor...");
         
         try {
-            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
+     
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
