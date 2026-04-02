@@ -143,7 +143,8 @@ public class AdminLoginController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
-        
+        alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
+        alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
         // Full-screen pop-up arkaya düşme sorunu çözümü
         if (emailField != null && emailField.getScene() != null) {
             Stage stage = (Stage) emailField.getScene().getWindow();

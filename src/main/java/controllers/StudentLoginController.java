@@ -123,7 +123,8 @@ public class StudentLoginController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
-        
+        alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
+        alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
         // Eğer sahnemiz aktifse, pop-up'ın sahibini (owner) ana ekran olarak ayarlıyoruz.
         if (emailField.getScene() != null) {
             Stage stage = (Stage) emailField.getScene().getWindow();
