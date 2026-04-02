@@ -1,6 +1,8 @@
 package controllers;
 
 import javafx.application.Platform;
+import java.io.IOException;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -11,6 +13,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
+import models.Student;
 import javafx.scene.Node;
 
 import database.Database;
@@ -36,7 +39,7 @@ public class StudentLoginController {
         String passwordInput = passwordField.getText();
 
         if (emailInput == null || emailInput.isEmpty() || passwordInput == null || passwordInput.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Uyarı", "E-posta veya şifre alanları boş bırakılamaz.");
+            System.out.println("Error: Email or password fields cannot be empty.");
             return;
         }
 
@@ -87,11 +90,14 @@ public class StudentLoginController {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        
     }
 
     @FXML
     public void goToRegister(MouseEvent event) {
+        System.out.println("Redirecting to StudentRegisterView");
         try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentRegisterView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
@@ -104,11 +110,23 @@ public class StudentLoginController {
     @FXML
     public void goToForgotPassword(MouseEvent event) {
         System.out.println("Şifremi Unuttum ekranına yönlendiriliyor...");
+                try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ResetPasswordView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);
+
+        } catch (IOException e) {
+            System.err.println("ResetPasswordView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
     }
+
 
     @FXML
     public void goBack(MouseEvent event) {
         try {
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();

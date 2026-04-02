@@ -13,7 +13,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F4F4;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminLoginController">
+<StackPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F4F4;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminLoginController">
     <stylesheets>
         <URL value="@auth-styles.css" />
     </stylesheets>
@@ -51,6 +51,7 @@
                 
                 <VBox alignment="CENTER" spacing="10.0">
                     <Label onMouseClicked="#goToAdminRegister" styleClass="link-label" text="Register as an Admin" />
+               <Label onMouseClicked="#goToAdminResetPassword" styleClass="link-label" text="Forgot Password" />
                     <Label onMouseClicked="#goBack" styleClass="link-label" text="back">
                         <VBox.margin>
                             <Insets top="5.0" />

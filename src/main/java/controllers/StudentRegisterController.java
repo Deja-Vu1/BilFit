@@ -11,6 +11,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
+import models.Student;
 import javafx.scene.Node;
 
 import database.Database;
@@ -20,6 +21,9 @@ import managers.AuthManager;
 import java.io.IOException;
 
 public class StudentRegisterController {
+
+    // Giriş ekranında kullandığın geçici veritabanı simülasyonu
+    public static List<Student> temporaryDatabase = new ArrayList<>();
 
     @FXML private TextField fullnameField;
     @FXML private TextField emailField;
@@ -88,7 +92,8 @@ public class StudentRegisterController {
 
     private void goToActivation(ActionEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ActivationView.fxml"));
+            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
@@ -107,7 +112,16 @@ public class StudentRegisterController {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        
     }
+        @FXML
+        public void checkActivation(ActionEvent event) {
+        System.out.println("Redirecting to RegisterActivationView");
+         try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/RegisterActivationView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);
 
     private void showAlert(Alert.AlertType alertType, String title, String message) {
         Alert alert = new Alert(alertType);

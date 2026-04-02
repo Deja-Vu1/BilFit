@@ -2,33 +2,22 @@ package controllers;
 
 import java.io.IOException;
 
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
-
-import database.Database;
-import database.DbStatus;
-import managers.AuthManager;
 
 public class AdminRegisterController {
 
     @FXML private TextField fullnameField;
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
-
-    private boolean isProcessing = false;
-    private Database db = Database.getInstance();
-    private AuthManager authManager = new AuthManager(db);
+    @FXML private PasswordField adminAccessCodeField;
 
     @FXML
     public void attemptAdminRegister(ActionEvent event) {
@@ -92,7 +81,7 @@ public class AdminRegisterController {
         }).start();
     }
 
-    // Başarılı kayıttan sonra Login sayfasına yönlendiren yardımcı metod
+     // Başarılı kayıttan sonra Login sayfasına yönlendiren yardımcı metod
     private void goToAdminLogin(ActionEvent event) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminLoginView.fxml"));
@@ -108,7 +97,6 @@ public class AdminRegisterController {
 
     @FXML
     public void goBack(MouseEvent event) {
-        System.out.println("Seçim Ekranına Dönülüyor...");
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
             Parent root = loader.load();
@@ -119,6 +107,7 @@ public class AdminRegisterController {
             System.err.println("SelectionView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
+        System.out.println("Redirecting to Selection Screen...");
     }
 
    private void showAlert(Alert.AlertType alertType, String title, String message) {

@@ -103,5 +103,5 @@
             </Label>
          </HBox>
       </VBox>
-   </VBox>
-</VBox>
+   </center>
+</BorderPane>

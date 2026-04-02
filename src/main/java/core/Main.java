@@ -5,7 +5,8 @@ import database.DbStatus;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.stage.Stage; // Sadece bu Stage kütüphanesi kalmalı
+import javafx.stage.Stage;
+import javafx.scene.input.KeyCombination;
 import java.io.IOException;
 
 
@@ -21,7 +22,8 @@ public class Main extends Application {
             Scene scene = new Scene(fxmlLoader.load(), 1200, 800);
             stage.setTitle("Bilfit - Giriş Paneli");
             stage.setScene(scene);
-            stage.setFullScreen(true);
+            stage.setMaximized(true);
+            stage.setResizable(false);
             stage.show();
         } catch (Exception e) {
             System.err.println("FXML yüklenirken hata oluştu! Yolun doğruluğunu kontrol et.");
@@ -31,7 +33,7 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         // Veritabanı bağlantısını ana thread'de kontrol ediyoruz
-        Database myDB = Database.getInstance();
+        Database myDB = new Database();
         if (myDB.testConnection() == DbStatus.SUCCESS){
             System.out.println("Veritabanı bağlantısı başarılı!");
         } else {

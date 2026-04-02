@@ -16,8 +16,7 @@ public class AuthManager {
         return db.registerStudent(fullName, email, studentId, password);
     }
 
-   public DbStatus registerAdmin(String email, String password, String activationCode, String fullName) {
-        // Adminlerin kayıt olabilmesi için önce bir aktivasyon kodunu doğrulaması gerekiyorsa bu kısım kalabilir.
+    public DbStatus registerAdmin(String email, String password, String activationCode, String fullName) {
         DbStatus verificationStatus = db.verifyActivationCode(email, activationCode);
         
         if (verificationStatus != DbStatus.SUCCESS) {

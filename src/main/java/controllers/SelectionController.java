@@ -28,6 +28,7 @@ public class SelectionController implements Initializable {
     @FXML
     private void goToStudentLogin(ActionEvent event) {
         try {
+     
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();

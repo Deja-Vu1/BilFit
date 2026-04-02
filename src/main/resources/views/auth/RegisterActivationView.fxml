@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.lang.*?>
+<?import java.net.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
 <?import java.net.URL?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
@@ -12,7 +19,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<StackPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F4F4;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ActivationController">
+<StackPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F4F4;" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.RegisterActivationController">
     <stylesheets>
         <URL value="@auth-styles.css" />
     </stylesheets>
@@ -34,7 +41,7 @@
                 
                 <VBox alignment="CENTER_LEFT" spacing="5.0">
                    <children>
-                       <Label text="Enter Activation Code we sent you via e-mail:" />
+                       <Label text="Enter Activation Code:" />
                        <TextField fx:id="activationCodeField" prefHeight="35.0" promptText="Activation code" styleClass="input-field" />
                    </children>
                 </VBox>

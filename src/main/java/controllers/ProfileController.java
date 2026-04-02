@@ -4,6 +4,10 @@ import database.Database;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.stage.Stage;
 
 import java.lang.reflect.Method; 
 import java.sql.Connection;
