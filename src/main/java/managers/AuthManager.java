@@ -7,8 +7,8 @@ public class AuthManager {
 
     private Database db;
 
-    public AuthManager() {
-        this.db = Database.getInstance();
+    public AuthManager(Database db) {
+        this.db = db;
     }
 
     public DbStatus registerStudent(String email, String password, String studentId, String fullName) {

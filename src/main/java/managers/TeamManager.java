@@ -9,8 +9,8 @@ public class TeamManager {
 
     private Database db;
 
-    public TeamManager() {
-        this.db = Database.getInstance();
+    public TeamManager(Database db) {
+        this.db = db;
     }
 
     public DbStatus createTeam(Team team) {

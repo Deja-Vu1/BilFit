@@ -9,8 +9,8 @@ public class NotificationManager {
 
     private Database db;
 
-    public NotificationManager() {
-        this.db = Database.getInstance();
+    public NotificationManager(Database db) {
+        this.db = db;
     }
 
     public DbStatus sendToUser(User user, Notification notification) {

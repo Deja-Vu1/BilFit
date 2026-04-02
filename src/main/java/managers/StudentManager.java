@@ -9,8 +9,8 @@ public class StudentManager {
 
     private Database db;
 
-    public StudentManager() {
-        this.db = Database.getInstance();
+    public StudentManager(Database db) {
+        this.db =  db;
     }
 
     public DbStatus addInterest(Student student, SportType sport) {

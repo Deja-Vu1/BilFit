@@ -12,8 +12,8 @@ public class AdminManager {
 
     private Database db;
 
-    public AdminManager() {
-        this.db = Database.getInstance();
+    public AdminManager(Database db) {
+        this.db = db;
     }
 
     public DbStatus banStudent(Admin admin, Student student) {

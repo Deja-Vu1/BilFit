@@ -11,8 +11,8 @@ public class ReservationManager {
 
     private Database db;
 
-    public ReservationManager() {
-        this.db = Database.getInstance();
+    public ReservationManager(Database db) {
+        this.db = db;
     }
 
     public Reservation makeReservation(Student student, Facility facility, LocalDate date, String timeSlot) {
