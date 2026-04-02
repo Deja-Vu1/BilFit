@@ -25,9 +25,8 @@ public class Main extends Application {
             Scene scene = new Scene(fxmlLoader.load(), 1200, 800);
             stage.setTitle("Bilfit - Giriş Paneli");
             stage.setScene(scene);
-            stage.setFullScreen(true);
-            stage.setFullScreenExitHint("");
-            stage.setFullScreenExitKeyCombination(KeyCombination.NO_MATCH);
+            stage.setMaximized(true);
+            stage.setResizable(false);
             stage.show();
         } catch (Exception e) {
             System.err.println("FXML yüklenirken hata oluştu! Yolun doğruluğunu kontrol et.");
