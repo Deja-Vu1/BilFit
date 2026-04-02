@@ -8,7 +8,6 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
@@ -35,12 +34,15 @@ public class StudentRegisterController {
         
         System.out.println("Öğrenci Kaydı Alınıyor: " + name + " | ID: " + studentId);
         
-        if (name.isEmpty() || email.isEmpty() || studentId.isEmpty() || password.isEmpty()) {
+        /*if (name.isEmpty() || email.isEmpty() || studentId.isEmpty() || password.isEmpty()) {
             System.out.println("Error: All fields are required.");
             return;
         }
 
-        // DB : PostgreSQL INSERT INTO Students sorgusu buraya gelecek.
+        DB : PostgreSQL INSERT INTO Students sorgusu buraya gelecek.*/
+        System.out.println("Kayıt başarılı, Ana Sayfaya yönlendiriliyor...");
+        deployHomepage(event);
+
     }
 
     @FXML
@@ -57,5 +59,19 @@ public class StudentRegisterController {
             System.err.println("StudentLoginView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
+    }
+        public void deployHomepage(ActionEvent event) {
+        System.out.println("Redirecting to StudentMainView");
+         try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/StudentMainView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);
+
+        } catch (IOException e) {
+            System.err.println("StudentMainView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
+        
     }
 }
