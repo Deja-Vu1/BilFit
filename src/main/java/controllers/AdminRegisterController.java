@@ -17,12 +17,13 @@ public class AdminRegisterController {
     @FXML private TextField fullnameField;
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
+    @FXML private PasswordField adminAccessCodeField;
 
     @FXML
     public void attemptAdminRegister(ActionEvent event) {
 
          try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/AdminMainView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminActivationView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);;

@@ -15,7 +15,6 @@ public class NewPasswordController {
     public void goBack(MouseEvent event) {
         System.out.println("Redirecting to ResetPassword Screen");
         try {
-            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ResetPasswordView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
@@ -36,23 +35,25 @@ public class NewPasswordController {
             return;
         }
             */
-           System.out.println("Mail doğrulandı, SelectionView'e yönlendiriliyor...");
-           checkActivationCode(event);
+           System.out.println("Şifre değiştirildi, StudentLoginView'e yönlendiriliyor...");
+
+           directToHome(event);
     }
-        public void checkActivationCode(ActionEvent event) {
-        System.out.println("Redirecting to SelectionView");
+        public void directToHome(ActionEvent event) {
+        System.out.println("Redirecting to StudentLoginView");
          try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
 
         } catch (IOException e) {
-            System.err.println("SelectionView yüklenirken hata oluştu!");
+            System.err.println("StudentLoginView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
         
     }
+    
 
 
 }

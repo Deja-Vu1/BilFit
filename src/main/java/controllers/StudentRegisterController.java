@@ -40,8 +40,8 @@ public class StudentRegisterController {
         }
 
         DB : PostgreSQL INSERT INTO Students sorgusu buraya gelecek.*/
+        checkActivation(event);
         System.out.println("Kayıt başarılı, Ana Sayfaya yönlendiriliyor...");
-        deployHomepage(event);
 
     }
 
@@ -70,6 +70,21 @@ public class StudentRegisterController {
 
         } catch (IOException e) {
             System.err.println("StudentMainView yüklenirken hata oluştu!");
+            e.printStackTrace();
+        }
+        
+    }
+        @FXML
+        public void checkActivation(ActionEvent event) {
+        System.out.println("Redirecting to RegisterActivationView");
+         try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/RegisterActivationView.fxml"));
+            Parent root = loader.load();
+            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            stage.getScene().setRoot(root);
+
+        } catch (IOException e) {
+            System.err.println("RegisterActivationView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
         
