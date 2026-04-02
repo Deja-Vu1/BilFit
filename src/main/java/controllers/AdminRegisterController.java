@@ -45,6 +45,10 @@ public class AdminRegisterController {
             showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen tüm alanları doldurunuz.");
             return;
         }
+        if (!email.endsWith("@ug.bilkent.edu.tr") && !email.endsWith("@alumni.bilkent.edu.tr") && !email.endsWith("@bilkent.edu.tr")) {
+            showAlert(Alert.AlertType.WARNING, "Geçersiz E-posta", "Sisteme sadece Bilkent e-posta adresleri ile kayıt olunabilir.");
+            return;
+        }
 
         // FXML'de admin yetki kodu kutusu olmadığı için şimdilik manuel gönderiyoruz
         String adminSecretCode = "ADMIN_KOD"; 
@@ -117,11 +121,18 @@ public class AdminRegisterController {
         }
     }
 
-    private void showAlert(Alert.AlertType alertType, String title, String message) {
+   private void showAlert(Alert.AlertType alertType, String title, String message) {
         Alert alert = new Alert(alertType);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        
+        // Full-screen pop-up arkaya düşme sorunu çözümü
+        if (emailField != null && emailField.getScene() != null) {
+            Stage stage = (Stage) emailField.getScene().getWindow();
+            alert.initOwner(stage);
+        }
+        
         alert.showAndWait();
     }
 }

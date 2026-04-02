@@ -2,8 +2,6 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.image.Image?>
-<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.shape.Circle?>
 <?import javafx.scene.text.Font?>
@@ -30,7 +28,7 @@
          <padding>
             <Insets bottom="10.0" left="20.0" right="10.0" top="10.0" />
          </padding>
-         <Label text="Football Tournament  | 25.02.2026 - 20.03.2026  |  Max 10 player  | Ge250-251" textFill="#2b3674">
+         <Label fx:id="tournament1Label" text="Loading..." textFill="#2b3674">
             <font>
                <Font name="System Bold" size="13.0" />
             </font>
@@ -53,7 +51,7 @@
          <padding>
             <Insets bottom="10.0" left="20.0" right="10.0" top="10.0" />
          </padding>
-         <Label text="Tennis Tournament  | 25.02.2026 - 20.03.2026  |  Max 4 player  | Ge250-251" textFill="#2b3674">
+         <Label fx:id="tournament2Label" text="Loading..." textFill="#2b3674">
             <font>
                <Font name="System Bold" size="13.0" />
             </font>
@@ -82,7 +80,7 @@
          </padding>
          <HBox alignment="CENTER_LEFT" spacing="15.0">
             <Circle fill="#FF9120" radius="6.0" />
-            <Label text="Football Tournament   | Date Change   |   new date 25.02.2026   | 10.02.2026" textFill="#2b3674">
+            <Label fx:id="notification1Label" text="Loading..." textFill="#2b3674">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
@@ -90,7 +88,7 @@
          </HBox>
          <HBox alignment="CENTER_LEFT" spacing="15.0">
             <Circle fill="#FF9120" radius="6.0" />
-            <Label text="Tennis Tournament   | Location Change   |   new location East Campus 1   | 7.02.2026" textFill="#2b3674">
+            <Label fx:id="notification2Label" text="Loading..." textFill="#2b3674">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
@@ -98,7 +96,7 @@
          </HBox>
          <HBox alignment="CENTER_LEFT" spacing="15.0">
             <Circle fill="#FF9120" radius="6.0" />
-            <Label text="Basketball Tournament   | Location Change   |   new location East Campus SS   | 6.02.2026" textFill="#2b3674">
+            <Label fx:id="notification3Label" text="Loading..." textFill="#2b3674">
                <font>
                   <Font name="System Bold" size="13.0" />
                </font>
