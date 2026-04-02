@@ -19,6 +19,8 @@ import database.DbStatus;
 import managers.AuthManager;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class StudentRegisterController {
 
@@ -122,6 +124,10 @@ public class StudentRegisterController {
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
+         } catch (IOException e) {
+            e.printStackTrace();
+         }
+    }
 
     private void showAlert(Alert.AlertType alertType, String title, String message) {
         Alert alert = new Alert(alertType);

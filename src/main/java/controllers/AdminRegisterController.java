@@ -2,15 +2,21 @@ package controllers;
 
 import java.io.IOException;
 
+import database.DbStatus;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
+import managers.AuthManager;
 
 public class AdminRegisterController {
 
@@ -18,7 +24,7 @@ public class AdminRegisterController {
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
     @FXML private PasswordField adminAccessCodeField;
-
+    private boolean isProcessing = false;
     @FXML
     public void attemptAdminRegister(ActionEvent event) {
         
@@ -53,7 +59,7 @@ public class AdminRegisterController {
         new Thread(() -> {
             
             // AuthManager üzerinden Admin kaydı işlemi
-            DbStatus registerStatus = authManager.registerAdmin(email, password, adminSecretCode, name);
+            DbStatus registerStatus = AuthManager.registerAdmin(email, password, adminSecretCode, name);
 
             Platform.runLater(() -> {
                 isProcessing = false;
