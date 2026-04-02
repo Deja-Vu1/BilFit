@@ -30,8 +30,8 @@ public class NewPasswordController {
         System.out.println("Attempting to reset password...");
         String password=passwordField.getText();
         /* TODO: password'u database'de güncelle
-                if (mail.isEmpty()) {
-            System.out.println("Error: Activation code cannot be empty.");
+                if (password.isEmpty()) {
+            System.out.println("Error: Password cannot be empty.");
             return;
         }
             */
