@@ -269,23 +269,27 @@ public class Database {
         }
     }
 
-    /**
+/**
      * Authenticates a student based on email and password.
      * Ensures the account is activated and the user has the 'student' role.
+     * If authentication is successful, updates the 'last_seen' timestamp in the students table.
      * @param email Student's Bilkent email address
      * @param plainPassword The raw password entered by the user
      * @return DbStatus indicating SUCCESS, ACCOUNT_NOT_ACTIVATED, INVALID_CREDENTIALS, etc.
      */
     public DbStatus loginStudent(String email, String plainPassword) {
-        String sql = "SELECT password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
 
-        try (
-             PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+        String selectSql = "SELECT id, password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
+        
+        String updateLastSeenSql = "UPDATE students SET last_seen = CURRENT_TIMESTAMP WHERE user_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(selectSql)) {
 
             stmt.setString(1, email);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
+                    java.util.UUID userId = rs.getObject("id", java.util.UUID.class);
                     boolean isActivated = rs.getBoolean("is_activated");
                     String role = rs.getString("role");
                     String dbPasswordHash = rs.getString("password_hash");
@@ -301,6 +305,12 @@ public class Database {
                     boolean isPasswordCorrect = verifyPassword(plainPassword, dbPasswordHash); 
                     
                     if (isPasswordCorrect) {
+                        // Şifre doğruysa students tablosundaki last_seen kolonunu güncelle
+                        try (PreparedStatement updateStmt = getConnection().prepareStatement(updateLastSeenSql)) {
+                            updateStmt.setObject(1, userId);
+                            updateStmt.executeUpdate();
+                        }
+                        
                         return DbStatus.SUCCESS;
                     } else {
                         return DbStatus.INVALID_CREDENTIALS;
@@ -318,7 +328,6 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
     /**
      * Authenticates an admin based on email and password.
      * Ensures the account is activated and the user has the 'admin' role.

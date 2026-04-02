@@ -2,6 +2,7 @@ package managers;
 
 import database.Database;
 import database.DbStatus;
+import javafx.scene.chart.PieChart.Data;
 
 public class AuthManager {
 
