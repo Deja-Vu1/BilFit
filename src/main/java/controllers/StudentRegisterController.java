@@ -43,6 +43,10 @@ public class StudentRegisterController {
             showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen tüm alanları doldurunuz.");
             return;
         }
+        if (!email.endsWith("@ug.bilkent.edu.tr") && !email.endsWith("@alumni.bilkent.edu.tr") && !email.endsWith("@bilkent.edu.tr")) {
+            showAlert(Alert.AlertType.WARNING, "Geçersiz E-posta", "Sisteme sadece Bilkent e-posta adresleri ile kayıt olunabilir.");
+            return;
+        }
 
         isProcessing = true;
         Button clickedButton = (Button) event.getSource();
