@@ -58,4 +58,8 @@ public class StudentMainController {
     public void loadSettings(){
         loadView("/views/dashboard/SettingsView.fxml");
     }
+
+    public void loadFriends(){
+        loadView("/views/dashboard/FriendsView.fxml");
+    }
 }

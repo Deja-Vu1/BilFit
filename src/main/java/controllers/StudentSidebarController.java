@@ -32,8 +32,11 @@ public class StudentSidebarController {
     @FXML 
     private Button btnSettings;
 
+    @FXML 
+    private Button btnFriends;
+
     private void updateActiveButton(Button clickedButton) {
-        Button[] allButtons = {btnHome, btnAccount, btnTournaments, btnELO, btnReservation, btnSettings};
+        Button[] allButtons = {btnHome, btnAccount, btnTournaments, btnELO, btnReservation, btnSettings, btnFriends};
         
         for (Button btn : allButtons) {
             if (btn != null) {
@@ -80,6 +83,10 @@ public class StudentSidebarController {
     @FXML private void loadSettings() {
         updateActiveButton(btnSettings);
         mainController.loadSettings();
+    }
+     @FXML private void loadFriends() {
+        updateActiveButton(btnFriends);
+        mainController.loadFriends();
     }
     @FXML private void logout() {
         System.out.println("Redirecting to Main Selection Screen");
