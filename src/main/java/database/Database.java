@@ -889,4 +889,39 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Updates the ban status for a student.
+     * If isBanned is true, sets banned_at to the current timestamp.
+     * If isBanned is false, sets banned_at to NULL (lifts the ban).
+     * @param email Student's Bilkent email address
+     * @param isBanned True to ban the user, false to unban
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateStudentBanStatus(String email, boolean isBanned) {
+        
+        String updateSql = "UPDATE students " +
+                           "SET banned_at = CASE WHEN ? = TRUE THEN CURRENT_TIMESTAMP ELSE NULL END " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+
+            stmt.setBoolean(1, isBanned);
+            stmt.setString(2, email);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            // Veritabanı bağlantı hatası kontrolü
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
