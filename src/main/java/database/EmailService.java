@@ -27,7 +27,7 @@ public class EmailService {
         htmlContent = htmlContent.replace("{{ACTIVATION_CODE}}", activationCode);
 
         // 3. EmailHelper'ı kullanarak maili gönder
-        String subject = "BilFit - Hesabınızı Aktifleştirin";
+        String subject = "BilFit - Activation Code";
         boolean isSent = Email.sendEmail(toEmail, subject, htmlContent);
 
         return isSent;
