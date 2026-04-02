@@ -36,7 +36,7 @@ public class AdminRegisterController {
         String email = emailField.getText();
         String password = passwordField.getText();
         
-        if (name == null || name.isEmpty() || email == null || email.isEmpty() || password == null || password.isEmpty()) {
+        /*if (name == null || name.isEmpty() || email == null || email.isEmpty() || password == null || password.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen tüm alanları doldurunuz.");
             return;
         }
@@ -52,7 +52,7 @@ public class AdminRegisterController {
         Button clickedButton = (Button) event.getSource();
         String originalText = clickedButton.getText();
         
-        /*clickedButton.getParent().requestFocus();
+        clickedButton.getParent().requestFocus();
         clickedButton.setDisable(true);
         clickedButton.setText("Kayıt Yapılıyor...");
 
