@@ -12,6 +12,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Properties;
 import java.util.UUID;
 
+import models.Student;
+
 public class Database {
 
     // 1. Uygulama boyunca yaşayacak TEK ortak nesne
@@ -740,6 +742,104 @@ public class Database {
         try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
 
             stmt.setBoolean(1, isPublic);
+            stmt.setString(2, email);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Fetches student records from the 'users' and 'students' tables
+     * and updates the provided Student object with this data.
+     * @param student The existing Student object to be updated
+     * @param email Student's Bilkent email address to query the database
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus fillStudentDataByEmail(Student student, String email) {
+        
+        // Null kontrolü, gelen objenin boş olmasını engeller
+        if (student == null) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // users ve students tablolarını birleştiren JOIN sorgusu (bilkent_email eklendi)
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.password_hash, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+                     "FROM users u " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE u.bilkent_email = ? AND u.role = 'student'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, email);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    // 1. Üst sınıf (User) verilerini güncelle
+                    student.setFullName(rs.getString("full_name"));
+                    student.setBilkentEmail(rs.getString("bilkent_email"));
+                    student.setPassword(rs.getString("password_hash"));
+                    // Not: 'nickname' DB'de olmadığı için mevcut objenin değerine dokunmuyoruz.
+                    
+                    // 2. Öğrenciye (Student) özel metrikleri set et
+                    student.setStudentId(rs.getString("uni_id"));
+                    student.setEloPoint(rs.getInt("elo_point"));
+                    student.setPenaltyPoints(rs.getInt("penalty_points"));
+                    student.setReliabilityScore(rs.getDouble("reliability_score"));
+                    student.setMatchesPlayed(rs.getInt("matches_played"));
+                    student.setWinRate(rs.getDouble("win_rate"));
+                    student.setPublicProfile(rs.getBoolean("is_public_profile"));
+                    student.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+                    
+                    // matchesWon hesaplaması
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    student.setMatchesWon(matchesWon);
+
+                    return DbStatus.SUCCESS;
+                } else {
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the ELO score for a student.
+     * Finds the user by email and updates their elo_point in the students table.
+     * @param email Student's Bilkent email address
+     * @param score The new ELO score to be set
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateStudentElo(String email, int score) {
+        
+        String updateSql = "UPDATE students " +
+                           "SET elo_point = ? " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+
+            stmt.setInt(1, score);
             stmt.setString(2, email);
 
             int updatedRows = stmt.executeUpdate();
