@@ -664,4 +664,42 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Resets a user's password using an activation code.
+     * Verifies the activation code first. If valid, updates the password.
+     * @param email User's Bilkent email address
+     * @param newPassword The new raw password to be set
+     * @param activationCode The activation code provided by the user
+     * @return DbStatus indicating SUCCESS, INVALID_CODE, EXPIRED_CODE, DATA_NOT_FOUND, etc.
+     */
+    public DbStatus resetPassword(String email, String newPassword, String activationCode) {
+        
+        DbStatus verificationStatus = verifyActivationCode(email, activationCode);
+        
+        if (verificationStatus != DbStatus.SUCCESS) {
+            return verificationStatus;
+        }
+
+        String updateSql = "UPDATE users SET password_hash = ? WHERE bilkent_email = ?";
+
+        try (PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
+            
+            String newPasswordHash = hashPassword(newPassword);
+            updateStmt.setString(1, newPasswordHash);
+            updateStmt.setString(2, email);
+
+            int updatedRows = updateStmt.executeUpdate();
+            
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
