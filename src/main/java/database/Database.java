@@ -856,4 +856,37 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Updates the penalty points for a student.
+     * Finds the user by their Bilkent email address and updates their penalty_points in the students table.
+     * @param email Student's Bilkent email address
+     * @param newPenaltyPoints The new total penalty points to be set
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateStudentPenalty(String email, int newPenaltyPoints) {
+        
+        String updateSql = "UPDATE students " +
+                           "SET penalty_points = ? " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+
+            stmt.setInt(1, newPenaltyPoints);
+            stmt.setString(2, email);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
