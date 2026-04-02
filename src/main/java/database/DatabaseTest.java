@@ -15,6 +15,6 @@ public class DatabaseTest {
             System.err.println("- Database connection FAILED! Please check the database server and settings.");
         }
 
-        // myDB.deleteStudentInterest("talha.zorlu@ug.bilkent.edu.tr", "Basketball");
+        // myDB.deleteStudentInterest("mail", "Basketball");
     }
 }
