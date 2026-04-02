@@ -73,8 +73,8 @@ public class AdminRegisterController {
 
                 switch (registerStatus) {
                     case SUCCESS:
-                        showAlert(Alert.AlertType.INFORMATION, "Kayıt Başarılı", "Admin hesabınız oluşturuldu. Giriş yapabilirsiniz.");
-                        // Başarılı olunca otomatik login ekranına atıyoruz
+                       
+                        
                         goToAdminLogin(event);
                         break;
                     case EMAIL_ALREADY_EXISTS:
@@ -126,7 +126,8 @@ public class AdminRegisterController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
-        
+        alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
+        alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
         // Full-screen pop-up arkaya düşme sorunu çözümü
         if (emailField != null && emailField.getScene() != null) {
             Stage stage = (Stage) emailField.getScene().getWindow();

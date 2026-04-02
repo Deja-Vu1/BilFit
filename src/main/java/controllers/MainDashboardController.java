@@ -92,7 +92,8 @@ public class MainDashboardController {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
-        
+        alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
+        alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
         if (contentArea != null && contentArea.getScene() != null) {
             Stage stage = (Stage) contentArea.getScene().getWindow();
             alert.initOwner(stage);
