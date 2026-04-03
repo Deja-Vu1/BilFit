@@ -1146,4 +1146,51 @@ public class Database {
 
         return studentsList;
     }
+
+    /**
+     * Checks if a facility is available for a specific date and time slot.
+     * A facility is considered available if it exists, is not under maintenance, 
+     * and the number of active (non-cancelled) reservations is strictly less than its capacity.
+     * * @param facilityName The name of the facility
+     * @param date The date of the reservation
+     * @param timeSlot The specific time slot (e.g., "14:00-15:30")
+     * @return true if available, false if full, under maintenance, or not found.
+     */
+    public boolean checkFacilityAvailability(String facilityName, java.time.LocalDate date, String timeSlot) {
+        
+        String sql = "SELECT f.capacity, f.is_under_maintenance, " +
+                     "(SELECT COUNT(*) FROM reservations r " +
+                     " WHERE r.facility_id = f.facility_id " +
+                     "   AND CAST(r.reservation_date AS DATE) = ? " +
+                     "   AND r.time_slot = ? " +
+                     "   AND r.is_cancelled = FALSE) AS active_reservations " +
+                     "FROM facilities f " +
+                     "WHERE f.name = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+
+            stmt.setDate(1, java.sql.Date.valueOf(date));
+            stmt.setString(2, timeSlot);
+            stmt.setString(3, facilityName);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    boolean isUnderMaintenance = rs.getBoolean("is_under_maintenance");
+                    int capacity = rs.getInt("capacity");
+                    int activeReservations = rs.getInt("active_reservations");
+
+                    if (isUnderMaintenance) {
+                        return false;
+                    }
+
+                    return activeReservations < capacity;
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
 }
