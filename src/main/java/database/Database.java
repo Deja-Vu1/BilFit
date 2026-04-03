@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import models.SportType;
 import models.Student;
+import models.Facility;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -1681,4 +1682,49 @@ public class Database {
         }
     }
 
+    /**
+     * Retrieves all facilities from the database and maps them to Facility objects.
+     * @return An ArrayList containing all Facility objects found in the database.
+     */
+    public ArrayList<Facility> getFacilities() {
+        
+        ArrayList<Facility> facilitiesList = new ArrayList<>();
+        
+        String sql = "SELECT f.facility_id, f.name, f.campus_location, f.capacity, f.is_under_maintenance, s.name AS sport_name " +
+                     "FROM facilities f " +
+                     "INNER JOIN sports s ON f.sport_id = s.id";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String id = rs.getObject("facility_id").toString();
+                String name = rs.getString("name");
+                String location = rs.getString("campus_location");
+                int capacity = rs.getInt("capacity");
+                boolean maintenance = rs.getBoolean("is_under_maintenance");
+                
+                models.SportType st = null;
+                try {
+                    String sportName = rs.getString("sport_name");
+                    if (sportName != null) {
+                        String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
+                        st = models.SportType.valueOf(formattedSportName);
+                    }
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Uyarı: Geçersiz veya eşleşmeyen spor türü bulundu -> " + rs.getString("sport_name"));
+                }
+
+                models.Facility facility = new models.Facility(id, name, location, st, capacity);
+                facility.setUnderMaintenance(maintenance);
+                
+                facilitiesList.add(facility);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return facilitiesList;
+    }
 }
