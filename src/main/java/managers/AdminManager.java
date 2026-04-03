@@ -48,7 +48,7 @@ public class AdminManager {
         DbStatus status = db.updateStudentBanStatus(student.getBilkentEmail(), false);
         if (status == DbStatus.SUCCESS) {
             student.setBanned(false);
-            notifManager.sendToUser(student, "Account Unbanned", "Your account ban has been lifted.");
+            notifManager.sendToUser(student, "Account Unbanned", "Your account ban has been unbanned.");
         }
         return status;
     }
