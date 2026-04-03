@@ -17,6 +17,7 @@ import java.util.UUID;
 import models.SportType;
 import models.Student;
 import models.Facility;
+import models.Reservation;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -1726,5 +1727,77 @@ public class Database {
         }
 
         return facilitiesList;
+    }
+
+    /**
+     * Retrieves all reservations associated with a specific student's email.
+     * Includes both the reservations they created and the ones they joined as an attendee.
+     * Also fetches the associated Facility and SportType data.
+     * @param studentEmail The Bilkent email of the student
+     * @return An ArrayList of Reservation objects ordered by date and time (newest first).
+     */
+    public ArrayList<Reservation> getReservationsByEmail(String studentEmail) {
+        
+        ArrayList<Reservation> reservationsList = new java.util.ArrayList<>();
+
+        String sql = "SELECT r.reservation_id, r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
+                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
+                     "s.name AS sport_name " +
+                     "FROM reservations r " +
+                     "INNER JOIN reservation_attendees ra ON r.reservation_id = ra.reservation_id " +
+                     "INNER JOIN users u ON ra.student_id = u.id " +
+                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                     "INNER JOIN sports s ON f.sport_id = s.id " +
+                     "WHERE u.bilkent_email = ? " +
+                     "ORDER BY r.reservation_date DESC, r.time_slot DESC";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, studentEmail);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    String facilityId = rs.getObject("facility_id").toString();
+                    String facilityName = rs.getString("facility_name");
+                    String location = rs.getString("campus_location");
+                    int capacity = rs.getInt("capacity");
+                    boolean maintenance = rs.getBoolean("is_under_maintenance");
+                    
+                    models.SportType st = null;
+                    try {
+                        String sportName = rs.getString("sport_name");
+                        if (sportName != null) {
+                            st = models.SportType.valueOf(sportName.trim().toUpperCase().replace(" ", "_"));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
+                    }
+
+                    models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
+                    facility.setUnderMaintenance(maintenance);
+
+
+                    String reservationId = rs.getObject("reservation_id").toString();
+                    String timeSlot = rs.getString("time_slot");
+                    boolean isCancelled = rs.getBoolean("is_cancelled");
+                    boolean hasAttended = rs.getBoolean("has_attended");
+                    
+                    java.sql.Date sqlDate = rs.getDate("reservation_date");
+                    java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
+
+                    models.Reservation reservation = new models.Reservation(reservationId, facility, resDate, timeSlot);
+                    reservation.setCancelled(isCancelled);
+                    reservation.setHasAttended(hasAttended);
+                    
+                    reservationsList.add(reservation);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return reservationsList;
     }
 }
