@@ -29,4 +29,15 @@ public class Facility {
     public void setCapacity(int capacity) { this.capacity = capacity; }
     public boolean isUnderMaintenance() { return isUnderMaintenance; }
     public void setUnderMaintenance(boolean underMaintenance) { isUnderMaintenance = underMaintenance; }
+
+    public String toString() {
+        return "Facility{" +
+                "facilityId='" + facilityId + '\'' +
+                ", name='" + name + '\'' +
+                ", campusLocation='" + campusLocation + '\'' +
+                ", sportType=" + sportType +
+                ", capacity=" + capacity +
+                ", isUnderMaintenance=" + isUnderMaintenance +
+                '}';
+    }
 }
