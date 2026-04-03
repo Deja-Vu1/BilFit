@@ -3,8 +3,8 @@ package models;
 public class Admin extends User {
     private String activationCode;
 
-    public Admin(String fullName, String bilkentEmail, String nickname, String password, String activationCode) {
-        super(fullName, bilkentEmail, nickname, password);
+    public Admin(String fullName, String bilkentEmail, String activationCode) {
+        super(fullName, bilkentEmail);
         this.activationCode = activationCode;
     }
 

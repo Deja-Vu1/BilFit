@@ -23,8 +23,8 @@
       <HBox alignment="CENTER_LEFT" spacing="30">
          <Circle fill="#E2E8F0" radius="50.0" stroke="#4318FF" strokeType="INSIDE" strokeWidth="3.0" />
          
-         <VBox alignment="CENTER_LEFT" spacing="10">
-            <Label fx:id="nameLabel" text="Loading..." textFill="#2b3674">
+         <VBox spacing="10">
+            <Label fx:id="nameLabel" text="Yükleniyor..." textFill="#2b3674">
                <font>
                   <Font name="System Bold" size="22.0" />
                </font>
@@ -36,72 +36,50 @@
                <Label styleClass="tag-orange" text="🔥 100 Day Streak" />
             </HBox>
          </VBox>
-         
-         <Region HBox.hgrow="ALWAYS" />
-         
-         <HBox spacing="30.0" HBox.hgrow="ALWAYS">
-            
-            <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-color: #E2E8F0; -fx-border-radius: 20;" HBox.hgrow="ALWAYS">
-               <padding>
-                  <Insets bottom="30" left="30" right="30" top="30" />
-               </padding>
-               <HBox alignment="TOP_RIGHT">
-                  <Label styleClass="btn-secondary" text="All Sports" />
-               </HBox>
-               <Region VBox.vgrow="ALWAYS" />
-               <Label fx:id="matchesPlayedLabel" text="0" textFill="#4318FF">
-                  <font>
-                     <Font name="System Bold" size="48.0" />
-                  </font>
-               </Label>
-               <Label text="Matches Played" textFill="#2B3674">
-                  <font>
-                     <Font name="System Bold" size="14.0" />
-                  </font>
-               </Label>
-            </VBox>
-            
-            <VBox style="-fx-background-color: #FCE8E8; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
-               <padding>
-                  <Insets bottom="30" left="30" right="30" top="30" />
-               </padding>
-               <HBox alignment="TOP_RIGHT">
-                  <Label styleClass="btn-danger" text="Ranked Only" />
-               </HBox>
-               <Region VBox.vgrow="ALWAYS" />
-               <Label fx:id="winRateLabel" text="0%" textFill="#D93025">
-                  <font>
-                     <Font name="System Bold" size="48.0" />
-                  </font>
-               </Label>
-               <Label text="Win Rate" textFill="#D93025">
-                  <font>
-                     <Font name="System Bold" size="14.0" />
-                  </font>
-               </Label>
-            </VBox>
-            
-            <VBox style="-fx-background-color: #E6F4EA; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
-               <padding>
-                  <Insets bottom="30" left="30" right="30" top="30" />
-               </padding>
-               <HBox alignment="TOP_RIGHT">
-                  <Label styleClass="btn-success" text="Football" />
-               </HBox>
-               <Region VBox.vgrow="ALWAYS" />
-               <Label fx:id="eloPointLabel" text="0" textFill="#1E8E3E">
-                  <font>
-                     <Font name="System Bold" size="48.0" />
-                  </font>
-               </Label>
-               <Label text="ELO" textFill="#1E8E3E">
-                  <font>
-                     <Font name="System Bold" size="14.0" />
-                  </font>
-               </Label>
-            </VBox>
-            
-         </HBox>
       </HBox>
    </VBox>
+
+   <HBox spacing="30.0" VBox.vgrow="ALWAYS">
+      <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-color: #E2E8F0; -fx-border-radius: 20;" HBox.hgrow="ALWAYS">
+         <padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
+         <HBox alignment="TOP_RIGHT">
+            <Label styleClass="btn-secondary" text="All Sports" />
+         </HBox>
+         <Region VBox.vgrow="ALWAYS" />
+         <Label fx:id="matchesPlayedLabel" text="0" textFill="#4318FF">
+            <font><Font name="System Bold" size="48.0" /></font>
+         </Label>
+         <Label text="Matches Played" textFill="#2B3674">
+            <font><Font name="System Bold" size="14.0" /></font>
+         </Label>
+      </VBox>
+
+      <VBox style="-fx-background-color: #FCE8E8; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
+         <padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
+         <HBox alignment="TOP_RIGHT">
+            <Label styleClass="btn-danger" text="Ranked Only" />
+         </HBox>
+         <Region VBox.vgrow="ALWAYS" />
+         <Label fx:id="winRateLabel" text="0%" textFill="#D93025">
+            <font><Font name="System Bold" size="48.0" /></font>
+         </Label>
+         <Label text="Win Rate" textFill="#D93025">
+            <font><Font name="System Bold" size="14.0" /></font>
+         </Label>
+      </VBox>
+
+      <VBox style="-fx-background-color: #E6F4EA; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
+         <padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
+         <HBox alignment="TOP_RIGHT">
+            <Label styleClass="btn-success" text="Football" />
+         </HBox>
+         <Region VBox.vgrow="ALWAYS" />
+         <Label fx:id="eloPointLabel" text="0" textFill="#1E8E3E">
+            <font><Font name="System Bold" size="48.0" /></font>
+         </Label>
+         <Label text="ELO" textFill="#1E8E3E">
+            <font><Font name="System Bold" size="14.0" /></font>
+         </Label>
+      </VBox>
+   </HBox>
 </VBox>

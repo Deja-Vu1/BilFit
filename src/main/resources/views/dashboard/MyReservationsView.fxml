@@ -1,71 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.effect.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.paint.*?>
 <?import javafx.scene.text.*?>
 
-<VBox spacing="30.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ReservationController">
-   <padding>
-      <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
-   </padding>
-
-   <VBox styleClass="content-card">
-      <HBox alignment="CENTER_LEFT">
-         <Label text="Your Reservations" styleClass="content-title"/>
-         <Region HBox.hgrow="ALWAYS"/>
-         <Label text="🎫" style="-fx-font-size: 24;"/>
-      </HBox>
-      <Separator prefWidth="200.0">
-         <VBox.margin>
-            <Insets bottom="20.0" top="15.0" />
-         </VBox.margin>
-      </Separator>
-      
-      <HBox alignment="CENTER_LEFT" style="-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;">
-         <padding>
-            <Insets bottom="10.0" left="20.0" right="10.0" top="10.0" />
-         </padding>
-         <Label fx:id="activeReservationLabel" text="Loading..." textFill="#2b3674">
-            <font>
-               <Font name="System Bold" size="14.0" />
-            </font>
-         </Label>
-         <Region HBox.hgrow="ALWAYS" />
-         <Button fx:id="cancelButton" prefHeight="35.0" prefWidth="100.0" styleClass="btn-danger" text="Cancel" onAction="#handleCancelReservation"/>
-      </HBox>
-   </VBox>
+<VBox prefHeight="800.0" prefWidth="1000.0" spacing="30.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ReservationController">
+   <padding><Insets bottom="40.0" left="40.0" right="40.0" top="40.0" /></padding>
 
    <VBox styleClass="content-card" VBox.vgrow="ALWAYS">
       <HBox alignment="CENTER_LEFT">
-         <Label text="Reservations" styleClass="content-title"/>
+         <Label text="My Reservations" styleClass="content-title" />
+         <Region HBox.hgrow="ALWAYS"/>
+         <Label text="📅" style="-fx-font-size: 24;"/>
+      </HBox>
+      <Label text="Manage your active and past reservations" styleClass="content-subtitle">
+         <VBox.margin><Insets bottom="15" top="5"/></VBox.margin>
+      </Label>
+      <Separator prefWidth="200.0"><VBox.margin><Insets bottom="20.0" /></VBox.margin></Separator>
+      
+      <ScrollPane fitToWidth="true" fitToHeight="true" style="-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;" VBox.vgrow="ALWAYS">
+         <VBox fx:id="reservationsContainer" spacing="15">
+            <padding><Insets right="15"/></padding>
+         </VBox>
+      </ScrollPane>
+   </VBox>
+
+   <VBox styleClass="content-card">
+      <HBox alignment="CENTER_LEFT">
+         <Label text="Make a Reservation" styleClass="content-title" />
          <Region HBox.hgrow="ALWAYS"/>
          <Label text="🛎️" style="-fx-font-size: 24;"/>
       </HBox>
-      <Separator prefWidth="200.0">
-         <VBox.margin>
-            <Insets bottom="20.0" top="15.0" />
-         </VBox.margin>
-      </Separator>
+      <Label text="Select a facility, date, and time slot to book your field" styleClass="content-subtitle">
+         <VBox.margin><Insets bottom="15" top="5"/></VBox.margin>
+      </Label>
+      <Separator prefWidth="200.0"><VBox.margin><Insets bottom="20.0" /></VBox.margin></Separator>
       
-      <HBox spacing="15">
-         <VBox.margin>
-            <Insets bottom="20"/>
-         </VBox.margin>
-         <Button fx:id="basketballBtn" prefHeight="40" prefWidth="120" styleClass="btn-secondary" text="Basketball" />
-         <Button fx:id="footballBtn" prefHeight="40" prefWidth="120" styleClass="btn-success" text="Football" />
+      <HBox spacing="20" alignment="BOTTOM_LEFT">
+         <VBox.margin><Insets bottom="20"/></VBox.margin>
+         <VBox spacing="8">
+            <Label text="Facility" styleClass="content-title" style="-fx-font-size: 14px;" />
+            <ComboBox fx:id="facilityComboBox" prefHeight="40" prefWidth="250" styleClass="modern-input" />
+         </VBox>
+         <VBox spacing="8">
+            <Label text="Date" styleClass="content-title" style="-fx-font-size: 14px;" />
+            <DatePicker fx:id="datePicker" prefHeight="40" prefWidth="200" styleClass="modern-input" />
+         </VBox>
+         <Button fx:id="refreshBtn" text="🔄 Refresh" prefHeight="40" styleClass="btn-secondary">
+            <HBox.margin><Insets bottom="2"/></HBox.margin>
+         </Button>
       </HBox>
-      
-      <GridPane hgap="15" vgap="15">
-         <columnConstraints>
-            <ColumnConstraints hgrow="ALWAYS" percentWidth="25"/>
-            <ColumnConstraints hgrow="ALWAYS" percentWidth="25"/>
-            <ColumnConstraints hgrow="ALWAYS" percentWidth="25"/>
-            <ColumnConstraints hgrow="ALWAYS" percentWidth="25"/>
-         </columnConstraints>
-         
-         <Button fx:id="slot1Btn" maxWidth="Infinity" prefHeight="40" styleClass="btn-danger" text="8.45 - 9.45" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
-         <Button fx:id="slot2Btn" maxWidth="Infinity" prefHeight="40" styleClass="btn-success" text="11.45 - 12.45" GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+
+      <Label text="Available Time Slots" styleClass="content-title" style="-fx-font-size: 14px;" />
+      <GridPane fx:id="timeSlotGrid" hgap="10" vgap="10" alignment="CENTER_LEFT">
+         <VBox.margin><Insets top="10" bottom="15"/></VBox.margin>
       </GridPane>
    </VBox>
+
 </VBox>

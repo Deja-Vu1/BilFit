@@ -37,4 +37,16 @@ public class Reservation {
     public void setFacility(Facility facility) { this.facility = facility; }
     public List<Student> getAttendees() { return attendees; }
     public void setAttendees(List<Student> attendees) { this.attendees = attendees; }
+
+    public String toString() {
+        return "Reservation{" +
+                "reservationId='" + reservationId + '\'' +
+                ", date=" + date +
+                ", timeSlot='" + timeSlot + '\'' +
+                ", isCancelled=" + isCancelled +
+                ", hasAttended=" + hasAttended +
+                ", facility=" + facility +
+                ", attendees=" + attendees +
+                '}';
+    }
 }

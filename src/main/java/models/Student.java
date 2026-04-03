@@ -8,9 +8,11 @@ public class Student extends User {
     public static final double MIN_RELIABILITY_SCORE = 50.0;
     
     private String studentId;
+    private String nickname; // EKLENEN KISIM: Nickname değişkeni
     private int eloPoint;
     private int penaltyPoints;
     private double reliabilityScore;
+    private int ratingCount;
     private List<SportType> interests;
     private List<String> badges;
     private int matchesPlayed;
@@ -23,12 +25,15 @@ public class Student extends User {
     private List<Student> friends;
     private List<Student> friendRequests;
 
-    public Student(String fullName, String bilkentEmail, String nickname, String password, String studentId) {
-        super(fullName, bilkentEmail, nickname, password);
+    public Student(String fullName, String bilkentEmail, String studentId) {
+        super(fullName, bilkentEmail);
         this.studentId = studentId;
+        // Başlangıçta nickname boş kalmasın diye tam adı atıyoruz. (İstersen boş da bırakabilirsin)
+        this.nickname = fullName; 
         this.eloPoint = 1000;
         this.penaltyPoints = 0;
         this.reliabilityScore = 100.0;
+        this.ratingCount = 0;
         this.matchesPlayed = 0;
         this.matchesWon = 0;
         this.winRate = 0.0;
@@ -42,6 +47,10 @@ public class Student extends User {
         this.friendRequests = new ArrayList<>();
     }
 
+    // EKLENEN KISIM: Nickname için Getter ve Setter metotları
+    public String getNickname() { return nickname; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
+
     public String getStudentId() { return studentId; }
     public void setStudentId(String studentId) { this.studentId = studentId; }
     public int getEloPoint() { return eloPoint; }
@@ -50,6 +59,8 @@ public class Student extends User {
     public void setPenaltyPoints(int penaltyPoints) { this.penaltyPoints = penaltyPoints; }
     public double getReliabilityScore() { return reliabilityScore; }
     public void setReliabilityScore(double reliabilityScore) { this.reliabilityScore = reliabilityScore; }
+    public int getRatingCount() { return ratingCount; }
+    public void setRatingCount(int ratingCount) { this.ratingCount = ratingCount; }
     public List<SportType> getInterests() { return interests; }
     public void setInterests(List<SportType> interests) { this.interests = interests; }
     public List<String> getBadges() { return badges; }

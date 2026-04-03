@@ -9,20 +9,48 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import models.SportType;
 import models.Student;
+import models.Facility;
+import models.Reservation;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Database {
+
+    // 1. Uygulama boyunca yaşayacak TEK ortak nesne
+    private static Database instance;
 
     private String dbUrl;
     private String dbUser;
     private String dbPassword;
     private String salt;
+    private Connection conn;
 
-    public Database() {
+    // 2. Constructor'ı "public" yerine "private" yapıyoruz.
+    // Bu sayede dışarıdan kimse "new Database()" diyemez!
+    private Database() {
         loadProperties();
+        try {
+            getConnection();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 3. Herkesin bu ortak nesneye ulaşmak için kullanacağı metod
+    public static Database getInstance() {
+        if (instance == null) {
+            // Eğer obje henüz hiç oluşturulmadıysa 1 kere oluştur
+            instance = new Database();
+        }
+        // Eğer zaten oluşturulduysa var olanı ver
+        return instance;
     }
 
     private void loadProperties() {
@@ -42,9 +70,13 @@ public class Database {
         }
     }
 
-    // Yardımcı metot: Bağlantıyı oluşturur
+    // Yardımcı metot: Bağlantıyı oluşturur veya kapalıysa yeniden açar
     private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+        // Bağlantı yoksa, kapandıysa veya geçerliliğini yitirdiyse yenisini aç
+        if (conn == null || conn.isClosed()) { // 2 saniye timeout ile kontrol et
+            conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+        }
+        return conn;
     }
 
     private String generateRandomCode(int length) {
@@ -61,7 +93,7 @@ public class Database {
      * Veritabanı bağlantısının başarılı olup olmadığını test eder.
      */
     public DbStatus testConnection() {
-        try (Connection conn = getConnection()) {
+        try{
             if (conn != null && !conn.isClosed()) {
                 return DbStatus.SUCCESS;
             }
@@ -110,13 +142,13 @@ public class Database {
         String insertStudentSql = "INSERT INTO students (user_id, elo_point, penalty_points, reliability_score, matches_played, win_rate, is_public_profile, is_elo_matching_enabled) " +
                                   "VALUES (?, 1000, 0, 100.0, 0, 0.0, TRUE, TRUE)";
 
-        try (Connection conn = getConnection()) {
+        try{
 
-            try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
+            try (PreparedStatement gcStmt = getConnection().prepareStatement(gcSql)) {
                 gcStmt.executeUpdate();
             }
 
-            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
                 checkStmt.setString(1, bilkentMail);
                 checkStmt.setString(2, studentId);
 
@@ -154,7 +186,7 @@ public class Database {
                 return DbStatus.QUERY_ERROR;
             }
 
-            try (PreparedStatement insertStudentStmt = conn.prepareStatement(insertStudentSql)) {
+            try (PreparedStatement insertStudentStmt = getConnection().prepareStatement(insertStudentSql)) {
                 insertStudentStmt.setObject(1, generatedUserId);
                 
                 int studentInsertedRows = insertStudentStmt.executeUpdate();
@@ -201,9 +233,9 @@ public class Database {
         
         String insertSql = "INSERT INTO users (full_name, bilkent_email, student_id, password_hash, role, is_activated) VALUES (?, ?, NULL, ?, 'admin', FALSE)";
 
-        try (Connection conn = getConnection()) {
+        try {
 
-            try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
+            try (PreparedStatement gcStmt = getConnection().prepareStatement(gcSql)) {
                 gcStmt.executeUpdate();
             }
 
@@ -336,8 +368,8 @@ public class Database {
         
         String sql = "SELECT password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (
+             PreparedStatement stmt = getConnection().prepareStatement(sql)) {
 
             stmt.setString(1, email);
 
@@ -389,8 +421,8 @@ public class Database {
     public DbStatus setProfileActivation(String email) {
         String updateSql = "UPDATE users SET is_activated = TRUE WHERE bilkent_email = ?";
 
-        try (Connection conn = getConnection();
-             PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+        try (
+             PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
 
             updateStmt.setString(1, email);
             int updated = updateStmt.executeUpdate();
@@ -425,8 +457,8 @@ public class Database {
         
         String gcSql = "DELETE FROM activation WHERE created_at < NOW() - INTERVAL '30 minutes'";
 
-        try (Connection conn = getConnection();
-             PreparedStatement selectStmt = conn.prepareStatement(selectSql)) {
+        try (
+             PreparedStatement selectStmt = getConnection().prepareStatement(selectSql)) {
 
             selectStmt.setString(1, email);
             
@@ -439,21 +471,21 @@ public class Database {
                     }
                     
                     if (dbCode.equals(inputCode)) {
-                        try (PreparedStatement deleteStmt = conn.prepareStatement(deleteSql)) {
+                        try (PreparedStatement deleteStmt = getConnection().prepareStatement(deleteSql)) {
                             deleteStmt.setString(1, email);
                             deleteStmt.executeUpdate();
                         }
                         
                         return DbStatus.SUCCESS; // Correct code provided
                     } else {
-                        try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
+                        try (PreparedStatement gcStmt = getConnection().prepareStatement(gcSql)) {
                             gcStmt.executeUpdate();
                         }
                         
                         return DbStatus.INVALID_CODE; // Wrong code provided
                     }
                 } else {
-                    try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
+                    try (PreparedStatement gcStmt = getConnection().prepareStatement(gcSql)) {
                             gcStmt.executeUpdate();
                         }
                     return DbStatus.EXPIRED_CODE; 
@@ -481,8 +513,8 @@ public class Database {
         String insertActivationSql = "INSERT INTO activation (user_id, activation_code) VALUES (?, ?)";
         String activationCode = generateRandomCode(6); // Creates a random 6-digit code
 
-        try (Connection conn = getConnection();
-            PreparedStatement findUserStmt = conn.prepareStatement(findUserSql)) {
+        try (
+            PreparedStatement findUserStmt = getConnection().prepareStatement(findUserSql)) {
             EmailService emailService = new EmailService();
             findUserStmt.setString(1, email);
             ResultSet rs = findUserStmt.executeQuery();
@@ -492,7 +524,7 @@ public class Database {
                 // PostgreSQL sürücüsü UUID'yi doğrudan java.util.UUID olarak döndürür
                 UUID userId = rs.getObject("id", UUID.class);
 
-                try (PreparedStatement updateStmt = conn.prepareStatement(updateActivationSql)) {
+                try (PreparedStatement updateStmt = getConnection().prepareStatement(updateActivationSql)) {
                     updateStmt.setString(1, activationCode);
                     
                     // 2. DÜZELTME: PreparedStatement içine UUID'yi setObject ile yerleştiriyoruz
@@ -500,7 +532,7 @@ public class Database {
                     int updatedRows = updateStmt.executeUpdate();
 
                     if (updatedRows == 0) {
-                        try (PreparedStatement insertStmt = conn.prepareStatement(insertActivationSql)) {
+                        try (PreparedStatement insertStmt = getConnection().prepareStatement(insertActivationSql)) {
                             // 3. DÜZELTME: INSERT için de setObject kullanıyoruz
                             insertStmt.setObject(1, userId);
                             insertStmt.setString(2, activationCode);
@@ -735,26 +767,28 @@ public class Database {
     }
 
     /**
-     * Fetches student records from the 'users' and 'students' tables
-     * and updates the provided Student object with this data.
+     * Fetches student records from the 'users' and 'students' tables,
+     * including their sport interests, and updates the provided Student object.
      * @param student The existing Student object to be updated
      * @param email Student's Bilkent email address to query the database
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
      */
     public DbStatus fillStudentDataByEmail(Student student, String email) {
         
-        // Null kontrolü, gelen objenin boş olmasını engeller
         if (student == null) {
             return DbStatus.QUERY_ERROR;
         }
 
-        // users ve students tablolarını birleştiren JOIN sorgusu (bilkent_email eklendi)
         String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.password_hash, " +
                      "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
-                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled, " +
+                     "STRING_AGG(sp.name, ',') AS sport_interests " +
                      "FROM users u " +
                      "INNER JOIN students s ON u.id = s.user_id " +
-                     "WHERE u.bilkent_email = ? AND u.role = 'student'";
+                     "LEFT JOIN student_interests si ON u.id = si.student_id " +
+                     "LEFT JOIN sports sp ON si.sport_id = sp.id " +
+                     "WHERE u.bilkent_email = ? AND u.role = 'student' " +
+                     "GROUP BY u.id, s.user_id"; 
 
         try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
             
@@ -763,13 +797,10 @@ public class Database {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     
-                    // 1. Üst sınıf (User) verilerini güncelle
                     student.setFullName(rs.getString("full_name"));
                     student.setBilkentEmail(rs.getString("bilkent_email"));
                     student.setPassword(rs.getString("password_hash"));
-                    // Not: 'nickname' DB'de olmadığı için mevcut objenin değerine dokunmuyoruz.
                     
-                    // 2. Öğrenciye (Student) özel metrikleri set et
                     student.setStudentId(rs.getString("uni_id"));
                     student.setEloPoint(rs.getInt("elo_point"));
                     student.setPenaltyPoints(rs.getInt("penalty_points"));
@@ -779,9 +810,26 @@ public class Database {
                     student.setPublicProfile(rs.getBoolean("is_public_profile"));
                     student.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
                     
-                    // matchesWon hesaplaması
                     int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
                     student.setMatchesWon(matchesWon);
+
+                    String interestsStr = rs.getString("sport_interests");
+                    java.util.List<models.SportType> interestsList = new java.util.ArrayList<>();
+                    
+                    if (interestsStr != null && !interestsStr.trim().isEmpty()) {
+                        String[] sportNames = interestsStr.split(",");
+                        
+                        for (String sportName : sportNames) {
+                            try {
+                                String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
+                                interestsList.add(models.SportType.valueOf(formattedSportName));
+                            } catch (IllegalArgumentException e) {
+                                System.err.println("Uyarı: Geçersiz spor türü -> " + sportName);
+                            }
+                        }
+                    }
+                    
+                    student.setInterests(interestsList);
 
                     return DbStatus.SUCCESS;
                 } else {
@@ -798,7 +846,6 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
     /**
      * Updates the ELO score for a student.
      * Finds the user by email and updates their elo_point in the students table.
@@ -1008,5 +1055,764 @@ public class Database {
             
             return DbStatus.QUERY_ERROR;
         }
+    }
+
+    /**
+     * Deletes a friendship or a pending friend request between two users.
+     * Checks both directions to ensure the relationship is removed regardless of who initiated it.
+     * @param senderEmail The Bilkent email of the first user (sender)
+     * @param receiverEmail The Bilkent email of the second user (receiver)
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if friendship didn't exist), or errors.
+     */
+    public DbStatus deleteFriend(String senderEmail, String receiverEmail) {
+        
+        String deleteSql = "DELETE FROM friendships " +
+                           "WHERE (requester_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                           "  AND receiver_id = (SELECT id FROM users WHERE bilkent_email = ?)) " +
+                           "   OR (requester_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                           "  AND receiver_id = (SELECT id FROM users WHERE bilkent_email = ?))";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(deleteSql)) {
+
+            stmt.setString(1, senderEmail);
+            stmt.setString(2, receiverEmail);
+            
+            stmt.setString(3, receiverEmail);
+            stmt.setString(4, senderEmail);
+
+            int deletedRows = stmt.executeUpdate();
+
+            return deletedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves all activated students whose profiles are public.
+     * Includes their sport interests mapped to the SportType enum.
+     * Used primarily for the matching/recommendation system.
+     * * @return A list of public Student objects
+     */
+    public List<Student> getAllPublicStudents() {
+        
+        List<Student> studentsList = new ArrayList<>();
+
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled, " +
+                     "STRING_AGG(sp.name, ',') AS sport_interests " +
+                     "FROM users u " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "LEFT JOIN student_interests si ON u.id = si.student_id " +
+                     "LEFT JOIN sports sp ON si.sport_id = sp.id " +
+                     "WHERE u.role = 'student' AND u.is_activated = TRUE AND s.is_public_profile = TRUE " +
+                     "GROUP BY u.id, s.user_id";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Student student = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                
+                student.setFullName(rs.getString("full_name"));
+                student.setBilkentEmail(rs.getString("bilkent_email"));
+                student.setStudentId(rs.getString("uni_id"));
+                student.setEloPoint(rs.getInt("elo_point"));
+                student.setPenaltyPoints(rs.getInt("penalty_points"));
+                student.setReliabilityScore(rs.getDouble("reliability_score"));
+                
+                int matchesPlayed = rs.getInt("matches_played");
+                double winRate = rs.getDouble("win_rate");
+                student.setMatchesPlayed(matchesPlayed);
+                student.setWinRate(winRate);
+                student.setMatchesWon((int) Math.round(matchesPlayed * winRate));
+                
+                student.setPublicProfile(rs.getBoolean("is_public_profile"));
+                student.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+
+                String interestsStr = rs.getString("sport_interests");
+                if (interestsStr != null && !interestsStr.trim().isEmpty()) {
+                    List<SportType> interests = new ArrayList<>();
+                    String[] sportNames = interestsStr.split(",");
+                    
+                    for (String sportName : sportNames) {
+                        try {
+                            interests.add(SportType.valueOf(sportName.trim().toUpperCase()));
+                        } catch (IllegalArgumentException e) {
+                            System.err.println("Uyarı: Geçersiz spor türü bulundu ve Enum'a çevrilemedi -> " + sportName);
+                        }
+                    }
+                    
+                    student.setInterests(interests);
+                }
+
+                studentsList.add(student);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return studentsList;
+    }
+
+    /**
+     * Checks if a facility is available for a specific date and time slot.
+     * A facility is considered available if it exists, is not under maintenance, 
+     * and the number of active (non-cancelled) reservations is strictly less than its capacity.
+     * @param facilityName The name of the facility
+     * @param date The date of the reservation
+     * @param timeSlot The specific time slot (e.g., "14:00-15:30")
+     * @return true if available, false if full, under maintenance, or not found.
+     */
+    public boolean checkFacilityAvailability(String facilityName, java.time.LocalDate date, String timeSlot) {
+        
+        String sql = "SELECT f.capacity, f.is_under_maintenance, " +
+                     "(SELECT COUNT(*) FROM reservations r " +
+                     " WHERE r.facility_id = f.facility_id " +
+                     "   AND r.reservation_date = ? " +
+                     "   AND r.time_slot = ? " +
+                     "   AND r.is_cancelled = FALSE) AS active_reservations " +
+                     "FROM facilities f " +
+                     "WHERE f.name = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+
+            stmt.setDate(1, java.sql.Date.valueOf(date));
+            stmt.setString(2, timeSlot);
+            stmt.setString(3, facilityName);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    boolean isUnderMaintenance = rs.getBoolean("is_under_maintenance");
+                    int capacity = rs.getInt("capacity");
+                    int activeReservations = rs.getInt("active_reservations");
+
+                    if (isUnderMaintenance) {
+                        return false;
+                    }
+
+                    return activeReservations < capacity;
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    /**
+     * Creates a new reservation for a student at a specific facility.
+     * Automatically adds the reservation creator as the first attendee in the 'reservation_attendees' table.
+     * @param studentEmail The Bilkent email of the student making the reservation
+     * @param facilityName The name of the facility
+     * @param date The date of the reservation
+     * @param timeSlot The specific time slot (e.g., "14:00-15:30")
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, UNAVAILABLE, or errors.
+     */
+    public DbStatus insertReservation(String studentEmail, String facilityName, java.time.LocalDate date, String timeSlot) {
+
+        if (!checkFacilityAvailability(facilityName, date, timeSlot)) {
+            return DbStatus.UNAVAILABLE; 
+        }
+
+        // Ana rezervasyon tablosuna ekleme sorgusu
+        String insertResSql = "INSERT INTO reservations " +
+                              "(reservation_id, facility_id, reserved_by, reservation_date, time_slot, is_cancelled, has_attended, type) " +
+                              "SELECT ?, f.facility_id, u.id, ?, ?, FALSE, FALSE, 'Standard' " +
+                              "FROM facilities f, users u " +
+                              "WHERE f.name = ? AND u.bilkent_email = ?";
+                              
+        // Yeni tabloya (katılımcılar) ekleme sorgusu
+        String insertAttendeeSql = "INSERT INTO reservation_attendees (reservation_id, student_id) " +
+                                   "SELECT ?, id FROM users WHERE bilkent_email = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(insertResSql)) {
+            
+            java.util.UUID newReservationId = java.util.UUID.randomUUID();
+            
+            stmt.setObject(1, newReservationId);
+            stmt.setDate(2, java.sql.Date.valueOf(date)); 
+            stmt.setString(3, timeSlot);
+            stmt.setString(4, facilityName);
+            stmt.setString(5, studentEmail);
+
+            int insertedRows = stmt.executeUpdate();
+
+            if (insertedRows == 0) {
+                return DbStatus.DATA_NOT_FOUND;
+            }
+            
+            // Rezervasyon başarıyla oluştu, kurucuyu otomatik olarak katılımcı yapıyoruz
+            try (PreparedStatement attendeeStmt = getConnection().prepareStatement(insertAttendeeSql)) {
+                attendeeStmt.setObject(1, newReservationId);
+                attendeeStmt.setString(2, studentEmail);
+                attendeeStmt.executeUpdate();
+            }
+
+            return DbStatus.SUCCESS; 
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the date and time slot of an existing reservation.
+     * Attendees naturally shift to the new time since they are linked via Foreign Key.
+     * @param reservationId The UUID of the reservation as a String
+     * @param newDate The new date for the reservation
+     * @param newTimeSlot The new time slot (e.g., "16:00-17:30")
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, UNAVAILABLE, or errors.
+     */
+    public DbStatus updateReservationTime(String reservationId, java.time.LocalDate newDate, String newTimeSlot) {
+        
+        String getFacilitySql = "SELECT f.name FROM reservations r " +
+                                "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                                "WHERE r.reservation_id = ? AND r.is_cancelled = FALSE";
+                                
+        String updateSql = "UPDATE reservations SET reservation_date = ?, time_slot = ? WHERE reservation_id = ?";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+            String facilityName = null;
+
+            try (PreparedStatement getStmt = getConnection().prepareStatement(getFacilitySql)) {
+                getStmt.setObject(1, resId);
+                
+                try (ResultSet rs = getStmt.executeQuery()) {
+                    if (rs.next()) {
+                        facilityName = rs.getString("name");
+                    } else {
+                        return DbStatus.DATA_NOT_FOUND;
+                    }
+                }
+            }
+
+            if (!checkFacilityAvailability(facilityName, newDate, newTimeSlot)) {
+                return DbStatus.UNAVAILABLE; 
+            }
+
+            try (PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
+                updateStmt.setDate(1, java.sql.Date.valueOf(newDate));
+                updateStmt.setString(2, newTimeSlot);
+                updateStmt.setObject(3, resId);
+
+                int updatedRows = updateStmt.executeUpdate();
+                
+                return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Cancels an existing reservation (Soft Delete).
+     * Sets 'is_cancelled' flag to true. Attendees in 'reservation_attendees' remain untouched for historical logs.
+     * @param reservationId The UUID of the reservation to be cancelled
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if not found or already cancelled), or errors.
+     */
+    public DbStatus deleteReservation(String reservationId) {
+        
+        String cancelSql = "UPDATE reservations SET is_cancelled = TRUE " +
+                           "WHERE reservation_id = ? AND is_cancelled = FALSE";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(cancelSql)) {
+                
+                stmt.setObject(1, resId);
+
+                int updatedRows = stmt.executeUpdate();
+
+                return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the attendance status of a specific reservation.
+     * Only applies to reservations that have not been cancelled.
+     * @param reservationId The UUID of the reservation as a String
+     * @param hasAttended True if the student attended, false if they missed it
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if invalid ID or already cancelled), or errors.
+     */
+    public DbStatus updateReservationAttendance(String reservationId, boolean hasAttended) {
+        
+        // Sadece iptal edilmemiş rezervasyonların katılım durumu güncellenebilir
+        String updateSql = "UPDATE reservations SET has_attended = ? " +
+                           "WHERE reservation_id = ? AND is_cancelled = FALSE";
+
+        try {
+            // String formatındaki ID'yi veritabanı ile uyumlu UUID nesnesine çeviriyoruz
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+                
+                stmt.setBoolean(1, hasAttended);
+                stmt.setObject(2, resId);
+
+                int updatedRows = stmt.executeUpdate();
+
+                // Eğer etkilenen satır 0 ise: 
+                // Ya böyle bir reservation_id yoktur ya da rezervasyon is_cancelled = TRUE durumundadır.
+                return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            }
+
+        } catch (IllegalArgumentException e) {
+            // Gönderilen reservationId geçerli bir UUID formatında değilse
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            // Veritabanı bağlantı hatası kontrolü
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the maintenance status of a specific facility.
+     * @param facilityName The name of the facility to update (e.g., "Main Sports Hall - Court A")
+     * @param isUnderMaintenance True to put the facility under maintenance, false to make it operational
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if facility doesn't exist), or errors.
+     */
+    public DbStatus updateFacilityMaintenance(String facilityName, boolean isUnderMaintenance) {
+        
+        String updateSql = "UPDATE facilities SET is_under_maintenance = ? WHERE name = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+            
+            stmt.setBoolean(1, isUnderMaintenance);
+            stmt.setString(2, facilityName);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Creates a special 'Duello' record for an **EXISTING** reservation.
+     * Verifies the ownership of the reservation, updates its type to 'Duello',
+     * generates a 6-digit access code, and inserts it into the duellos table.
+     * @param reservationId The UUID of the existing reservation as a String
+     * @param creatorStudentEmail The Bilkent email of the student who owns the reservation
+     * @param requiredSkillLevel The required skill level for the duello (e.g., "Beginner", "Advanced")
+     * @param emptySlots The number of empty slots available in the duello
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus insertDuello(String reservationId, String creatorStudentEmail, String requiredSkillLevel, int emptySlots) {
+        
+        String updateReservationSql = "UPDATE reservations SET type = 'Duello' " +
+                                      "WHERE reservation_id = ? " +
+                                      "AND reserved_by = (SELECT id FROM users WHERE bilkent_email = ?)";
+                                      
+        String insertDuelloSql = "INSERT INTO duellos (reservation_id, access_code, required_skill_level, empty_slots, is_matched) " +
+                                 "VALUES (?, ?, ?, ?, FALSE)";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+            String accessCode = generateRandomCode(6);
+
+            try (PreparedStatement updateStmt = getConnection().prepareStatement(updateReservationSql)) {
+                updateStmt.setObject(1, resId);
+                updateStmt.setString(2, creatorStudentEmail);
+
+                int updatedRows = updateStmt.executeUpdate();
+
+                if (updatedRows == 0) {
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+            try (PreparedStatement insertStmt = getConnection().prepareStatement(insertDuelloSql)) {
+                insertStmt.setObject(1, resId);
+                insertStmt.setString(2, accessCode);
+                
+                insertStmt.setString(3, requiredSkillLevel);
+                insertStmt.setInt(4, emptySlots);
+                
+                int insertedRows = insertStmt.executeUpdate();
+                return insertedRows > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+/**
+     * Sends a join request to an open duello.
+     * Ensures the duello is not already matched and has empty slots available.
+     * @param reservationId The UUID of the duello/reservation
+     * @param studentEmail The Bilkent email of the requester
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if duello is full/unavailable), or errors.
+     */
+    public DbStatus insertDuelloRequest(String reservationId, String studentEmail) {
+        
+        String insertSql = "INSERT INTO duello_requests (reservation_id, requester_id, status) " +
+                           "SELECT d.reservation_id, u.id, 'Pending' " +
+                           "FROM users u, duellos d " +
+                           "WHERE u.bilkent_email = ? " +
+                           "  AND d.reservation_id = ? " +
+                           "  AND d.is_matched = FALSE " +
+                           "  AND d.empty_slots > 0";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(insertSql)) {
+                
+                stmt.setString(1, studentEmail);
+                stmt.setObject(2, resId);
+
+                int insertedRows = stmt.executeUpdate();
+
+                if (insertedRows == 0) {
+                    return DbStatus.DATA_NOT_FOUND; 
+                }
+
+                return DbStatus.SUCCESS;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if ("23505".equals(e.getSQLState())) {
+                return DbStatus.QUERY_ERROR; 
+            }
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Accepts a duello request and adds the student as an official participant.
+     * Updates request status, decrements empty slots, and manages matching status.
+     * @param reservationId The UUID of the duello/reservation
+     * @param studentEmail The Bilkent email of the student being accepted
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateDuelloParticipant(String reservationId, String studentEmail) {
+        
+        String updateRequestSql = "UPDATE duello_requests SET status = 'Accepted' " +
+                                  "WHERE reservation_id = ? AND requester_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                                  "AND status = 'Pending'";
+
+        String updateDuelloSql = "UPDATE duellos SET empty_slots = empty_slots - 1, " +
+                                 "is_matched = CASE WHEN empty_slots - 1 = 0 THEN TRUE ELSE FALSE END " +
+                                 "WHERE reservation_id = ? AND empty_slots > 0";
+
+        String insertAttendeeSql = "INSERT INTO reservation_attendees (reservation_id, student_id) " +
+                                   "SELECT ?, id FROM users WHERE bilkent_email = ?";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // Transaction başlat
+
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = conn.prepareStatement(updateRequestSql)) {
+                stmt.setObject(1, resId);
+                stmt.setString(2, studentEmail);
+                if (stmt.executeUpdate() == 0) {
+                    conn.rollback();
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement(updateDuelloSql)) {
+                stmt.setObject(1, resId);
+                if (stmt.executeUpdate() == 0) {
+                    conn.rollback();
+                    return DbStatus.QUERY_ERROR;
+                }
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement(insertAttendeeSql)) {
+                stmt.setObject(1, resId);
+                stmt.setString(2, studentEmail);
+                stmt.executeUpdate();
+            }
+
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
+            }
+        }
+    }
+
+    /**
+     * Verifies the access code for a private duello and adds the student as a participant if correct.
+     * Checks if the code matches, if the duello is not full, and then updates participants.
+     * @param reservationId The UUID of the duello/reservation
+     * @param studentEmail The Bilkent email of the student trying to join
+     * @param code The 6-digit access code entered by the user
+     * @return DbStatus indicating SUCCESS, INVALID_CODE, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus verifyAndJoinDuello(String reservationId, String studentEmail, String code) {
+        
+        String checkCodeSql = "SELECT access_code, empty_slots FROM duellos WHERE reservation_id = ? AND is_matched = FALSE";
+        
+        String updateDuelloSql = "UPDATE duellos SET empty_slots = empty_slots - 1, " +
+                                 "is_matched = CASE WHEN empty_slots - 1 = 0 THEN TRUE ELSE FALSE END " +
+                                 "WHERE reservation_id = ? AND access_code = ? AND empty_slots > 0";
+
+        String insertAttendeeSql = "INSERT INTO reservation_attendees (reservation_id, student_id) " +
+                                   "SELECT ?, id FROM users WHERE bilkent_email = ?";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // İşlemi atomik hale getir
+
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkCodeSql)) {
+                checkStmt.setObject(1, resId);
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        String dbCode = rs.getString("access_code");
+                        int slots = rs.getInt("empty_slots");
+
+                        if (!dbCode.equals(code)) {
+                            conn.rollback();
+                            return DbStatus.INVALID_CODE; // Şifre yanlış
+                        }
+                        if (slots <= 0) {
+                            conn.rollback();
+                            return DbStatus.UNAVAILABLE; // Yer kalmamış
+                        }
+                    } else {
+                        conn.rollback();
+                        return DbStatus.DATA_NOT_FOUND; // Düello bulunamadı veya çoktan eşleşti
+                    }
+                }
+            }
+
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateDuelloSql)) {
+                updateStmt.setObject(1, resId);
+                updateStmt.setString(2, code);
+                if (updateStmt.executeUpdate() == 0) {
+                    conn.rollback();
+                    return DbStatus.QUERY_ERROR;
+                }
+            }
+
+            try (PreparedStatement attendeeStmt = conn.prepareStatement(insertAttendeeSql)) {
+                attendeeStmt.setObject(1, resId);
+                attendeeStmt.setString(2, studentEmail);
+                attendeeStmt.executeUpdate();
+            }
+
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            return (e.getSQLState() != null && e.getSQLState().startsWith("08")) 
+                    ? DbStatus.CONNECTION_ERROR : DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
+            }
+        }
+    }
+
+    /**
+     * Retrieves all facilities from the database and maps them to Facility objects.
+     * @return An ArrayList containing all Facility objects found in the database.
+     */
+    public ArrayList<Facility> getFacilities() {
+        
+        ArrayList<Facility> facilitiesList = new ArrayList<>();
+        
+        String sql = "SELECT f.facility_id, f.name, f.campus_location, f.capacity, f.is_under_maintenance, s.name AS sport_name " +
+                     "FROM facilities f " +
+                     "INNER JOIN sports s ON f.sport_id = s.id";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String id = rs.getObject("facility_id").toString();
+                String name = rs.getString("name");
+                String location = rs.getString("campus_location");
+                int capacity = rs.getInt("capacity");
+                boolean maintenance = rs.getBoolean("is_under_maintenance");
+                
+                models.SportType st = null;
+                try {
+                    String sportName = rs.getString("sport_name");
+                    if (sportName != null) {
+                        String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
+                        st = models.SportType.valueOf(formattedSportName);
+                    }
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Uyarı: Geçersiz veya eşleşmeyen spor türü bulundu -> " + rs.getString("sport_name"));
+                }
+
+                models.Facility facility = new models.Facility(id, name, location, st, capacity);
+                facility.setUnderMaintenance(maintenance);
+                
+                facilitiesList.add(facility);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return facilitiesList;
+    }
+
+    /**
+     * Retrieves all reservations associated with a specific student's email.
+     * Includes both the reservations they created and the ones they joined as an attendee.
+     * Also fetches the associated Facility and SportType data.
+     * @param studentEmail The Bilkent email of the student
+     * @return An ArrayList of Reservation objects ordered by date and time (newest first).
+     */
+    public ArrayList<Reservation> getReservationsByEmail(String studentEmail) {
+        
+        ArrayList<Reservation> reservationsList = new java.util.ArrayList<>();
+
+        String sql = "SELECT r.reservation_id, r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
+                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
+                     "s.name AS sport_name " +
+                     "FROM reservations r " +
+                     "INNER JOIN reservation_attendees ra ON r.reservation_id = ra.reservation_id " +
+                     "INNER JOIN users u ON ra.student_id = u.id " +
+                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                     "INNER JOIN sports s ON f.sport_id = s.id " +
+                     "WHERE u.bilkent_email = ? " +
+                     "ORDER BY r.reservation_date DESC, r.time_slot DESC";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, studentEmail);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    String facilityId = rs.getObject("facility_id").toString();
+                    String facilityName = rs.getString("facility_name");
+                    String location = rs.getString("campus_location");
+                    int capacity = rs.getInt("capacity");
+                    boolean maintenance = rs.getBoolean("is_under_maintenance");
+                    
+                    models.SportType st = null;
+                    try {
+                        String sportName = rs.getString("sport_name");
+                        if (sportName != null) {
+                            st = models.SportType.valueOf(sportName.trim().toUpperCase().replace(" ", "_"));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
+                    }
+
+                    models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
+                    facility.setUnderMaintenance(maintenance);
+
+
+                    String reservationId = rs.getObject("reservation_id").toString();
+                    String timeSlot = rs.getString("time_slot");
+                    boolean isCancelled = rs.getBoolean("is_cancelled");
+                    boolean hasAttended = rs.getBoolean("has_attended");
+                    
+                    java.sql.Date sqlDate = rs.getDate("reservation_date");
+                    java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
+
+                    models.Reservation reservation = new models.Reservation(reservationId, facility, resDate, timeSlot);
+                    reservation.setCancelled(isCancelled);
+                    reservation.setHasAttended(hasAttended);
+                    
+                    reservationsList.add(reservation);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return reservationsList;
     }
 }
