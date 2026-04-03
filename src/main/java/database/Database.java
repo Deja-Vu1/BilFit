@@ -1246,4 +1246,64 @@ public class Database {
             
             return DbStatus.QUERY_ERROR;
         }
-    }}
+    }
+
+    /**
+     * Updates the date and time slot of an existing reservation.
+     * First retrieves the facility associated with the reservation,
+     * then checks if the new time slot is available.
+     * @param reservationId The UUID of the reservation as a String
+     * @param newDate The new date for the reservation
+     * @param newTimeSlot The new time slot (e.g., "16:00-17:30")
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, UNAVAILABLE, or errors.
+     */
+    public DbStatus updateReservationTime(String reservationId, java.time.LocalDate newDate, String newTimeSlot) {
+        
+        String getFacilitySql = "SELECT f.name FROM reservations r " +
+                                "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                                "WHERE r.reservation_id = ? AND r.is_cancelled = FALSE";
+                                
+        String updateSql = "UPDATE reservations SET reservation_date = ?, time_slot = ? WHERE reservation_id = ?";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+            String facilityName = null;
+
+            try (PreparedStatement getStmt = getConnection().prepareStatement(getFacilitySql)) {
+                getStmt.setObject(1, resId);
+                
+                try (ResultSet rs = getStmt.executeQuery()) {
+                    if (rs.next()) {
+                        facilityName = rs.getString("name");
+                    } else {
+                        return DbStatus.DATA_NOT_FOUND;
+                    }
+                }
+            }
+
+            if (!checkFacilityAvailability(facilityName, newDate, newTimeSlot)) {
+                return DbStatus.UNAVAILABLE; 
+            }
+
+            try (PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
+                updateStmt.setDate(1, java.sql.Date.valueOf(newDate));
+                updateStmt.setString(2, newTimeSlot);
+                updateStmt.setObject(3, resId);
+
+                int updatedRows = updateStmt.executeUpdate();
+                
+                return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+}
