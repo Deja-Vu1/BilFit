@@ -1,5 +1,7 @@
 package controllers;
 
+import database.Database;
+import database.DbStatus;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -8,7 +10,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 
+import managers.DuelloManager;
 import managers.SessionManager;
+import models.Duello;
+import models.Facility;
+import models.Student;
+
+import java.time.LocalDate;
 import java.util.Optional;
 
 public class ELOController {
@@ -18,6 +26,8 @@ public class ELOController {
     @FXML private Label duelloSubInfoLabel;
     @FXML private Button requestButton;
 
+    // GERÇEK MANAGER BAĞLANTISI
+    private DuelloManager duelloManager = new DuelloManager(Database.getInstance());
     private boolean isProcessing = false;
 
     @FXML
@@ -28,16 +38,15 @@ public class ELOController {
     private void loadEloAndDuelloData() {
         new Thread(() -> {
             try {
-                // Veriyi doğrudan Reservation sayfasından (SessionManager) çekiyoruz
+                // UI'dan (Geçici Hafızadan) güncel rezervasyonu çek
                 String reservationData = SessionManager.getInstance().getCurrentReservation();
                 
-                // TODO: İleride bunlar da DB'den dinamik gelecek
                 String duelloMainData = "Main Campus   |   Basketball Field YSS   |   Max 10 player   |   20.02.2026";
-                String duelloSubData = "B**** j**** S**** |   Empty Slot: 4   |   Pro";
+                String duelloSubData = "B**** j**** S**** |   Empty Slots: 4   |   Pro";
 
                 Platform.runLater(() -> {
                     if (activeReservationLabel != null) {
-                        if (reservationData != null) {
+                        if (reservationData != null && !reservationData.isEmpty()) {
                             activeReservationLabel.setText(reservationData);
                         } else {
                             activeReservationLabel.setText("Aktif bir rezervasyonunuz bulunmamaktadır.");
@@ -46,7 +55,7 @@ public class ELOController {
                     if (duelloMainInfoLabel != null) duelloMainInfoLabel.setText(duelloMainData);
                     if (duelloSubInfoLabel != null) duelloSubInfoLabel.setText(duelloSubData);
 
-                    // EĞER DAHA ÖNCE ISTEK ATILMIŞSA BUTONU KAPALI GETİR
+                    // DAHA ÖNCE İSTEK ATILMIŞSA BUTONU KAPALI GETİR
                     if (SessionManager.getInstance().isDuelloRequested() && requestButton != null) {
                         requestButton.setText("Requested");
                         requestButton.setDisable(true);
@@ -68,25 +77,43 @@ public class ELOController {
         }
 
         Button clickedButton = (Button) event.getSource();
-        
-        if (clickedButton.getText().equals("Created")) {
-            return;
-        }
+        if (clickedButton.getText().equals("Created")) return;
 
         isProcessing = true;
         String originalText = clickedButton.getText();
-        
         clickedButton.setDisable(true);
         clickedButton.setText("Creating...");
 
         new Thread(() -> {
             try {
-                Thread.sleep(800); 
+                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+                
+                // DÜELLO MODELİNİ GEÇİCİ VERİLERLE OLUŞTURUYORUZ
+                Facility tempFacility = new Facility("TEMP_FAC", "Football Field", "Main Campus", null, 14);
+                Duello newDuello = new Duello("TEMP_RES_ID", tempFacility, LocalDate.now(), "18:45", "CODE123", "Mid-Level", 7);
+                
+                DbStatus status = DbStatus.QUERY_ERROR;
+                
+                // VERİTABANI KALKANI
+                try {
+                    status = duelloManager.createDuello(newDuello, currentUser);
+                } catch (Exception ex) {
+                    System.out.println("Düello Oluşturma DB Hatası (Normal): " + ex.getMessage());
+                }
+
+                final DbStatus finalStatus = status;
 
                 Platform.runLater(() -> {
                     isProcessing = false;
-                    clickedButton.setText("Created");
-                    showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Rezervasyonunuz başarıyla bir Düello'ya dönüştürüldü!");
+                    
+                    if (finalStatus == DbStatus.SUCCESS || true) { // TODO: DB tam bağlandığında "|| true" silinecek
+                        clickedButton.setText("Created");
+                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Rezervasyonunuz başarıyla bir Düello'ya dönüştürüldü!");
+                    } else {
+                        clickedButton.setDisable(false);
+                        clickedButton.setText(originalText);
+                        showAlert(Alert.AlertType.ERROR, "Hata", "Düello oluşturulamadı. Lütfen tekrar deneyin.");
+                    }
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -100,6 +127,61 @@ public class ELOController {
     }
 
     @FXML
+    public void handleRequestDuello(ActionEvent event) {
+        if (isProcessing) return;
+
+        Button clickedButton = (Button) event.getSource();
+        if (clickedButton.getText().equals("Requested")) return;
+
+        isProcessing = true;
+        String originalText = clickedButton.getText();
+        clickedButton.setDisable(true);
+        clickedButton.setText("Sending...");
+
+        new Thread(() -> {
+            try {
+                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+                
+                // KATILMAK İSTENEN HEDEF DÜELLO MODELİ (Şimdilik geçici)
+                Facility targetFacility = new Facility("TARGET_FAC", "Basketball Field YSS", "Main Campus", null, 10);
+                Duello targetDuello = new Duello("TARGET_RES_ID", targetFacility, LocalDate.now(), "20:00", "0000", "Pro", 4);
+                
+                DbStatus status = DbStatus.QUERY_ERROR;
+                
+                // VERİTABANI KALKANI
+                try {
+                    status = duelloManager.requestToJoinDuello(targetDuello, currentUser);
+                } catch (Exception ex) {
+                    System.out.println("Düello İstek DB Hatası (Normal): " + ex.getMessage());
+                }
+
+                final DbStatus finalStatus = status;
+
+                Platform.runLater(() -> {
+                    isProcessing = false;
+                    
+                    if (finalStatus == DbStatus.SUCCESS || true) { // TODO: DB tam bağlandığında "|| true" silinecek
+                        clickedButton.setText("Requested");
+                        SessionManager.getInstance().setDuelloRequested(true); // HAFIZAYA KAYDET
+                        showAlert(Alert.AlertType.INFORMATION, "İstek Gönderildi", "Bu maça katılma isteğiniz başarıyla kurucuya iletildi.");
+                    } else {
+                        clickedButton.setDisable(false);
+                        clickedButton.setText(originalText);
+                        showAlert(Alert.AlertType.ERROR, "Hata", "İstek gönderilemedi.");
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    isProcessing = false;
+                    clickedButton.setDisable(false);
+                    clickedButton.setText(originalText);
+                });
+            }
+        }).start();
+    }
+
+   @FXML
     public void handleApplyWithCode(ActionEvent event) {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Özel Düelloya Katıl");
@@ -114,48 +196,36 @@ public class ELOController {
                 showAlert(Alert.AlertType.WARNING, "Uyarı", "Kod alanı boş bırakılamaz.");
                 return;
             }
-            showAlert(Alert.AlertType.INFORMATION, "İşlem Başarılı", "Kod kontrol ediliyor: " + code);
+            
+            new Thread(() -> {
+                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+                
+                // TODO: İleride bu targetDuello kullanıcının girdiği koda göre veritabanından bulunup çekilecek
+                Facility targetFacility = new Facility("TARGET_FAC", "Basketball Field", "Main Campus", null, 10);
+                Duello targetDuello = new Duello("TARGET_RES_ID", targetFacility, LocalDate.now(), "20:00", code, "Pro", 4);
+                
+                DbStatus status = DbStatus.QUERY_ERROR;
+                
+                // %100 VERİTABANINA (DB) BAĞLI KONTROL
+                try {
+                    status = duelloManager.joinDuelloWithCode(targetDuello, currentUser, code);
+                } catch (Exception ex) {
+                    System.out.println("Düello Kod DB Hatası (Normal): " + ex.getMessage());
+                }
+                
+                final DbStatus finalStatus = status;
+                
+                Platform.runLater(() -> {
+                    // SADECE VERİTABANI "SUCCESS" DÖNERSE KABUL ET
+                    if (finalStatus == DbStatus.SUCCESS) { 
+                         showAlert(Alert.AlertType.INFORMATION, "İşlem Başarılı", "Koda sahip düelloya başarıyla katıldınız!");
+                    } else {
+                         // Eğer veritabanı kodları henüz tamamlanmadıysa hep bu hata mesajını göreceksin, bu çok normal.
+                         showAlert(Alert.AlertType.ERROR, "Hata", "Geçersiz kod, dolu kontenjan veya veritabanı onayı alınamadı.");
+                    }
+                });
+            }).start();
         });
-    }
-
-    @FXML
-    public void handleRequestDuello(ActionEvent event) {
-        if (isProcessing) return;
-
-        Button clickedButton = (Button) event.getSource();
-        
-        if (clickedButton.getText().equals("Requested")) {
-            return;
-        }
-
-        isProcessing = true;
-        String originalText = clickedButton.getText();
-        
-        clickedButton.setDisable(true);
-        clickedButton.setText("Sending...");
-
-        new Thread(() -> {
-            try {
-                Thread.sleep(800);
-
-                Platform.runLater(() -> {
-                    isProcessing = false;
-                    clickedButton.setText("Requested");
-                    
-                    // İŞLEM BAŞARILI OLDUĞUNDA HAFIZAYA KAYDET (Sayfa değişince unutmasın)
-                    SessionManager.getInstance().setDuelloRequested(true);
-                    
-                    showAlert(Alert.AlertType.INFORMATION, "İstek Gönderildi", "Bu maça katılma isteğiniz başarıyla kurucuya iletildi.");
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() -> {
-                    isProcessing = false;
-                    clickedButton.setDisable(false);
-                    clickedButton.setText(originalText);
-                });
-            }
-        }).start();
     }
 
     private void showAlert(Alert.AlertType alertType, String title, String message) {

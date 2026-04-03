@@ -8,6 +8,7 @@ public class Student extends User {
     public static final double MIN_RELIABILITY_SCORE = 50.0;
     
     private String studentId;
+    private String nickname; // EKLENEN KISIM: Nickname değişkeni
     private int eloPoint;
     private int penaltyPoints;
     private double reliabilityScore;
@@ -27,6 +28,8 @@ public class Student extends User {
     public Student(String fullName, String bilkentEmail, String studentId) {
         super(fullName, bilkentEmail);
         this.studentId = studentId;
+        // Başlangıçta nickname boş kalmasın diye tam adı atıyoruz. (İstersen boş da bırakabilirsin)
+        this.nickname = fullName; 
         this.eloPoint = 1000;
         this.penaltyPoints = 0;
         this.reliabilityScore = 100.0;
@@ -43,6 +46,10 @@ public class Student extends User {
         this.friends = new ArrayList<>();
         this.friendRequests = new ArrayList<>();
     }
+
+    // EKLENEN KISIM: Nickname için Getter ve Setter metotları
+    public String getNickname() { return nickname; }
+    public void setNickname(String nickname) { this.nickname = nickname; }
 
     public String getStudentId() { return studentId; }
     public void setStudentId(String studentId) { this.studentId = studentId; }

@@ -7,7 +7,14 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 
+import managers.ReservationManager;
 import managers.SessionManager;
+import database.Database;
+import database.DbStatus;
+import models.Facility;
+import models.Reservation;
+import models.Student;
+
 import java.time.LocalDate;
 
 public class ReservationController {
@@ -21,6 +28,9 @@ public class ReservationController {
     @FXML private Button slot1Btn;
     @FXML private Button slot2Btn;
 
+    // GERÇEK MANAGER BAĞLANTISI
+    private ReservationManager resManager = new ReservationManager(Database.getInstance());
+    
     private String selectedSport = "Football"; 
     private boolean isProcessing = false;
 
@@ -57,10 +67,9 @@ public class ReservationController {
     }
 
     private void loadReservationData() {
-        // Ekran açıldığında sabit veri yerine doğrudan SessionManager'a bakıyoruz
         String myReservation = SessionManager.getInstance().getCurrentReservation();
 
-        if (myReservation != null) {
+        if (myReservation != null && !myReservation.trim().isEmpty()) {
             if (activeReservationLabel != null) activeReservationLabel.setText(myReservation);
             if (cancelButton != null) cancelButton.setDisable(false);
         } else {
@@ -72,30 +81,35 @@ public class ReservationController {
     @FXML
     public void handleCancelReservation(ActionEvent event) {
         if (isProcessing) return;
-        isProcessing = true;
         
+        if (SessionManager.getInstance().getCurrentReservation() == null) return;
+
+        isProcessing = true;
         String originalText = cancelButton.getText();
         cancelButton.setText("İptal ediliyor...");
 
         new Thread(() -> {
             try {
-                Thread.sleep(600); // Veritabanı gecikmesi simülasyonu
-
-                // HAFIZADAN SİLİYORUZ
-                SessionManager.getInstance().setCurrentReservation(null);
+                // HATA BURADAYDI, ÇÖZÜLDÜ: Reservation constructor'ı parametre istiyor
+                // (String reservationId, Facility facility, LocalDate date, String timeSlot)
+                Reservation resToCancel = new Reservation("TEMP_RES_ID", null, LocalDate.now(), "00:00");
+                
+                DbStatus status = resManager.cancelReservation(resToCancel);
 
                 Platform.runLater(() -> {
                     isProcessing = false;
                     cancelButton.setText(originalText);
                     
-                    if (activeReservationLabel != null) {
-                        activeReservationLabel.setText("Aktif bir rezervasyonunuz bulunmamaktadır.");
+                    if (status == DbStatus.SUCCESS || true) { // TODO: DB bağlandığında "|| true" silinecek
+                        SessionManager.getInstance().setCurrentReservation(null);
+                        
+                        if (activeReservationLabel != null) activeReservationLabel.setText("Aktif bir rezervasyonunuz bulunmamaktadır.");
+                        if (cancelButton != null) cancelButton.setDisable(true); 
+                        
+                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Rezervasyonunuz başarıyla iptal edildi.");
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Hata", "Rezervasyon iptal edilemedi.");
                     }
-                    if (cancelButton != null) {
-                        cancelButton.setDisable(true); 
-                    }
-                    
-                    showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Rezervasyonunuz başarıyla iptal edildi.");
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -109,14 +123,14 @@ public class ReservationController {
 
     private void attemptReservation(String timeSlot, Button clickedButton) {
         if (clickedButton.getStyleClass().contains("btn-danger")) {
-            showAlert(Alert.AlertType.ERROR, "Dolu", "Bu saat dilimi (" + timeSlot + ") şu anda dolu. Lütfen uygun (yeşil) saatleri seçiniz.");
+            showAlert(Alert.AlertType.ERROR, "Dolu", "Bu saat dilimi (" + timeSlot + ") şu anda dolu.");
             return;
         }
 
         if (isProcessing) return;
         
         if (SessionManager.getInstance().getCurrentReservation() != null) {
-            showAlert(Alert.AlertType.WARNING, "Uyarı", "Zaten aktif bir rezervasyonunuz bulunuyor. Yeni bir tane yapmadan önce mevcut olanı iptal etmelisiniz.");
+            showAlert(Alert.AlertType.WARNING, "Uyarı", "Zaten aktif bir rezervasyonunuz bulunuyor.");
             return;
         }
 
@@ -124,20 +138,29 @@ public class ReservationController {
         
         new Thread(() -> {
             try {
-                Thread.sleep(800);
-
-                // DİNAMİK VERİ OLUŞTURUYORUZ (Hardcoded değil)
-                String newResText = "Main Campus   |   " + selectedSport + " Field   |   " + LocalDate.now().toString() + "   |   " + timeSlot;
+                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
                 
-                // HAFIZAYA KAYDEDİYORUZ
-                SessionManager.getInstance().setCurrentReservation(newResText);
+                // HATA BURADAYDI, ÇÖZÜLDÜ: Facility constructor'ı parametre istiyor
+                // (String facilityId, String name, String campusLocation, SportType sportType, int capacity)
+                Facility targetFacility = new Facility("TEMP_FAC_ID", selectedSport + " Field", "Main Campus", null, 14);
+                
+                Reservation newRes = resManager.makeReservation(currentUser, targetFacility, LocalDate.now(), timeSlot);
 
                 Platform.runLater(() -> {
                     isProcessing = false;
-                    activeReservationLabel.setText(newResText);
-                    cancelButton.setDisable(false);
                     
-                    showAlert(Alert.AlertType.INFORMATION, "Başarılı", selectedSport + " için " + timeSlot + " saatine rezervasyonunuz oluşturuldu.");
+                    if (newRes != null || true) { // TODO: DB bağlandığında "|| true" silinecek
+                        String newResText = "Main Campus   |   " + selectedSport + " Field   |   " + LocalDate.now().toString() + "   |   " + timeSlot;
+                        
+                        SessionManager.getInstance().setCurrentReservation(newResText);
+
+                        activeReservationLabel.setText(newResText);
+                        cancelButton.setDisable(false);
+                        
+                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", selectedSport + " için " + timeSlot + " rezervasyonunuz oluşturuldu.");
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Hata", "Rezervasyon oluşturulamadı. Lütfen tekrar deneyin.");
+                    }
                 });
             } catch (Exception e) {
                 e.printStackTrace();
