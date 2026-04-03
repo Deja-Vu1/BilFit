@@ -1532,4 +1532,70 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Accepts a duello request and adds the student as an official participant.
+     * Updates request status, decrements empty slots, and manages matching status.
+     * @param reservationId The UUID of the duello/reservation
+     * @param studentEmail The Bilkent email of the student being accepted
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateDuelloParticipant(String reservationId, String studentEmail) {
+        
+        String updateRequestSql = "UPDATE duello_requests SET status = 'Accepted' " +
+                                  "WHERE reservation_id = ? AND requester_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                                  "AND status = 'Pending'";
+
+        String updateDuelloSql = "UPDATE duellos SET empty_slots = empty_slots - 1, " +
+                                 "is_matched = CASE WHEN empty_slots - 1 = 0 THEN TRUE ELSE FALSE END " +
+                                 "WHERE reservation_id = ? AND empty_slots > 0";
+
+        String insertAttendeeSql = "INSERT INTO reservation_attendees (reservation_id, student_id) " +
+                                   "SELECT ?, id FROM users WHERE bilkent_email = ?";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // Transaction başlat
+
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = conn.prepareStatement(updateRequestSql)) {
+                stmt.setObject(1, resId);
+                stmt.setString(2, studentEmail);
+                if (stmt.executeUpdate() == 0) {
+                    conn.rollback();
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement(updateDuelloSql)) {
+                stmt.setObject(1, resId);
+                if (stmt.executeUpdate() == 0) {
+                    conn.rollback();
+                    return DbStatus.QUERY_ERROR;
+                }
+            }
+
+            try (PreparedStatement stmt = conn.prepareStatement(insertAttendeeSql)) {
+                stmt.setObject(1, resId);
+                stmt.setString(2, studentEmail);
+                stmt.executeUpdate();
+            }
+
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
+            }
+        }
+    }
 }
