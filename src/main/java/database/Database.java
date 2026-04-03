@@ -1158,7 +1158,6 @@ public class Database {
      */
     public boolean checkFacilityAvailability(String facilityName, java.time.LocalDate date, String timeSlot) {
         
-        // CAST işlemine artık gerek yok, doğrudan = ? ile sorguluyoruz
         String sql = "SELECT f.capacity, f.is_under_maintenance, " +
                      "(SELECT COUNT(*) FROM reservations r " +
                      " WHERE r.facility_id = f.facility_id " +
@@ -1197,9 +1196,8 @@ public class Database {
 
     /**
      * Creates a new reservation for a student at a specific facility.
-     * First checks if the facility is available (capacity and maintenance check).
-     * If available, inserts the record and defaults the reservation type to 'Standard'.
-     * * @param studentEmail The Bilkent email of the student making the reservation
+     * Automatically adds the reservation creator as the first attendee in the 'reservation_attendees' table.
+     * @param studentEmail The Bilkent email of the student making the reservation
      * @param facilityName The name of the facility
      * @param date The date of the reservation
      * @param timeSlot The specific time slot (e.g., "14:00-15:30")
@@ -1211,20 +1209,23 @@ public class Database {
             return DbStatus.UNAVAILABLE; 
         }
 
-        String insertSql = "INSERT INTO reservations " +
-                           "(reservation_id, facility_id, reserved_by, reservation_date, time_slot, is_cancelled, has_attended, type) " +
-                           "SELECT ?, f.facility_id, u.id, ?, ?, FALSE, FALSE, 'Standard' " +
-                           "FROM facilities f, users u " +
-                           "WHERE f.name = ? AND u.bilkent_email = ?";
+        // Ana rezervasyon tablosuna ekleme sorgusu
+        String insertResSql = "INSERT INTO reservations " +
+                              "(reservation_id, facility_id, reserved_by, reservation_date, time_slot, is_cancelled, has_attended, type) " +
+                              "SELECT ?, f.facility_id, u.id, ?, ?, FALSE, FALSE, 'Standard' " +
+                              "FROM facilities f, users u " +
+                              "WHERE f.name = ? AND u.bilkent_email = ?";
+                              
+        // Yeni tabloya (katılımcılar) ekleme sorgusu
+        String insertAttendeeSql = "INSERT INTO reservation_attendees (reservation_id, student_id) " +
+                                   "SELECT ?, id FROM users WHERE bilkent_email = ?";
 
-        try (PreparedStatement stmt = getConnection().prepareStatement(insertSql)) {
+        try (PreparedStatement stmt = getConnection().prepareStatement(insertResSql)) {
             
             java.util.UUID newReservationId = java.util.UUID.randomUUID();
             
             stmt.setObject(1, newReservationId);
-            
             stmt.setDate(2, java.sql.Date.valueOf(date)); 
-            
             stmt.setString(3, timeSlot);
             stmt.setString(4, facilityName);
             stmt.setString(5, studentEmail);
@@ -1233,6 +1234,13 @@ public class Database {
 
             if (insertedRows == 0) {
                 return DbStatus.DATA_NOT_FOUND;
+            }
+            
+            // Rezervasyon başarıyla oluştu, kurucuyu otomatik olarak katılımcı yapıyoruz
+            try (PreparedStatement attendeeStmt = getConnection().prepareStatement(insertAttendeeSql)) {
+                attendeeStmt.setObject(1, newReservationId);
+                attendeeStmt.setString(2, studentEmail);
+                attendeeStmt.executeUpdate();
             }
 
             return DbStatus.SUCCESS; 
@@ -1250,8 +1258,7 @@ public class Database {
 
     /**
      * Updates the date and time slot of an existing reservation.
-     * First retrieves the facility associated with the reservation,
-     * then checks if the new time slot is available.
+     * Attendees naturally shift to the new time since they are linked via Foreign Key.
      * @param reservationId The UUID of the reservation as a String
      * @param newDate The new date for the reservation
      * @param newTimeSlot The new time slot (e.g., "16:00-17:30")
@@ -1309,8 +1316,7 @@ public class Database {
 
     /**
      * Cancels an existing reservation (Soft Delete).
-     * Instead of physically removing the record from the database, 
-     * it sets the 'is_cancelled' flag to true.
+     * Sets 'is_cancelled' flag to true. Attendees in 'reservation_attendees' remain untouched for historical logs.
      * @param reservationId The UUID of the reservation to be cancelled
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if not found or already cancelled), or errors.
      */
