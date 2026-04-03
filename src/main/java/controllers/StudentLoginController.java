@@ -109,15 +109,16 @@ public class StudentLoginController {
 
     @FXML
     public void goToForgotPassword(MouseEvent event) {
-        System.out.println("Şifremi Unuttum ekranına yönlendiriliyor...");
-                try {
+        try {
+            // Şifre sıfırlama ekranına (ResetPasswordView) yönlendiriyoruz
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ResetPasswordView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+            
+            // Full screen / mevcut pencere koruması: sadece root değişiyor
             stage.getScene().setRoot(root);
-
+            
         } catch (IOException e) {
-            System.err.println("ResetPasswordView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
     }
