@@ -1,6 +1,12 @@
 package controllers;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+
+import database.Database;
+import database.DbStatus;
 import javafx.application.Platform;
+import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
@@ -11,55 +17,53 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.StageStyle;
-import javafx.fxml.FXML;
-
 import managers.ReservationManager;
 import managers.SessionManager;
-import database.Database;
-import database.DbStatus;
 import models.Facility;
 import models.Reservation;
 import models.SportType;
 import models.Student;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
-
 public class ReservationController {
 
-    // Artık tek bir label/buton yok, dinamik liste kutumuz var
+    // Rezervasyon listesi için dinamik VBox konteyner
     @FXML private VBox reservationsContainer;
 
+    // Rezervasyon yapma butonları
     @FXML private Button basketballBtn;
     @FXML private Button footballBtn;
-
     @FXML private Button slot1Btn;
     @FXML private Button slot2Btn;
 
     private ReservationManager resManager = new ReservationManager(Database.getInstance());
-    
     private String selectedSport = "Football"; 
     private boolean isProcessing = false;
 
     @FXML
     public void initialize() {
         setupButtons();
-        // Geçici bir "Loading" mesajı ekleyelim
-        Label loadingLabel = new Label("Loading...");
-        loadingLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 14px;");
-        if(reservationsContainer != null) reservationsContainer.getChildren().add(loadingLabel);
         
-        loadReservationDataFromManager();
+        Label loadingLabel = new Label("Loading your reservations...");
+        loadingLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 14px;");
+        
+        if (reservationsContainer != null) {
+            reservationsContainer.getChildren().clear();
+            reservationsContainer.getChildren().add(loadingLabel);
+        }
+        
+        // Sayfa açılır açılmaz veritabanından GÜNCEL veriyi çek
+        fetchFreshReservations();
     }
 
     private void setupButtons() {
-        basketballBtn.setOnAction(e -> selectSport("Basketball", basketballBtn, footballBtn));
-        footballBtn.setOnAction(e -> selectSport("Football", footballBtn, basketballBtn));
+        if (basketballBtn != null && footballBtn != null) {
+            basketballBtn.setOnAction(e -> selectSport("Basketball", basketballBtn, footballBtn));
+            footballBtn.setOnAction(e -> selectSport("Football", footballBtn, basketballBtn));
+            selectSport("Football", footballBtn, basketballBtn);
+        }
 
-        slot1Btn.setOnAction(e -> attemptReservation("8.45-9.45", slot1Btn));
-        slot2Btn.setOnAction(e -> attemptReservation("11.45-12.45", slot2Btn));
-        
-        selectSport("Football", footballBtn, basketballBtn);
+        if (slot1Btn != null) slot1Btn.setOnAction(e -> attemptReservation("8.45-9.45", slot1Btn));
+        if (slot2Btn != null) slot2Btn.setOnAction(e -> attemptReservation("11.45-12.45", slot2Btn));
     }
 
     private void selectSport(String sport, Button activeBtn, Button passiveBtn) {
@@ -74,13 +78,8 @@ public class ReservationController {
         if (!passiveBtn.getStyleClass().contains("btn-secondary")) passiveBtn.getStyleClass().add("btn-secondary");
     }
 
-    private String formatReservationText(Reservation res) {
-        if (res == null) return "";
-        String facilityName = (res.getFacility() != null) ? res.getFacility().getName() : selectedSport + " Field";
-        return "Main Campus   |   " + facilityName + "   |   " + res.getDate().toString() + "   |   " + res.getTimeSlot();
-    }
-
-    private void loadReservationDataFromManager() {
+    // VERİTABANINDAN GÜNCEL LİSTEYİ ÇEKEN METOT
+    private void fetchFreshReservations() {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         
         if (currentUser == null) {
@@ -90,36 +89,42 @@ public class ReservationController {
 
         new Thread(() -> {
             try {
+                // Eski veriye bakmaksızın DB'den sıfırdan çekiyoruz
                 ArrayList<Reservation> dbList = resManager.getUserReservations(currentUser);
                 SessionManager.getInstance().setCurrentReservations(dbList);
             } catch (Throwable t) { 
-                System.err.println("DB Rezervasyon Çekme Hatası: " + t.getMessage());
+                t.printStackTrace();
             } finally {
                 Platform.runLater(this::refreshUI);
             }
         }).start();
     }
 
-    // LİSTEYİ DİNAMİK OLARAK ÇİZEN METOT
+    // ARAYÜZÜ YENİDEN ÇİZEN METOT
     private void refreshUI() {
         if (reservationsContainer == null) return;
-        reservationsContainer.getChildren().clear(); // Kutuyu temizle
+        reservationsContainer.getChildren().clear();
 
         ArrayList<Reservation> myList = SessionManager.getInstance().getCurrentReservations();
 
         if (myList != null && !myList.isEmpty()) {
             for (Reservation r : myList) {
-                // Her bir rezervasyon için yeni bir kart oluştur ve ekle
                 reservationsContainer.getChildren().add(createReservationRow(r));
             }
         } else {
-            Label emptyLabel = new Label("Aktif bir rezervasyonunuz bulunmamaktadır.");
+            Label emptyLabel = new Label("Geçmiş veya aktif bir rezervasyonunuz bulunmamaktadır.");
             emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 14px;");
             reservationsContainer.getChildren().add(emptyLabel);
         }
     }
 
-    // FXML'DEKİ ŞIK HBOX TASARIMINI JAVA KODUYLA ÜRETEN SİHİRLİ METOT
+    private String formatReservationText(Reservation res) {
+        if (res == null) return "";
+        String facilityName = (res.getFacility() != null) ? res.getFacility().getName() : selectedSport + " Field";
+        String status = res.isCancelled() ? " [Cancelled]" : (res.isHasAttended() ? " [Attended]" : " [Active]");
+        return res.getDate().toString() + "   |   " + res.getTimeSlot() + "   |   " + facilityName + status;
+    }
+
     private HBox createReservationRow(Reservation res) {
         HBox row = new HBox();
         row.setAlignment(Pos.CENTER_LEFT);
@@ -128,29 +133,38 @@ public class ReservationController {
 
         Label infoLabel = new Label(formatReservationText(res));
         infoLabel.setStyle("-fx-text-fill: #2b3674; -fx-font-weight: bold; -fx-font-size: 14px;");
+        
+        // İptal edilmiş rezervasyonların üstünü çizgiyle kapat
+        if (res.isCancelled()) {
+            infoLabel.setStyle("-fx-text-fill: #e82c2c; -fx-font-weight: bold; -fx-font-size: 14px; -fx-strikethrough: true;");
+        }
 
         Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS); // Butonu sağa yaslamak için
+        HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.setPrefHeight(35.0);
-        cancelBtn.setPrefWidth(100.0);
-        cancelBtn.getStyleClass().add("btn-danger");
-        
-        // Butona tıklandığında sadece o rezervasyonu silecek metodu bağla
-        cancelBtn.setOnAction(e -> cancelSpecificReservation(res, cancelBtn));
+        row.getChildren().addAll(infoLabel, spacer);
 
-        row.getChildren().addAll(infoLabel, spacer, cancelBtn);
+        // Sadece geçmişte kalmamış, iptal edilmemiş ve katılınmamış rezervasyonlarda iptal butonu göster
+        if (!res.isCancelled() && !res.isHasAttended() && !res.getDate().isBefore(LocalDate.now())) {
+            Button cancelBtn = new Button("Cancel");
+            cancelBtn.setPrefHeight(35.0);
+            cancelBtn.setPrefWidth(100.0);
+            cancelBtn.getStyleClass().add("btn-danger");
+            
+            cancelBtn.setOnAction(e -> cancelSpecificReservation(res, cancelBtn));
+            row.getChildren().add(cancelBtn);
+        }
+
         return row;
     }
 
-    // SPESİFİK BİR REZERVASYONU İPTAL EDEN METOT
+    // İPTAL ETME İŞLEMİ VE SONRASINDA OTOMATİK LİSTE YENİLEME
     private void cancelSpecificReservation(Reservation resToCancel, Button clickedBtn) {
         if (isProcessing) return;
         
         isProcessing = true;
         String originalText = clickedBtn.getText();
-        clickedBtn.setText("İptal...");
+        clickedBtn.setText("Cancelling...");
         clickedBtn.setDisable(true);
 
         new Thread(() -> {
@@ -161,13 +175,13 @@ public class ReservationController {
                     isProcessing = false;
                     
                     if (status == DbStatus.SUCCESS) { 
-                        SessionManager.getInstance().getCurrentReservations().remove(resToCancel);
-                        refreshUI(); // Ekrandan silinmesi için UI'ı yenile
-                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Rezervasyonunuz başarıyla iptal edildi.");
+                        // Veritabanından en güncel hali çek ve listeyi anında yenile
+                        fetchFreshReservations(); 
+                        showAlert(Alert.AlertType.INFORMATION, "Success", "Reservation has been cancelled successfully.");
                     } else {
                         clickedBtn.setText(originalText);
                         clickedBtn.setDisable(false);
-                        showAlert(Alert.AlertType.ERROR, "Hata", "Rezervasyon iptal edilemedi. (DB Reddi)");
+                        showAlert(Alert.AlertType.ERROR, "Error", "Past or already cancelled reservations cannot be modified.");
                     }
                 });
             } catch (Exception e) {
@@ -180,6 +194,7 @@ public class ReservationController {
         }).start();
     }
 
+    // YENİ REZERVASYON YAPMA İŞLEMİ VE SONRASINDA OTOMATİK LİSTE YENİLEME
     private void attemptReservation(String timeSlot, Button clickedButton) {
         if (clickedButton.getStyleClass().contains("btn-danger")) {
             showAlert(Alert.AlertType.ERROR, "Dolu", "Bu saat dilimi (" + timeSlot + ") şu anda dolu.");
@@ -202,12 +217,12 @@ public class ReservationController {
                     isProcessing = false;
                     
                     if (newRes != null) { 
-                        SessionManager.getInstance().addReservation(newRes);
-                        refreshUI(); // Yeni kartın ekranda hemen belirmesi için UI'ı yenile
+                        // Başarılı olduğunda veritabanındaki GÜNCEL listeyi yeniden çek
+                        fetchFreshReservations();
                         
                         showAlert(Alert.AlertType.INFORMATION, "Başarılı", selectedSport + " için " + timeSlot + " rezervasyonunuz oluşturuldu.");
                     } else {
-                        showAlert(Alert.AlertType.ERROR, "İşlem Başarısız", "Rezervasyon oluşturulamadı. (Tesis dolu olabilir veya uygun değilsiniz.)");
+                        showAlert(Alert.AlertType.ERROR, "İşlem Başarısız", "Rezervasyon oluşturulamadı. (Tesis dolu olabilir, ceza puanınız olabilir veya tarih sınırını aşmış olabilirsiniz.)");
                     }
                 });
             } catch (Exception e) {
