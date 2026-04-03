@@ -6,6 +6,7 @@ module bilfit {
     requires jakarta.mail;
     requires javafx.graphics;
     requires javafx.base;
+    requires org.controlsfx.controls;
 
     opens core to javafx.graphics, javafx.fxml;
     opens controllers to javafx.fxml;
