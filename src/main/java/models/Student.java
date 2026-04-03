@@ -24,8 +24,8 @@ public class Student extends User {
     private List<Student> friends;
     private List<Student> friendRequests;
 
-    public Student(String fullName, String bilkentEmail, String nickname, String password, String studentId) {
-        super(fullName, bilkentEmail, nickname, password);
+    public Student(String fullName, String bilkentEmail, String studentId) {
+        super(fullName, bilkentEmail);
         this.studentId = studentId;
         this.eloPoint = 1000;
         this.penaltyPoints = 0;
