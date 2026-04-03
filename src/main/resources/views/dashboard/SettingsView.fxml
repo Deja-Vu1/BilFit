@@ -35,9 +35,9 @@
             <Label text="User Settings" textFill="#2b3674"><font><Font name="System Bold" size="20.0" /></font></Label>
             <HBox alignment="CENTER_LEFT" spacing="20"><VBox.margin><Insets bottom="15" top="15" /></VBox.margin>
                <Label text="Public account" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
-               <Button prefHeight="25" prefWidth="50" style="-fx-background-color: #1E8E3E; -fx-background-radius: 20;" /> 
+               <ToggleSwitch fx:id="publicAccountSwitch" />
                <Label text="ELO" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font><HBox.margin><Insets left="30" /></HBox.margin></Label>
-               <Button prefHeight="25" prefWidth="50" style="-fx-background-color: #E2E8F0; -fx-background-radius: 20;" /> 
+               <ToggleSwitch fx:id="eloSwitch" />
             </HBox>
             <HBox alignment="CENTER_LEFT" spacing="10">
                <Label text="Password" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
