@@ -14,7 +14,9 @@ public class TeamManager {
     }
 
     public DbStatus createTeam(Team team) {
-        if (team == null || team.getCaptain() == null) return DbStatus.QUERY_ERROR;
+        if (team == null || team.getCaptain() == null || team.getCaptain().isBanned() || !team.getCaptain().isCanAttend()) {
+            return DbStatus.QUERY_ERROR;
+        }
 
         DbStatus status = db.insertTeam(team.getTeamId(), team.getTeamName(), team.getCaptain().getBilkentEmail());
         
@@ -28,7 +30,10 @@ public class TeamManager {
     }
 
     public DbStatus addMemberToTeam(Team team, Student student, String inputCode) {
-        if (team == null || student == null || inputCode == null) return DbStatus.QUERY_ERROR;
+        if (team == null || student == null || inputCode == null || student.isBanned() || !student.isCanAttend()) {
+            return DbStatus.QUERY_ERROR;
+        }
+        
         if (team.getMembers().size() >= team.getMaxCapacity() || !team.getAccessCode().equals(inputCode) || team.getMembers().contains(student)) {
             return DbStatus.QUERY_ERROR;
         }
@@ -49,7 +54,7 @@ public class TeamManager {
             if (team.getMembers().size() > 1) {
                 Student newCaptain = null;
                 for (Student s : team.getMembers()) {
-                    if (!s.getBilkentEmail().equals(student.getBilkentEmail())) {
+                    if (!s.getBilkentEmail().equals(student.getBilkentEmail()) && !s.isBanned()) {
                         newCaptain = s;
                         break;
                     }
@@ -59,6 +64,8 @@ public class TeamManager {
                     if (transferStatus != DbStatus.SUCCESS) {
                         return transferStatus;
                     }
+                } else {
+                    return disbandTeam(team, student);
                 }
             } else {
                 return disbandTeam(team, student);
@@ -73,7 +80,10 @@ public class TeamManager {
     }
 
     public DbStatus transferCaptaincy(Team team, Student oldCaptain, Student newCaptain) {
-        if (team == null || oldCaptain == null || newCaptain == null) return DbStatus.QUERY_ERROR;
+        if (team == null || oldCaptain == null || newCaptain == null || newCaptain.isBanned()) {
+            return DbStatus.QUERY_ERROR;
+        }
+        
         if (!team.getCaptain().getBilkentEmail().equals(oldCaptain.getBilkentEmail()) || !team.getMembers().contains(newCaptain)) {
             return DbStatus.QUERY_ERROR;
         }

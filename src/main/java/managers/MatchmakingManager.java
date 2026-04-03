@@ -20,7 +20,7 @@ public class MatchmakingManager {
     }
 
     public Match findSoloMatch(Student student, SportType sport) {
-        if (student == null || sport == null || !student.isCanAttend() || !student.isEloMatchingEnabled()) {
+        if (student == null || sport == null || !student.isCanAttend() || !student.isEloMatchingEnabled() || student.isBanned()) {
             return null; 
         }
 
@@ -48,7 +48,7 @@ public class MatchmakingManager {
         if (team == null || sport == null || team.getMembers().isEmpty()) return null;
 
         for (Student s : team.getMembers()) {
-            if (s == null || !s.isCanAttend()) return null;
+            if (s == null || !s.isCanAttend() || s.isBanned()) return null;
         }
 
         int avgElo = calculateTeamAverageElo(team);
@@ -86,13 +86,14 @@ public class MatchmakingManager {
         DbStatus status = db.updateMatchWinner(match.getMatchId(), winnerTeam.getTeamId());
         
         if (status == DbStatus.SUCCESS) {
-            int eloChange = calculateEloChange(match.getTeam1(), match.getTeam2(), winnerTeam);
+            int team1Change = calculateTrueEloDelta(match.getTeam1(), match.getTeam2(), winnerTeam.getTeamId().equals(match.getTeam1().getTeamId()));
+            int team2Change = calculateTrueEloDelta(match.getTeam2(), match.getTeam1(), winnerTeam.getTeamId().equals(match.getTeam2().getTeamId()));
 
-            updateTeamElo(match.getTeam1(), winnerTeam, eloChange);
-            updateTeamElo(match.getTeam2(), winnerTeam, eloChange);
+            applyEloToTeam(match.getTeam1(), team1Change);
+            applyEloToTeam(match.getTeam2(), team2Change);
 
             match.setWinner(winnerTeam);
-            match.setPointChange(eloChange);
+            match.setPointChange(Math.abs(team1Change));
 
             boolean isTeam1Winner = match.getTeam1().getTeamId().equals(winnerTeam.getTeamId());
             updateTeamStats(match.getTeam1(), isTeam1Winner, match);
@@ -116,23 +117,24 @@ public class MatchmakingManager {
         }
     }
 
-    private int calculateEloChange(Team team1, Team team2, Team winner) {
-        int avgElo1 = calculateTeamAverageElo(team1);
-        int avgElo2 = calculateTeamAverageElo(team2);
-        int eloDiff = Math.abs(avgElo1 - avgElo2);
-        int baseChange = 32;
+    private int calculateTrueEloDelta(Team targetTeam, Team opponentTeam, boolean isWinner) {
+        int rTarget = calculateTeamAverageElo(targetTeam);
+        int rOpponent = calculateTeamAverageElo(opponentTeam);
         
-        if (eloDiff > 200) baseChange = 16;
-        else if (eloDiff < 50) baseChange = 40;
+        double expectedScore = 1.0 / (1.0 + Math.pow(10, (rOpponent - rTarget) / 400.0));
+        double actualScore = isWinner ? 1.0 : 0.0;
         
-        return baseChange;
+        int kFactor = 32;
+        if (rTarget >= 2000) kFactor = 16;
+        else if (rTarget >= 2400) kFactor = 10;
+        
+        return (int) Math.round(kFactor * (actualScore - expectedScore));
     }
 
-    private void updateTeamElo(Team team, Team winnerTeam, int eloChange) {
-        boolean isWinner = team.getTeamId().equals(winnerTeam.getTeamId());
+    private void applyEloToTeam(Team team, int deltaElo) {
         for (Student s : team.getMembers()) {
             if (s == null) continue;
-            int newElo = Math.max(0, isWinner ? s.getEloPoint() + eloChange : s.getEloPoint() - eloChange);
+            int newElo = Math.max(0, s.getEloPoint() + deltaElo);
             DbStatus eloStatus = db.updateStudentElo(s.getBilkentEmail(), newElo);
             if (eloStatus == DbStatus.SUCCESS) {
                 s.setEloPoint(newElo); 
