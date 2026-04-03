@@ -32,7 +32,7 @@
           <TableColumn fx:id="colName" prefWidth="250.0" text="Name" />
           <TableColumn fx:id="colStatus" prefWidth="150.0" text="Reliability Score" />
             <TableColumn fx:id="colELO" prefWidth="120.0" text="ELO Rating" />
-            <TableColumn fx:id="colActions" prefWidth="200.0" />
+            <TableColumn fx:id="colActions" prefWidth="200.0" text="Last Online" />
         </columns>
          <columnResizePolicy>
             <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
