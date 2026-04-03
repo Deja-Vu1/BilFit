@@ -1481,4 +1481,55 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+/**
+     * Sends a join request to an open duello.
+     * Ensures the duello is not already matched and has empty slots available.
+     * @param reservationId The UUID of the duello/reservation
+     * @param studentEmail The Bilkent email of the requester
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if duello is full/unavailable), or errors.
+     */
+    public DbStatus insertDuelloRequest(String reservationId, String studentEmail) {
+        
+        String insertSql = "INSERT INTO duello_requests (reservation_id, requester_id, status) " +
+                           "SELECT d.reservation_id, u.id, 'Pending' " +
+                           "FROM users u, duellos d " +
+                           "WHERE u.bilkent_email = ? " +
+                           "  AND d.reservation_id = ? " +
+                           "  AND d.is_matched = FALSE " +
+                           "  AND d.empty_slots > 0";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(insertSql)) {
+                
+                stmt.setString(1, studentEmail);
+                stmt.setObject(2, resId);
+
+                int insertedRows = stmt.executeUpdate();
+
+                if (insertedRows == 0) {
+                    return DbStatus.DATA_NOT_FOUND; 
+                }
+
+                return DbStatus.SUCCESS;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if ("23505".equals(e.getSQLState())) {
+                return DbStatus.QUERY_ERROR; 
+            }
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
