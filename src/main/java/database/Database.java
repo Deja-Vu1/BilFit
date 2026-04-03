@@ -1349,4 +1349,48 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Updates the attendance status of a specific reservation.
+     * Only applies to reservations that have not been cancelled.
+     * @param reservationId The UUID of the reservation as a String
+     * @param hasAttended True if the student attended, false if they missed it
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if invalid ID or already cancelled), or errors.
+     */
+    public DbStatus updateReservationAttendance(String reservationId, boolean hasAttended) {
+        
+        // Sadece iptal edilmemiş rezervasyonların katılım durumu güncellenebilir
+        String updateSql = "UPDATE reservations SET has_attended = ? " +
+                           "WHERE reservation_id = ? AND is_cancelled = FALSE";
+
+        try {
+            // String formatındaki ID'yi veritabanı ile uyumlu UUID nesnesine çeviriyoruz
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+                
+                stmt.setBoolean(1, hasAttended);
+                stmt.setObject(2, resId);
+
+                int updatedRows = stmt.executeUpdate();
+
+                // Eğer etkilenen satır 0 ise: 
+                // Ya böyle bir reservation_id yoktur ya da rezervasyon is_cancelled = TRUE durumundadır.
+                return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            }
+
+        } catch (IllegalArgumentException e) {
+            // Gönderilen reservationId geçerli bir UUID formatında değilse
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            // Veritabanı bağlantı hatası kontrolü
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
