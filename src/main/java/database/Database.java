@@ -1816,7 +1816,7 @@ public class Database {
         return reservationsList;
     }
 
-    /**
+ /**
      * Fetches the accepted friends of a student based on their email
      * and populates the 'friends' list inside the provided Student object.
      * @param currentStudent The Student object to be populated with friends
@@ -1831,11 +1831,13 @@ public class Database {
         String email = currentStudent.getBilkentEmail();
         java.util.List<models.Student> friendsList = new java.util.ArrayList<>();
 
-        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+        // u alias'ları friend olarak değiştirildi.
+        // user_id_1 ve user_id_2 kolonları requester_id ve receiver_id olarak güncellendi.
+        String sql = "SELECT friend.full_name, friend.bilkent_email, friend.student_id AS uni_id, " +
                      "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
                      "FROM friendships f " +
-                     "INNER JOIN users me ON (me.id = f.user_id_1 OR me.id = f.user_id_2) " +
-                     "INNER JOIN users friend ON (friend.id = f.user_id_1 OR friend.id = f.user_id_2) " +
+                     "INNER JOIN users me ON (me.id = f.requester_id OR me.id = f.receiver_id) " +
+                     "INNER JOIN users friend ON (friend.id = f.requester_id OR friend.id = f.receiver_id) " +
                      "INNER JOIN students s ON friend.id = s.user_id " +
                      "WHERE me.bilkent_email = ? " +
                      "  AND friend.id != me.id " +
@@ -1848,10 +1850,6 @@ public class Database {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     models.Student friend = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
-                    
-                    friend.setFullName(rs.getString("full_name"));
-                    friend.setBilkentEmail(rs.getString("bilkent_email"));
-                    friend.setStudentId(rs.getString("uni_id"));
                     
                     friend.setEloPoint(rs.getInt("elo_point"));
                     friend.setPenaltyPoints(rs.getInt("penalty_points"));
