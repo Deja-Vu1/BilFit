@@ -1,6 +1,7 @@
 package controllers;
 
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import database.Database;
 import database.DbStatus;
@@ -12,6 +13,7 @@ import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
@@ -133,29 +135,53 @@ public class FriendsController {
                     SessionManager.getInstance().setOutgoingFriendRequests(oStudent.getOutgoingFriendRequests());
                     outgoingList.setAll(oStudent.getOutgoingFriendRequests());
                 }
-                
-                friendsTable.setItems(friendsList);
-                incomingTable.setItems(incomingList);
-                outgoingTable.setItems(outgoingList);
             });
         }).start();
     }
 
     private void setupSearchFilter() {
         FilteredList<Student> filteredFriends = new FilteredList<>(friendsList, b -> true);
-        searchField.textProperty().addListener((observable, oldValue, newValue) -> {
-            filteredFriends.setPredicate(friend -> {
-                if (newValue == null || newValue.isEmpty()) return true;
-                String lower = newValue.toLowerCase();
-                return friend.getFullName().toLowerCase().contains(lower) || friend.getStudentId().toLowerCase().contains(lower);
-            });
-        });
+        FilteredList<Student> filteredIncoming = new FilteredList<>(incomingList, b -> true);
+        FilteredList<Student> filteredOutgoing = new FilteredList<>(outgoingList, b -> true);
+
         friendsTable.setItems(filteredFriends);
+        incomingTable.setItems(filteredIncoming);
+        outgoingTable.setItems(filteredOutgoing);
+
+        searchField.setOnAction(event -> {
+            String filterText = searchField.getText();
+            
+            Predicate<Student> searchPredicate = friend -> {
+                if (filterText == null || filterText.isEmpty()) return true;
+                
+                java.util.Locale trLocale = new java.util.Locale("tr", "TR");
+                String lowerCaseFilter = filterText.toLowerCase(trLocale);
+                
+                String friendName = friend.getFullName() != null ? friend.getFullName().toLowerCase(trLocale) : "";
+                String friendId = friend.getStudentId() != null ? friend.getStudentId().toLowerCase(trLocale) : "";
+                
+                return friendName.contains(lowerCaseFilter) || friendId.contains(lowerCaseFilter);
+            };
+
+            filteredFriends.setPredicate(searchPredicate);
+            filteredIncoming.setPredicate(searchPredicate);
+            filteredOutgoing.setPredicate(searchPredicate);
+        });
+
+        searchField.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == null || newValue.isEmpty()) {
+                Predicate<Student> clearPredicate = b -> true;
+                filteredFriends.setPredicate(clearPredicate);
+                filteredIncoming.setPredicate(clearPredicate);
+                filteredOutgoing.setPredicate(clearPredicate);
+            }
+        });
     }
 
     @FXML
     public void handleRefresh() {
         loadAllData();
+        showAlert(Alert.AlertType.INFORMATION, "Refreshed", "Friend lists have been refreshed successfully.");
     }
 
     @FXML
@@ -190,6 +216,11 @@ public class FriendsController {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         if (currentUser == null || targetStudent == null) return;
 
+        boolean isConfirmed = showConfirmation("Confirm Action", "Are you sure you want to " + actionType + " " + targetStudent.getFullName() + "?");
+        if (!isConfirmed) {
+            return;
+        }
+
         new Thread(() -> {
             Database db = Database.getInstance();
             DbStatus status;
@@ -203,11 +234,24 @@ public class FriendsController {
             Platform.runLater(() -> {
                 if (status == DbStatus.SUCCESS) {
                     loadAllData();
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "Action completed successfully.");
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Error", "Operation failed.");
                 }
             });
         }).start();
+    }
+
+    private boolean showConfirmation(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        try { alert.initStyle(StageStyle.UNDECORATED); } catch (Exception ignored) {}
+        try { alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm()); } catch (Exception ignored) {}
+        
+        Optional<ButtonType> result = alert.showAndWait();
+        return result.isPresent() && result.get() == ButtonType.OK;
     }
 
     private void showAlert(Alert.AlertType alertType, String title, String message) {
