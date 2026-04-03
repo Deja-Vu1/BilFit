@@ -1423,4 +1423,62 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Creates a special 'Duello' record for an **EXISTING** reservation.
+     * Verifies the ownership of the reservation, updates its type to 'Duello',
+     * generates a 6-digit access code, and inserts it into the duellos table.
+     * @param reservationId The UUID of the existing reservation as a String
+     * @param creatorStudentEmail The Bilkent email of the student who owns the reservation
+     * @param requiredSkillLevel The required skill level for the duello (e.g., "Beginner", "Advanced")
+     * @param emptySlots The number of empty slots available in the duello
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus insertDuello(String reservationId, String creatorStudentEmail, String requiredSkillLevel, int emptySlots) {
+        
+        String updateReservationSql = "UPDATE reservations SET type = 'Duello' " +
+                                      "WHERE reservation_id = ? " +
+                                      "AND reserved_by = (SELECT id FROM users WHERE bilkent_email = ?)";
+                                      
+        String insertDuelloSql = "INSERT INTO duellos (reservation_id, access_code, required_skill_level, empty_slots, is_matched) " +
+                                 "VALUES (?, ?, ?, ?, FALSE)";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+            String accessCode = generateRandomCode(6);
+
+            try (PreparedStatement updateStmt = getConnection().prepareStatement(updateReservationSql)) {
+                updateStmt.setObject(1, resId);
+                updateStmt.setString(2, creatorStudentEmail);
+
+                int updatedRows = updateStmt.executeUpdate();
+
+                if (updatedRows == 0) {
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+            try (PreparedStatement insertStmt = getConnection().prepareStatement(insertDuelloSql)) {
+                insertStmt.setObject(1, resId);
+                insertStmt.setString(2, accessCode);
+                
+                insertStmt.setString(3, requiredSkillLevel);
+                insertStmt.setInt(4, emptySlots);
+                
+                int insertedRows = insertStmt.executeUpdate();
+                return insertedRows > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
