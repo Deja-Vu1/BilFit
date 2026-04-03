@@ -9,10 +9,15 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
+import models.SportType;
 import models.Student;
+import java.util.List;
+import java.util.ArrayList;
 
 public class Database {
 
@@ -1033,5 +1038,112 @@ public class Database {
             
             return DbStatus.QUERY_ERROR;
         }
+    }
+
+    /**
+     * Deletes a friendship or a pending friend request between two users.
+     * Checks both directions to ensure the relationship is removed regardless of who initiated it.
+     * @param senderEmail The Bilkent email of the first user (sender)
+     * @param receiverEmail The Bilkent email of the second user (receiver)
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if friendship didn't exist), or errors.
+     */
+    public DbStatus deleteFriend(String senderEmail, String receiverEmail) {
+        
+        String deleteSql = "DELETE FROM friendships " +
+                           "WHERE (requester_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                           "  AND receiver_id = (SELECT id FROM users WHERE bilkent_email = ?)) " +
+                           "   OR (requester_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                           "  AND receiver_id = (SELECT id FROM users WHERE bilkent_email = ?))";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(deleteSql)) {
+
+            stmt.setString(1, senderEmail);
+            stmt.setString(2, receiverEmail);
+            
+            stmt.setString(3, receiverEmail);
+            stmt.setString(4, senderEmail);
+
+            int deletedRows = stmt.executeUpdate();
+
+            return deletedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves all activated students whose profiles are public.
+     * Includes their sport interests mapped to the SportType enum.
+     * Used primarily for the matching/recommendation system.
+     * * @return A list of public Student objects
+     */
+    public List<Student> getAllPublicStudents() {
+        
+        List<Student> studentsList = new ArrayList<>();
+
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled, " +
+                     "STRING_AGG(sp.name, ',') AS sport_interests " +
+                     "FROM users u " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "LEFT JOIN student_interests si ON u.id = si.student_id " +
+                     "LEFT JOIN sports sp ON si.sport_id = sp.id " +
+                     "WHERE u.role = 'student' AND u.is_activated = TRUE AND s.is_public_profile = TRUE " +
+                     "GROUP BY u.id, s.user_id";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Student student = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                
+                student.setFullName(rs.getString("full_name"));
+                student.setBilkentEmail(rs.getString("bilkent_email"));
+                student.setStudentId(rs.getString("uni_id"));
+                student.setEloPoint(rs.getInt("elo_point"));
+                student.setPenaltyPoints(rs.getInt("penalty_points"));
+                student.setReliabilityScore(rs.getDouble("reliability_score"));
+                
+                int matchesPlayed = rs.getInt("matches_played");
+                double winRate = rs.getDouble("win_rate");
+                student.setMatchesPlayed(matchesPlayed);
+                student.setWinRate(winRate);
+                student.setMatchesWon((int) Math.round(matchesPlayed * winRate));
+                
+                student.setPublicProfile(rs.getBoolean("is_public_profile"));
+                student.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+
+                String interestsStr = rs.getString("sport_interests");
+                if (interestsStr != null && !interestsStr.trim().isEmpty()) {
+                    List<SportType> interests = new ArrayList<>();
+                    String[] sportNames = interestsStr.split(",");
+                    
+                    for (String sportName : sportNames) {
+                        try {
+                            interests.add(SportType.valueOf(sportName.trim().toUpperCase()));
+                        } catch (IllegalArgumentException e) {
+                            System.err.println("Uyarı: Geçersiz spor türü bulundu ve Enum'a çevrilemedi -> " + sportName);
+                        }
+                    }
+                    
+                    student.setInterests(interests);
+                }
+
+                studentsList.add(student);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return studentsList;
     }
 }
