@@ -1,6 +1,5 @@
 package controllers;
 
-import database.Database;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -8,8 +7,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
-import managers.SessionManager;
 
+import managers.SessionManager;
 import java.util.Optional;
 
 public class ELOController {
@@ -18,7 +17,7 @@ public class ELOController {
     @FXML private Label duelloMainInfoLabel;
     @FXML private Label duelloSubInfoLabel;
     @FXML private Button requestButton;
-    private Database db = Database.getInstance();
+
     private boolean isProcessing = false;
 
     @FXML
@@ -29,30 +28,30 @@ public class ELOController {
     private void loadEloAndDuelloData() {
         new Thread(() -> {
             try {
-                // KRİTİK: Veriyi elle değil, ortak SessionManager'dan (Rezervasyon sayfasından) çekiyoruz!
+                // Veriyi doğrudan Reservation sayfasından (SessionManager) çekiyoruz
                 String reservationData = SessionManager.getInstance().getCurrentReservation();
                 
+                // TODO: İleride bunlar da DB'den dinamik gelecek
                 String duelloMainData = "Main Campus   |   Basketball Field YSS   |   Max 10 player   |   20.02.2026";
                 String duelloSubData = "B**** j**** S**** |   Empty Slot: 4   |   Pro";
 
                 Platform.runLater(() -> {
-        if (activeReservationLabel != null) {
-            if (reservationData != null) {
-                activeReservationLabel.setText(reservationData);
-            } else {
-                activeReservationLabel.setText("Aktif bir rezervasyonunuz bulunmamaktadır.");
-            }
-        }
-        if (duelloMainInfoLabel != null) duelloMainInfoLabel.setText(duelloMainData);
-        if (duelloSubInfoLabel != null) duelloSubInfoLabel.setText(duelloSubData);
+                    if (activeReservationLabel != null) {
+                        if (reservationData != null) {
+                            activeReservationLabel.setText(reservationData);
+                        } else {
+                            activeReservationLabel.setText("Aktif bir rezervasyonunuz bulunmamaktadır.");
+                        }
+                    }
+                    if (duelloMainInfoLabel != null) duelloMainInfoLabel.setText(duelloMainData);
+                    if (duelloSubInfoLabel != null) duelloSubInfoLabel.setText(duelloSubData);
 
-        // HAFIZA KONTROLÜ: Daha önce istek atılmışsa butonu kapalı ve "Requested" olarak getir!
-        if (SessionManager.getInstance().isDuelloRequested() && requestButton != null) {
-            requestButton.setText("Requested");
-            requestButton.setDisable(true);
-        }
-    });
-
+                    // EĞER DAHA ÖNCE ISTEK ATILMIŞSA BUTONU KAPALI GETİR
+                    if (SessionManager.getInstance().isDuelloRequested() && requestButton != null) {
+                        requestButton.setText("Requested");
+                        requestButton.setDisable(true);
+                    }
+                });
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -63,7 +62,6 @@ public class ELOController {
     public void handleCreateDuello(ActionEvent event) {
         if (isProcessing) return;
         
-        // KORUMA: Aktif rezervasyonu olmayan biri düello oluşturamaz!
         if (SessionManager.getInstance().getCurrentReservation() == null) {
             showAlert(Alert.AlertType.WARNING, "İşlem Reddedildi", "Düello oluşturabilmek için öncelikle bir saha rezervasyonu yapmalısınız.");
             return;
@@ -108,9 +106,7 @@ public class ELOController {
         dialog.setHeaderText("Düello Kodunu Giriniz");
         dialog.setContentText("Kod:");
 
-        try {
-            dialog.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
-        } catch (Exception e) {}
+        try { dialog.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm()); } catch (Exception e) {}
 
         Optional<String> result = dialog.showAndWait();
         result.ifPresent(code -> {
@@ -142,15 +138,15 @@ public class ELOController {
             try {
                 Thread.sleep(800);
 
-              Platform.runLater(() -> {
-        isProcessing = false;
-        clickedButton.setText("Requested");
-        
-        // BAŞARILI OLUNCA HAFIZAYA KAYDET Kİ BİR DAHA UNUTMASIN
-        SessionManager.getInstance().setDuelloRequested(true);
-        
-        showAlert(Alert.AlertType.INFORMATION, "İstek Gönderildi", "Bu maça katılma isteğiniz başarıyla kurucuya iletildi.");
-    });
+                Platform.runLater(() -> {
+                    isProcessing = false;
+                    clickedButton.setText("Requested");
+                    
+                    // İŞLEM BAŞARILI OLDUĞUNDA HAFIZAYA KAYDET (Sayfa değişince unutmasın)
+                    SessionManager.getInstance().setDuelloRequested(true);
+                    
+                    showAlert(Alert.AlertType.INFORMATION, "İstek Gönderildi", "Bu maça katılma isteğiniz başarıyla kurucuya iletildi.");
+                });
             } catch (Exception e) {
                 e.printStackTrace();
                 Platform.runLater(() -> {
@@ -168,11 +164,7 @@ public class ELOController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
-        
-        try {
-            alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
-        } catch (Exception e) {}
-
+        try { alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm()); } catch (Exception e) {}
         if (activeReservationLabel != null && activeReservationLabel.getScene() != null) {
             alert.initOwner(activeReservationLabel.getScene().getWindow());
         }
