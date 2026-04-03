@@ -13,9 +13,9 @@ import java.util.Properties;
 import java.util.UUID;
 
 import models.Student;
-
+    
 public class Database {
-
+    private static Database instance;
     private String dbUrl;
     private String dbUser;
     private String dbPassword;
@@ -41,7 +41,15 @@ public class Database {
             ex.printStackTrace();
         }
     }
-
+     // 3. Herkesin bu ortak nesneye ulaşmak için kullanacağı metod
+    public static Database getInstance() {
+        if (instance == null) {
+            // Eğer obje henüz hiç oluşturulmadıysa 1 kere oluştur
+            instance = new Database();
+        }
+        // Eğer zaten oluşturulduysa var olanı ver
+        return instance;
+    }
     // Yardımcı metot: Bağlantıyı oluşturur
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(dbUrl, dbUser, dbPassword);
