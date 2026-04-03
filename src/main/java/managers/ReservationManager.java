@@ -17,7 +17,12 @@ public class ReservationManager {
 
     public Reservation makeReservation(Student student, Facility facility, LocalDate date, String timeSlot) {
         if (student == null || facility == null || date == null || timeSlot == null) return null;
-        if (!student.isCanAttend() || facility.isUnderMaintenance()) {
+        
+        if (date.isBefore(LocalDate.now())) {
+            return null;
+        }
+        
+        if (!student.isCanAttend() || facility.isUnderMaintenance() || student.isBanned()) {
             return null; 
         }
 

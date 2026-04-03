@@ -8,6 +8,8 @@ import models.Tournament;
 import models.Match;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,6 +17,9 @@ public class TournamentManager {
 
     private Database db;
     private NotificationManager notifManager;
+
+    private static final int MIN_TEAMS = 3;
+    private static final int MAX_TEAMS = 32;
 
     public TournamentManager(Database db) {
         this.db = db;
@@ -41,8 +46,18 @@ public class TournamentManager {
             return DbStatus.QUERY_ERROR;
         }
 
+        if (tournament.getParticipatingTeams().size() >= MAX_TEAMS) {
+            return DbStatus.QUERY_ERROR;
+        }
+
         if (LocalDate.now().isAfter(tournament.getStartDate()) || LocalDate.now().isEqual(tournament.getStartDate())) {
             return DbStatus.QUERY_ERROR;
+        }
+
+        for (Student s : team.getMembers()) {
+            if (s == null || s.isBanned() || !s.isCanAttend()) {
+                return DbStatus.QUERY_ERROR;
+            }
         }
 
         for (Team t : tournament.getParticipatingTeams()) {
@@ -59,7 +74,11 @@ public class TournamentManager {
     }
 
     public DbStatus applyWithCode(Tournament tournament, Student student, String code) {
-        if (tournament == null || student == null || code == null || !tournament.isActive() || !student.isCanAttend() || !tournament.getAccessCode().equals(code)) {
+        if (tournament == null || student == null || code == null || !tournament.isActive() || !student.isCanAttend() || student.isBanned() || !tournament.getAccessCode().equals(code)) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        if (tournament.getParticipatingTeams().size() >= MAX_TEAMS) {
             return DbStatus.QUERY_ERROR;
         }
 
@@ -92,17 +111,37 @@ public class TournamentManager {
     }
 
     public DbStatus generateAndSaveFixture(Tournament tournament) {
-        if (tournament == null || tournament.getParticipatingTeams().size() < 2) return DbStatus.QUERY_ERROR;
+        if (tournament == null) return DbStatus.QUERY_ERROR;
+
+        List<Team> teams = tournament.getParticipatingTeams();
+
+        if (teams.size() < MIN_TEAMS || teams.size() > MAX_TEAMS) {
+            return DbStatus.QUERY_ERROR; 
+        }
 
         DbStatus status = db.insertFixture(tournament.getTournamentId());
         if (status != DbStatus.SUCCESS) return status;
 
-        tournament.getTournamentFixture().setCurrentStage("Knockout - Round 1");
-        List<Team> teams = tournament.getParticipatingTeams();
+        List<Team> roundTeams = new ArrayList<>(teams);
+        return generateRoundMatches(tournament, roundTeams, 1);
+    }
+
+    public DbStatus generateRoundMatches(Tournament tournament, List<Team> activeTeams, int roundNumber) {
+        if (activeTeams == null || activeTeams.size() < 2) return DbStatus.QUERY_ERROR;
+
+        Collections.shuffle(activeTeams);
         
-        for (int i = 0; i < teams.size() - 1; i += 2) {
-            Team t1 = teams.get(i);
-            Team t2 = teams.get(i + 1);
+        tournament.getTournamentFixture().setCurrentStage("Round " + roundNumber);
+
+        Team byeTeam = null;
+        if (activeTeams.size() % 2 != 0) {
+            byeTeam = activeTeams.remove(0); 
+            notifManager.sendToUser(byeTeam.getCaptain(), "Tournament Update", "Congratulations! You received a bye and advanced to the next round!");
+        }
+
+        for (int i = 0; i < activeTeams.size(); i += 2) {
+            Team t1 = activeTeams.get(i);
+            Team t2 = activeTeams.get(i + 1);
             String matchId = UUID.randomUUID().toString();
             
             DbStatus matchStatus = db.insertMatch(matchId, t1.getCaptain().getBilkentEmail(), t2.getCaptain().getBilkentEmail(), tournament.getSportType().name());
@@ -111,8 +150,8 @@ public class TournamentManager {
                 Match m = new Match(matchId, LocalDateTime.now().plusDays(1), tournament.getSportType(), t1, t2);
                 tournament.getTournamentFixture().getScheduledMatches().add(m);
                 
-                notifManager.sendToUser(t1.getCaptain(), "Tournament Fixture", "Your first tournament match is scheduled!");
-                notifManager.sendToUser(t2.getCaptain(), "Tournament Fixture", "Your first tournament match is scheduled!");
+                notifManager.sendToUser(t1.getCaptain(), "Tournament Fixture", "Round " + roundNumber + " match is set! Opponent: " + t2.getTeamName());
+                notifManager.sendToUser(t2.getCaptain(), "Tournament Fixture", "Round " + roundNumber + " match is set! Opponent: " + t1.getTeamName());
             }
         }
         return DbStatus.SUCCESS;
