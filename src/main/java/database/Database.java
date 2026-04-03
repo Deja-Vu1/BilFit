@@ -1393,4 +1393,34 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Updates the maintenance status of a specific facility.
+     * @param facilityName The name of the facility to update (e.g., "Main Sports Hall - Court A")
+     * @param isUnderMaintenance True to put the facility under maintenance, false to make it operational
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if facility doesn't exist), or errors.
+     */
+    public DbStatus updateFacilityMaintenance(String facilityName, boolean isUnderMaintenance) {
+        
+        String updateSql = "UPDATE facilities SET is_under_maintenance = ? WHERE name = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(updateSql)) {
+            
+            stmt.setBoolean(1, isUnderMaintenance);
+            stmt.setString(2, facilityName);
+
+            int updatedRows = stmt.executeUpdate();
+
+            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
