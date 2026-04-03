@@ -767,26 +767,28 @@ public class Database {
     }
 
     /**
-     * Fetches student records from the 'users' and 'students' tables
-     * and updates the provided Student object with this data.
+     * Fetches student records from the 'users' and 'students' tables,
+     * including their sport interests, and updates the provided Student object.
      * @param student The existing Student object to be updated
      * @param email Student's Bilkent email address to query the database
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
      */
     public DbStatus fillStudentDataByEmail(Student student, String email) {
         
-        // Null kontrolü, gelen objenin boş olmasını engeller
         if (student == null) {
             return DbStatus.QUERY_ERROR;
         }
 
-        // users ve students tablolarını birleştiren JOIN sorgusu (bilkent_email eklendi)
         String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.password_hash, " +
                      "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
-                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled, " +
+                     "STRING_AGG(sp.name, ',') AS sport_interests " +
                      "FROM users u " +
                      "INNER JOIN students s ON u.id = s.user_id " +
-                     "WHERE u.bilkent_email = ? AND u.role = 'student'";
+                     "LEFT JOIN student_interests si ON u.id = si.student_id " +
+                     "LEFT JOIN sports sp ON si.sport_id = sp.id " +
+                     "WHERE u.bilkent_email = ? AND u.role = 'student' " +
+                     "GROUP BY u.id, s.user_id"; 
 
         try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
             
@@ -795,13 +797,10 @@ public class Database {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     
-                    // 1. Üst sınıf (User) verilerini güncelle
                     student.setFullName(rs.getString("full_name"));
                     student.setBilkentEmail(rs.getString("bilkent_email"));
                     student.setPassword(rs.getString("password_hash"));
-                    // Not: 'nickname' DB'de olmadığı için mevcut objenin değerine dokunmuyoruz.
                     
-                    // 2. Öğrenciye (Student) özel metrikleri set et
                     student.setStudentId(rs.getString("uni_id"));
                     student.setEloPoint(rs.getInt("elo_point"));
                     student.setPenaltyPoints(rs.getInt("penalty_points"));
@@ -811,9 +810,26 @@ public class Database {
                     student.setPublicProfile(rs.getBoolean("is_public_profile"));
                     student.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
                     
-                    // matchesWon hesaplaması
                     int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
                     student.setMatchesWon(matchesWon);
+
+                    String interestsStr = rs.getString("sport_interests");
+                    java.util.List<models.SportType> interestsList = new java.util.ArrayList<>();
+                    
+                    if (interestsStr != null && !interestsStr.trim().isEmpty()) {
+                        String[] sportNames = interestsStr.split(",");
+                        
+                        for (String sportName : sportNames) {
+                            try {
+                                String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
+                                interestsList.add(models.SportType.valueOf(formattedSportName));
+                            } catch (IllegalArgumentException e) {
+                                System.err.println("Uyarı: Geçersiz spor türü -> " + sportName);
+                            }
+                        }
+                    }
+                    
+                    student.setInterests(interestsList);
 
                     return DbStatus.SUCCESS;
                 } else {
@@ -830,7 +846,6 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
     /**
      * Updates the ELO score for a student.
      * Finds the user by email and updates their elo_point in the students table.
