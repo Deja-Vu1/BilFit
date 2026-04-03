@@ -1306,4 +1306,41 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Cancels an existing reservation (Soft Delete).
+     * Instead of physically removing the record from the database, 
+     * it sets the 'is_cancelled' flag to true.
+     * @param reservationId The UUID of the reservation to be cancelled
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if not found or already cancelled), or errors.
+     */
+    public DbStatus deleteReservation(String reservationId) {
+        
+        String cancelSql = "UPDATE reservations SET is_cancelled = TRUE " +
+                           "WHERE reservation_id = ? AND is_cancelled = FALSE";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(cancelSql)) {
+                
+                stmt.setObject(1, resId);
+
+                int updatedRows = stmt.executeUpdate();
+
+                return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
