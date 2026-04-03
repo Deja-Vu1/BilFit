@@ -14,6 +14,8 @@ public class SessionManager {
     private User currentUser;
     private ArrayList<Reservation> currentReservations = new ArrayList<>();
     private ArrayList<Student> currentFriends = new ArrayList<>();
+    private ArrayList<Student> incomingFriendRequests = new ArrayList<>();
+    private ArrayList<Student> outgoingFriendRequests = new ArrayList<>();
 
     private boolean isDuelloRequested = false;
     private boolean isJoinedWithCode = false;
@@ -54,6 +56,22 @@ public class SessionManager {
         this.currentFriends = friends != null ? new ArrayList<>(friends) : new ArrayList<>();
     }
 
+    public ArrayList<Student> getIncomingFriendRequests() {
+        return incomingFriendRequests;
+    }
+
+    public void setIncomingFriendRequests(List<Student> incomingFriendRequests) {
+        this.incomingFriendRequests = incomingFriendRequests != null ? new ArrayList<>(incomingFriendRequests) : new ArrayList<>();
+    }
+
+    public ArrayList<Student> getOutgoingFriendRequests() {
+        return outgoingFriendRequests;
+    }
+
+    public void setOutgoingFriendRequests(List<Student> outgoingFriendRequests) {
+        this.outgoingFriendRequests = outgoingFriendRequests != null ? new ArrayList<>(outgoingFriendRequests) : new ArrayList<>();
+    }
+
     public boolean isDuelloRequested() {
         return isDuelloRequested;
     }
@@ -88,8 +106,10 @@ public class SessionManager {
 
     public void logout() {
         this.currentUser = null;
-        this.currentReservations.clear(); 
+        this.currentReservations.clear();
         this.currentFriends.clear();
+        this.incomingFriendRequests.clear();
+        this.outgoingFriendRequests.clear();
         this.isDuelloRequested = false;
         this.isJoinedWithCode = false;
         this.isTournamentApplied = false;

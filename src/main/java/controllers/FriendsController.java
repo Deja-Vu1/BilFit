@@ -1,5 +1,7 @@
 package controllers;
 
+import java.util.Optional;
+
 import database.Database;
 import database.DbStatus;
 import javafx.application.Platform;
@@ -20,93 +22,140 @@ import javafx.stage.StageStyle;
 import managers.SessionManager;
 import models.Student;
 
-import java.util.Optional;
-
 public class FriendsController {
 
     @FXML private TextField searchField;
+    
     @FXML private TableView<Student> friendsTable;
-    @FXML private TableColumn<Student, String> colName;
-    @FXML private TableColumn<Student, String> colStatus;
-    @FXML private TableColumn<Student, String> colELO;
-    @FXML private TableColumn<Student, Void> colActions;
+    @FXML private TableColumn<Student, String> colFriendName;
+    @FXML private TableColumn<Student, String> colFriendStatus;
+    @FXML private TableColumn<Student, String> colFriendELO;
+    @FXML private TableColumn<Student, Void> colFriendActions;
 
-    private ObservableList<Student> friendsObservableList = FXCollections.observableArrayList();
+    @FXML private TableView<Student> incomingTable;
+    @FXML private TableColumn<Student, String> colIncomingName;
+    @FXML private TableColumn<Student, String> colIncomingStatus;
+    @FXML private TableColumn<Student, String> colIncomingELO;
+    @FXML private TableColumn<Student, Void> colIncomingActions;
+
+    @FXML private TableView<Student> outgoingTable;
+    @FXML private TableColumn<Student, String> colOutgoingName;
+    @FXML private TableColumn<Student, String> colOutgoingStatus;
+    @FXML private TableColumn<Student, String> colOutgoingELO;
+    @FXML private TableColumn<Student, Void> colOutgoingActions;
+
+    private ObservableList<Student> friendsList = FXCollections.observableArrayList();
+    private ObservableList<Student> incomingList = FXCollections.observableArrayList();
+    private ObservableList<Student> outgoingList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
-        setupTableColumns();
-        loadFriendsData();
+        setupColumns(colFriendName, colFriendStatus, colFriendELO);
+        setupColumns(colIncomingName, colIncomingStatus, colIncomingELO);
+        setupColumns(colOutgoingName, colOutgoingStatus, colOutgoingELO);
+        
+        setupActionColumns();
         setupSearchFilter();
+        loadAllData();
     }
 
-    private void setupTableColumns() {
-        colName.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getFullName()));
-        colStatus.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getReliabilityScore() + "%"));
-        colELO.setCellValueFactory(cellData -> new SimpleStringProperty(String.valueOf(cellData.getValue().getEloPoint())));
+    private void setupColumns(TableColumn<Student, String> name, TableColumn<Student, String> status, TableColumn<Student, String> elo) {
+        name.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getFullName()));
+        status.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReliabilityScore() + "%"));
+        elo.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getEloPoint())));
+    }
 
-        colActions.setCellFactory(param -> new TableCell<Student, Void>() {
+    private void setupActionColumns() {
+        colFriendActions.setCellFactory(param -> new TableCell<Student, Void>() {
             private final Button removeBtn = new Button("Remove");
-
             {
                 removeBtn.getStyleClass().add("btn-danger");
-                removeBtn.setOnAction(event -> {
-                    Student friend = getTableView().getItems().get(getIndex());
-                    handleRemoveFriend(friend);
-                });
+                removeBtn.setOnAction(e -> handleNetworkAction(getTableView().getItems().get(getIndex()), "remove"));
             }
-
-            @Override
-            protected void updateItem(Void item, boolean empty) {
+            @Override protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) {
-                    setGraphic(null);
-                } else {
-                    HBox actionBox = new HBox(removeBtn);
-                    actionBox.setSpacing(10);
-                    setGraphic(actionBox);
+                setGraphic(empty ? null : removeBtn);
+            }
+        });
+
+        colIncomingActions.setCellFactory(param -> new TableCell<Student, Void>() {
+            private final Button acceptBtn = new Button("Accept");
+            private final Button declineBtn = new Button("Decline");
+            {
+                acceptBtn.getStyleClass().add("btn-success");
+                declineBtn.getStyleClass().add("btn-danger");
+                acceptBtn.setOnAction(e -> handleNetworkAction(getTableView().getItems().get(getIndex()), "accept"));
+                declineBtn.setOnAction(e -> handleNetworkAction(getTableView().getItems().get(getIndex()), "decline"));
+            }
+            @Override protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) setGraphic(null);
+                else {
+                    HBox box = new HBox(10, acceptBtn, declineBtn);
+                    setGraphic(box);
                 }
+            }
+        });
+
+        colOutgoingActions.setCellFactory(param -> new TableCell<Student, Void>() {
+            private final Button cancelBtn = new Button("Cancel");
+            {
+                cancelBtn.getStyleClass().add("btn-danger");
+                cancelBtn.setOnAction(e -> handleNetworkAction(getTableView().getItems().get(getIndex()), "cancel"));
+            }
+            @Override protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : cancelBtn);
             }
         });
     }
 
-    private void loadFriendsData() {
+    private void loadAllData() {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         if (currentUser == null) return;
 
         new Thread(() -> {
-            Student updatedStudent = Database.getInstance().fillFriendsByEmail(currentUser);
+            Database db = Database.getInstance();
+            Student fStudent = db.fillFriendsByEmail(currentUser);
+            Student iStudent = db.fillIncomingFriendRequests(currentUser);
+            Student oStudent = db.fillOutgoingFriendRequests(currentUser);
             
             Platform.runLater(() -> {
-                if (updatedStudent != null && updatedStudent.getFriends() != null) {
-                    SessionManager.getInstance().setCurrentFriends(updatedStudent.getFriends());
-                    friendsObservableList.setAll(updatedStudent.getFriends());
-                    friendsTable.setItems(friendsObservableList);
+                if (fStudent != null && fStudent.getFriends() != null) {
+                    SessionManager.getInstance().setCurrentFriends(fStudent.getFriends());
+                    friendsList.setAll(fStudent.getFriends());
                 }
+                if (iStudent != null && iStudent.getIncomingFriendRequests() != null) {
+                    SessionManager.getInstance().setIncomingFriendRequests(iStudent.getIncomingFriendRequests());
+                    incomingList.setAll(iStudent.getIncomingFriendRequests());
+                }
+                if (oStudent != null && oStudent.getOutgoingFriendRequests() != null) {
+                    SessionManager.getInstance().setOutgoingFriendRequests(oStudent.getOutgoingFriendRequests());
+                    outgoingList.setAll(oStudent.getOutgoingFriendRequests());
+                }
+                
+                friendsTable.setItems(friendsList);
+                incomingTable.setItems(incomingList);
+                outgoingTable.setItems(outgoingList);
             });
         }).start();
     }
 
     private void setupSearchFilter() {
-        FilteredList<Student> filteredData = new FilteredList<>(friendsObservableList, b -> true);
-        
+        FilteredList<Student> filteredFriends = new FilteredList<>(friendsList, b -> true);
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
-            filteredData.setPredicate(friend -> {
-                if (newValue == null || newValue.isEmpty()) {
-                    return true;
-                }
-                String lowerCaseFilter = newValue.toLowerCase();
-                
-                if (friend.getFullName().toLowerCase().contains(lowerCaseFilter)) {
-                    return true;
-                } else if (friend.getStudentId().toLowerCase().contains(lowerCaseFilter)) {
-                    return true;
-                }
-                return false;
+            filteredFriends.setPredicate(friend -> {
+                if (newValue == null || newValue.isEmpty()) return true;
+                String lower = newValue.toLowerCase();
+                return friend.getFullName().toLowerCase().contains(lower) || friend.getStudentId().toLowerCase().contains(lower);
             });
         });
-        
-        friendsTable.setItems(filteredData);
+        friendsTable.setItems(filteredFriends);
+    }
+
+    @FXML
+    public void handleRefresh() {
+        loadAllData();
     }
 
     @FXML
@@ -126,9 +175,10 @@ public class FriendsController {
                     DbStatus status = Database.getInstance().insertFriendRequest(currentUser.getBilkentEmail(), email.trim());
                     Platform.runLater(() -> {
                         if (status == DbStatus.SUCCESS) {
-                            showAlert(Alert.AlertType.INFORMATION, "Success", "Friend request sent successfully!");
+                            showAlert(Alert.AlertType.INFORMATION, "Success", "Friend request sent!");
+                            loadAllData();
                         } else {
-                            showAlert(Alert.AlertType.ERROR, "Failed", "Could not send request. Check email or existing requests.");
+                            showAlert(Alert.AlertType.ERROR, "Failed", "Could not send request.");
                         }
                     });
                 }).start();
@@ -136,12 +186,28 @@ public class FriendsController {
         });
     }
 
-    private void handleRemoveFriend(Student friend) {
+    private void handleNetworkAction(Student targetStudent, String actionType) {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-        if (currentUser == null || friend == null) return;
-        
-        friendsObservableList.remove(friend);
-        SessionManager.getInstance().getCurrentFriends().remove(friend);
+        if (currentUser == null || targetStudent == null) return;
+
+        new Thread(() -> {
+            Database db = Database.getInstance();
+            DbStatus status;
+
+            if (actionType.equals("accept")) {
+                status = db.acceptFriendRequest(targetStudent.getBilkentEmail(), currentUser.getBilkentEmail());
+            } else {
+                status = db.deleteFriend(currentUser.getBilkentEmail(), targetStudent.getBilkentEmail());
+            }
+
+            Platform.runLater(() -> {
+                if (status == DbStatus.SUCCESS) {
+                    loadAllData();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Operation failed.");
+                }
+            });
+        }).start();
     }
 
     private void showAlert(Alert.AlertType alertType, String title, String message) {
