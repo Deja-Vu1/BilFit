@@ -1,7 +1,9 @@
 package controllers;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.List;
 
 import database.Database;
 import database.DbStatus;
@@ -11,7 +13,11 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tooltip;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
@@ -21,58 +27,211 @@ import managers.ReservationManager;
 import managers.SessionManager;
 import models.Facility;
 import models.Reservation;
-import models.SportType;
 import models.Student;
 
 public class ReservationController {
 
     @FXML private VBox reservationsContainer;
-
-    @FXML private Button basketballBtn;
-    @FXML private Button footballBtn;
-    @FXML private Button slot1Btn;
-    @FXML private Button slot2Btn;
+    
+    @FXML private ComboBox<String> facilityComboBox;
+    @FXML private DatePicker datePicker;
+    @FXML private Button refreshBtn; // Yeni Eklenen Refresh Butonu
+    @FXML private GridPane timeSlotGrid;
 
     private ReservationManager resManager = new ReservationManager(Database.getInstance());
-    private String selectedSport = "Football"; 
     private boolean isProcessing = false;
+    private List<Facility> allFacilities = new ArrayList<>();
+    private long currentGridUpdateId = 0; // Çoklu tıklamada sistemi çökertmeyi engelleyen kilit
 
     @FXML
     public void initialize() {
-        setupButtons();
-        
+        if (datePicker != null) {
+            datePicker.setValue(LocalDate.now());
+        }
+
         Label loadingLabel = new Label("Loading your reservations...");
-        loadingLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 14px;");
+        loadingLabel.setStyle("-fx-text-fill: #A3AED0; -fx-font-weight: bold; -fx-font-size: 14px;");
         
         if (reservationsContainer != null) {
             reservationsContainer.getChildren().clear();
             reservationsContainer.getChildren().add(loadingLabel);
         }
         
+        // Sadece SelectBox'lar değiştiğinde veya butona tıklandığında yeniler
+        if (facilityComboBox != null) {
+            facilityComboBox.valueProperty().addListener((obs, oldVal, newVal) -> refreshTimeSlots());
+        }
+        if (datePicker != null) {
+            datePicker.valueProperty().addListener((obs, oldVal, newVal) -> refreshTimeSlots());
+        }
+        if (refreshBtn != null) {
+            refreshBtn.setOnAction(e -> refreshTimeSlots());
+        }
+        
+        loadFacilities();
         fetchFreshReservations();
     }
 
-    private void setupButtons() {
-        if (basketballBtn != null && footballBtn != null) {
-            basketballBtn.setOnAction(e -> selectSport("Basketball", basketballBtn, footballBtn));
-            footballBtn.setOnAction(e -> selectSport("Football", footballBtn, basketballBtn));
-            selectSport("Football", footballBtn, basketballBtn);
-        }
-
-        if (slot1Btn != null) slot1Btn.setOnAction(e -> attemptReservation("8.45-9.45", slot1Btn));
-        if (slot2Btn != null) slot2Btn.setOnAction(e -> attemptReservation("11.45-12.45", slot2Btn));
+    private void loadFacilities() {
+        new Thread(() -> {
+            allFacilities = Database.getInstance().getFacilities();
+            
+            Platform.runLater(() -> {
+                if (facilityComboBox != null) {
+                    facilityComboBox.getItems().clear();
+                    for (Facility f : allFacilities) {
+                        facilityComboBox.getItems().add(f.getName());
+                    }
+                    if (!allFacilities.isEmpty()) {
+                        facilityComboBox.getSelectionModel().selectFirst();
+                    }
+                }
+            });
+        }).start();
     }
 
-    private void selectSport(String sport, Button activeBtn, Button passiveBtn) {
-        this.selectedSport = sport;
+    // SAATLERİ VERİTABANINDAN ÇEKİP RENKLENDİREN ANA METOT
+    private void refreshTimeSlots() {
+        String selectedFacilityName = facilityComboBox.getValue();
+        LocalDate selectedDate = datePicker.getValue();
+
+        if (selectedFacilityName == null || selectedDate == null || timeSlotGrid == null) {
+            return;
+        }
+
+        final long updateId = ++currentGridUpdateId;
+
+        timeSlotGrid.getChildren().clear();
+        timeSlotGrid.setHgap(10);
+        timeSlotGrid.setVgap(10);
+
+        // Ekran donmasın diye önce tüm saatleri gri "Yükleniyor" moduna alıyoruz
+        int initHour = 8;
+        for (int row = 0; row < 3; row++) {
+            for (int col = 0; col < 5; col++) {
+                Button loadingBtn = new Button("...");
+                loadingBtn.setPrefHeight(40.0);
+                loadingBtn.setPrefWidth(110.0);
+                loadingBtn.getStyleClass().add("btn-secondary");
+                loadingBtn.setDisable(true);
+                timeSlotGrid.add(loadingBtn, col, row);
+                initHour++;
+            }
+        }
+
+        // Arka planda 15 saat için veritabanını tarıyoruz
+        new Thread(() -> {
+            Database db = Database.getInstance();
+            boolean[] availabilities = new boolean[15];
+            
+            int checkHour = 8;
+            for (int i = 0; i < 15; i++) {
+                String ts = String.format("%02d.00-%02d.00", checkHour, checkHour + 1);
+                availabilities[i] = db.checkFacilityAvailability(selectedFacilityName, selectedDate, ts);
+                checkHour++;
+            }
+
+            // Arayüzü güncelliyoruz
+            Platform.runLater(() -> {
+                if (updateId != currentGridUpdateId) return;
+
+                timeSlotGrid.getChildren().clear();
+                int currentHour = 8;
+                
+                for (int row = 0; row < 3; row++) {
+                    for (int col = 0; col < 5; col++) {
+                        String timeSlot = String.format("%02d.00-%02d.00", currentHour, currentHour + 1);
+                        boolean isAvailableFromDb = availabilities[(row * 5) + col];
+                        
+                        // Geçmiş Zaman Kontrolü
+                        boolean isPast = false;
+                        if (selectedDate.isBefore(LocalDate.now())) {
+                            isPast = true;
+                        } else if (selectedDate.isEqual(LocalDate.now())) {
+                            if (LocalTime.now().getHour() >= currentHour) {
+                                isPast = true;
+                            }
+                        }
+
+                        Button slotBtn = new Button(timeSlot);
+                        slotBtn.setPrefHeight(40.0);
+                        slotBtn.setPrefWidth(110.0);
+
+                        // Renk ve Tıklanabilirlik Mantığı
+                        if (isPast) {
+                            slotBtn.getStyleClass().add("btn-danger");
+                            slotBtn.setDisable(true);
+                            slotBtn.setTooltip(new Tooltip("Bu seansın süresi geçmiş.")); // Kullanıcıya neden kırmızı olduğunu söyler
+                        } else if (isAvailableFromDb) {
+                            slotBtn.getStyleClass().add("btn-success"); // Boş ise yeşil
+                            slotBtn.setOnAction(e -> attemptReservation(timeSlot, slotBtn));
+                        } else {
+                            slotBtn.getStyleClass().add("btn-danger"); // Veritabanında doluysa kırmızı
+                            slotBtn.setDisable(true);
+                            slotBtn.setTooltip(new Tooltip("Bu seans dolu veya tesis bakımda."));
+                        }
+
+                        timeSlotGrid.add(slotBtn, col, row);
+                        currentHour++;
+                    }
+                }
+            });
+        }).start();
+    }
+
+    private void attemptReservation(String timeSlot, Button clickedButton) {
+        if (isProcessing) return;
+
+        String selectedFacilityName = facilityComboBox.getValue();
+        LocalDate selectedDate = datePicker.getValue();
+
+        Facility foundFacility = null;
+        for (Facility f : allFacilities) {
+            if (f.getName().equals(selectedFacilityName)) {
+                foundFacility = f;
+                break;
+            }
+        }
+
+        if (foundFacility == null) {
+            showAlert(Alert.AlertType.ERROR, "Hata", "Seçilen tesis sistemde bulunamadı.");
+            return;
+        }
+
+        final Facility targetFacility = foundFacility;
+
+        isProcessing = true;
+        String originalText = clickedButton.getText();
+        clickedButton.setText("İşleniyor");
+        clickedButton.setDisable(true);
         
-        activeBtn.setStyle("-fx-opacity: 1.0;");
-        activeBtn.getStyleClass().remove("btn-secondary");
-        if (!activeBtn.getStyleClass().contains("btn-success")) activeBtn.getStyleClass().add("btn-success");
-        
-        passiveBtn.setStyle("-fx-opacity: 0.5;");
-        passiveBtn.getStyleClass().remove("btn-success");
-        if (!passiveBtn.getStyleClass().contains("btn-secondary")) passiveBtn.getStyleClass().add("btn-secondary");
+        new Thread(() -> {
+            try {
+                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+                
+                Reservation newRes = resManager.makeReservation(currentUser, targetFacility, selectedDate, timeSlot);
+
+                Platform.runLater(() -> {
+                    isProcessing = false;
+                    
+                    if (newRes != null) { 
+                        refreshTimeSlots(); // Rezervasyon yapıldığında ekranı hemen tazele (Yeşili kırmızıya çevir)
+                        fetchFreshReservations(); // Alttaki listeyi tazele
+                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", targetFacility.getName() + " için " + timeSlot + " rezervasyonunuz oluşturuldu.");
+                    } else {
+                        clickedButton.setText(originalText);
+                        clickedButton.setDisable(false);
+                        showAlert(Alert.AlertType.ERROR, "İşlem Başarısız", "Rezervasyon oluşturulamadı. (Tesis dolu olabilir, ceza puanınız olabilir veya tarih sınırını aşmış olabilirsiniz.)");
+                    }
+                });
+            } catch (Exception e) {
+                Platform.runLater(() -> {
+                    isProcessing = false;
+                    clickedButton.setText(originalText);
+                    clickedButton.setDisable(false);
+                });
+            }
+        }).start();
     }
 
     private void fetchFreshReservations() {
@@ -107,15 +266,15 @@ public class ReservationController {
                 reservationsContainer.getChildren().add(createReservationRow(r));
             }
         } else {
-            Label emptyLabel = new Label("Geçmiş veya aktif bir rezervasyonunuz bulunmamaktadır.");
-            emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 14px;");
+            Label emptyLabel = new Label("No active or past reservations found.");
+            emptyLabel.setStyle("-fx-text-fill: #A3AED0; -fx-font-weight: bold; -fx-font-size: 14px;");
             reservationsContainer.getChildren().add(emptyLabel);
         }
     }
 
     private String formatReservationText(Reservation res) {
         if (res == null) return "";
-        String facilityName = (res.getFacility() != null) ? res.getFacility().getName() : selectedSport + " Field";
+        String facilityName = (res.getFacility() != null) ? res.getFacility().getName() : "Unknown Facility";
         String status = res.isHasAttended() ? " [Attended]" : " [Active]";
         return res.getDate().toString() + "   |   " + res.getTimeSlot() + "   |   " + facilityName + status;
     }
@@ -123,11 +282,11 @@ public class ReservationController {
     private HBox createReservationRow(Reservation res) {
         HBox row = new HBox();
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;");
-        row.setPadding(new Insets(10, 20, 10, 10));
+        row.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #E2E8F0; -fx-border-radius: 12px; -fx-background-radius: 12px;");
+        row.setPadding(new Insets(10, 20, 10, 20));
 
         Label infoLabel = new Label(formatReservationText(res));
-        infoLabel.setStyle("-fx-text-fill: #2b3674; -fx-font-weight: bold; -fx-font-size: 14px;");
+        infoLabel.setStyle("-fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-font-size: 14px;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -163,6 +322,7 @@ public class ReservationController {
                     isProcessing = false;
                     
                     if (status == DbStatus.SUCCESS) { 
+                        refreshTimeSlots(); // İptal edildiğinde o saati tekrar yeşil yapmak için yeniler
                         fetchFreshReservations(); 
                         showAlert(Alert.AlertType.INFORMATION, "Success", "Reservation has been cancelled successfully.");
                     } else {
@@ -177,40 +337,6 @@ public class ReservationController {
                     clickedBtn.setText(originalText);
                     clickedBtn.setDisable(false);
                 });
-            }
-        }).start();
-    }
-
-    private void attemptReservation(String timeSlot, Button clickedButton) {
-        if (clickedButton.getStyleClass().contains("btn-danger")) {
-            showAlert(Alert.AlertType.ERROR, "Dolu", "Bu saat dilimi (" + timeSlot + ") şu anda dolu.");
-            return;
-        }
-
-        if (isProcessing) return;
-        isProcessing = true;
-        
-        new Thread(() -> {
-            try {
-                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-                SportType sportEnum = SportType.valueOf(selectedSport.toUpperCase());
-                
-                Facility targetFacility = new Facility(selectedSport.toUpperCase() + "_FIELD_1", selectedSport + " Field", "Main Campus", sportEnum, 14);
-                
-                Reservation newRes = resManager.makeReservation(currentUser, targetFacility, LocalDate.now(), timeSlot);
-
-                Platform.runLater(() -> {
-                    isProcessing = false;
-                    
-                    if (newRes != null) { 
-                        fetchFreshReservations();
-                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", selectedSport + " için " + timeSlot + " rezervasyonunuz oluşturuldu.");
-                    } else {
-                        showAlert(Alert.AlertType.ERROR, "İşlem Başarısız", "Rezervasyon oluşturulamadı. (Tesis dolu olabilir, ceza puanınız olabilir veya tarih sınırını aşmış olabilirsiniz.)");
-                    }
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> isProcessing = false);
             }
         }).start();
     }

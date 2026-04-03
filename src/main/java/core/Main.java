@@ -1,13 +1,13 @@
 package core;
 
+import java.io.IOException;
+
 import database.Database;
 import database.DbStatus;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import javafx.scene.input.KeyCombination;
-import java.io.IOException;
 
 
 public class Main extends Application {
