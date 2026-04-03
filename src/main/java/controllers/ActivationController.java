@@ -1,7 +1,5 @@
 package controllers;
 
-import java.io.IOException;
-
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -10,9 +8,6 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
@@ -165,7 +160,6 @@ public class ActivationController {
 
     @FXML
     public void goBack(MouseEvent event) {
-        System.out.println("Redirecting to ResetPassword Screen");
         try {
             // Geri butonu context'e göre doğru yere dönmeli
             String viewPath = (currentContext == ActivationContext.PASSWORD_RESET) 
@@ -176,9 +170,7 @@ public class ActivationController {
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
-
         } catch (IOException e) {
-            System.err.println("ResetPasswordView yüklenirken hata oluştu!");
             e.printStackTrace();
         }
     }
