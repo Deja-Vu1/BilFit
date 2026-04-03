@@ -15,7 +15,12 @@ public class ReservationManager {
     public ReservationManager(Database db) {
         this.db = db;
     }
-
+    public java.util.ArrayList<Reservation> getUserReservations(Student student) {
+        if (student == null) return new java.util.ArrayList<>();
+        // Zaten makeReservation içinde kullandığı db metodunu dışarı açıyoruz
+        Database db = Database.getInstance();
+        return db.getReservationsByEmail(student.getBilkentEmail());
+    }
     public Reservation makeReservation(Student student, Facility facility, LocalDate date, String timeSlot) {
         if (student == null || facility == null || date == null || timeSlot == null || timeSlot.trim().isEmpty()) {
             return null;

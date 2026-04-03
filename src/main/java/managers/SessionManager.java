@@ -1,14 +1,19 @@
 package managers;
 
 import models.Reservation;
+import models.Student;
 import models.User;
+import java.util.ArrayList;
+
+import database.Database;
 
 public class SessionManager {
 
     private static final SessionManager instance = new SessionManager();
     
     private User currentUser;
-    private Reservation currentReservation;
+    // TEK OBJE YERİNE ARRAYLIST OLDU
+    private ArrayList<Reservation> currentReservations = new ArrayList<>();
 
     private boolean isDuelloRequested = false;
     private boolean isJoinedWithCode = false;
@@ -29,12 +34,17 @@ public class SessionManager {
         return currentUser;
     }
 
-    public Reservation getCurrentReservation() {
-        return currentReservation;
+    // YENİ ARRAYLIST GETTER / SETTER
+    public ArrayList<Reservation> getCurrentReservations() {
+        return currentReservations;
     }
 
-    public void setCurrentReservation(Reservation reservation) {
-        this.currentReservation = reservation;
+    public void setCurrentReservations(ArrayList<Reservation> reservations) {
+        this.currentReservations = reservations != null ? reservations : new ArrayList<>();
+    }
+    
+    public void addReservation(Reservation res) {
+        if (res != null) this.currentReservations.add(res);
     }
 
     public boolean isDuelloRequested() {
@@ -71,10 +81,11 @@ public class SessionManager {
 
     public void logout() {
         this.currentUser = null;
-        this.currentReservation = null;
+        this.currentReservations.clear(); // Liste temizlendi
         this.isDuelloRequested = false;
         this.isJoinedWithCode = false;
         this.isTournamentApplied = false;
         this.isTournamentJoinedWithCode = false;
     }
+    
 }

@@ -10,7 +10,7 @@
       <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
    </padding>
 
-   <VBox styleClass="content-card">
+   <VBox styleClass="content-card" prefHeight="400.0">
       <HBox alignment="CENTER_LEFT">
          <Label text="Your Reservations" styleClass="content-title"/>
          <Region HBox.hgrow="ALWAYS"/>
@@ -22,23 +22,19 @@
          </VBox.margin>
       </Separator>
       
-      <HBox alignment="CENTER_LEFT" style="-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;">
-         <padding>
-            <Insets bottom="10.0" left="20.0" right="10.0" top="10.0" />
-         </padding>
-         <Label fx:id="activeReservationLabel" text="Loading..." textFill="#2b3674">
-            <font>
-               <Font name="System Bold" size="14.0" />
-            </font>
-         </Label>
-         <Region HBox.hgrow="ALWAYS" />
-         <Button fx:id="cancelButton" prefHeight="35.0" prefWidth="100.0" styleClass="btn-danger" text="Cancel" onAction="#handleCancelReservation"/>
-      </HBox>
+      <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" 
+                  prefHeight="300.0" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED">
+          <VBox fx:id="reservationsContainer" spacing="15.0">
+              <padding>
+                  <Insets right="10.0" />
+              </padding>
+          </VBox>
+      </ScrollPane>
    </VBox>
 
    <VBox styleClass="content-card" VBox.vgrow="ALWAYS">
       <HBox alignment="CENTER_LEFT">
-         <Label text="Reservations" styleClass="content-title"/>
+         <Label text="Make a New Reservation" styleClass="content-title"/>
          <Region HBox.hgrow="ALWAYS"/>
          <Label text="🛎️" style="-fx-font-size: 24;"/>
       </HBox>
