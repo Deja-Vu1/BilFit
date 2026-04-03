@@ -46,6 +46,7 @@ public class Student extends User {
         this.friends = new ArrayList<>();
         this.friendRequests = new ArrayList<>();
     }
+    
 
     // EKLENEN KISIM: Nickname için Getter ve Setter metotları
     public String getNickname() { return nickname; }

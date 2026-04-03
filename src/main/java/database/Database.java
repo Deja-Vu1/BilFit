@@ -1815,4 +1815,63 @@ public class Database {
 
         return reservationsList;
     }
+
+    /**
+     * Fetches the accepted friends of a student based on their email
+     * and populates the 'friends' list inside the provided Student object.
+     * @param currentStudent The Student object to be populated with friends
+     * @return The updated Student object containing their friends list
+     */
+    public Student fillFriendsByEmail(Student currentStudent) {
+        
+        if (currentStudent == null) {
+            return null;
+        }
+
+        String email = currentStudent.getBilkentEmail();
+        java.util.List<models.Student> friendsList = new java.util.ArrayList<>();
+
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM friendships f " +
+                     "INNER JOIN users me ON (me.id = f.user_id_1 OR me.id = f.user_id_2) " +
+                     "INNER JOIN users friend ON (friend.id = f.user_id_1 OR friend.id = f.user_id_2) " +
+                     "INNER JOIN students s ON friend.id = s.user_id " +
+                     "WHERE me.bilkent_email = ? " +
+                     "  AND friend.id != me.id " +
+                     "  AND f.status = 'Accepted'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, email);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student friend = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    
+                    friend.setFullName(rs.getString("full_name"));
+                    friend.setBilkentEmail(rs.getString("bilkent_email"));
+                    friend.setStudentId(rs.getString("uni_id"));
+                    
+                    friend.setEloPoint(rs.getInt("elo_point"));
+                    friend.setPenaltyPoints(rs.getInt("penalty_points"));
+                    friend.setReliabilityScore(rs.getDouble("reliability_score"));
+                    friend.setMatchesPlayed(rs.getInt("matches_played"));
+                    friend.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    friend.setMatchesWon(matchesWon);
+
+                    friendsList.add(friend);
+                }
+            }
+            
+            currentStudent.setFriends(friendsList);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return currentStudent;
+    }
 }
