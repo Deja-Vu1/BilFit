@@ -1151,17 +1151,18 @@ public class Database {
      * Checks if a facility is available for a specific date and time slot.
      * A facility is considered available if it exists, is not under maintenance, 
      * and the number of active (non-cancelled) reservations is strictly less than its capacity.
-     * * @param facilityName The name of the facility
+     * @param facilityName The name of the facility
      * @param date The date of the reservation
      * @param timeSlot The specific time slot (e.g., "14:00-15:30")
      * @return true if available, false if full, under maintenance, or not found.
      */
     public boolean checkFacilityAvailability(String facilityName, java.time.LocalDate date, String timeSlot) {
         
+        // CAST işlemine artık gerek yok, doğrudan = ? ile sorguluyoruz
         String sql = "SELECT f.capacity, f.is_under_maintenance, " +
                      "(SELECT COUNT(*) FROM reservations r " +
                      " WHERE r.facility_id = f.facility_id " +
-                     "   AND CAST(r.reservation_date AS DATE) = ? " +
+                     "   AND r.reservation_date = ? " +
                      "   AND r.time_slot = ? " +
                      "   AND r.is_cancelled = FALSE) AS active_reservations " +
                      "FROM facilities f " +
@@ -1193,4 +1194,56 @@ public class Database {
 
         return false;
     }
-}
+
+    /**
+     * Creates a new reservation for a student at a specific facility.
+     * First checks if the facility is available (capacity and maintenance check).
+     * If available, inserts the record and defaults the reservation type to 'Standard'.
+     * * @param studentEmail The Bilkent email of the student making the reservation
+     * @param facilityName The name of the facility
+     * @param date The date of the reservation
+     * @param timeSlot The specific time slot (e.g., "14:00-15:30")
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, UNAVAILABLE, or errors.
+     */
+    public DbStatus insertReservation(String studentEmail, String facilityName, java.time.LocalDate date, String timeSlot) {
+
+        if (!checkFacilityAvailability(facilityName, date, timeSlot)) {
+            return DbStatus.UNAVAILABLE; 
+        }
+
+        String insertSql = "INSERT INTO reservations " +
+                           "(reservation_id, facility_id, reserved_by, reservation_date, time_slot, is_cancelled, has_attended, type) " +
+                           "SELECT ?, f.facility_id, u.id, ?, ?, FALSE, FALSE, 'Standard' " +
+                           "FROM facilities f, users u " +
+                           "WHERE f.name = ? AND u.bilkent_email = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(insertSql)) {
+            
+            java.util.UUID newReservationId = java.util.UUID.randomUUID();
+            
+            stmt.setObject(1, newReservationId);
+            
+            stmt.setDate(2, java.sql.Date.valueOf(date)); 
+            
+            stmt.setString(3, timeSlot);
+            stmt.setString(4, facilityName);
+            stmt.setString(5, studentEmail);
+
+            int insertedRows = stmt.executeUpdate();
+
+            if (insertedRows == 0) {
+                return DbStatus.DATA_NOT_FOUND;
+            }
+
+            return DbStatus.SUCCESS; 
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }}

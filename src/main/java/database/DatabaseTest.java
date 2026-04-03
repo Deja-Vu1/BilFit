@@ -19,14 +19,14 @@ public class DatabaseTest {
             System.err.println("- Database connection FAILED! Please check the database server and settings.");
         }
         long start = System.currentTimeMillis(); 
-        String wrongFacilityName = "Main Sports Hall - Court A";
-        String TIME_SLOT = "14:00-15:30";
+        String FacilityName = "Main Sports Hall - Court A";
+        String TIME_SLOT = "15:30-17:00";
         LocalDate testDate = LocalDate.now();
-        boolean isAvailable = myDB.checkFacilityAvailability(wrongFacilityName, testDate, TIME_SLOT);
+        boolean isAvailable = myDB.checkFacilityAvailability(FacilityName, testDate, TIME_SLOT);
         if (isAvailable) {
-            System.out.println("+ Facility '" + wrongFacilityName + "' is available on " + testDate + " at " + TIME_SLOT);
+            System.out.println("+ Facility '" + FacilityName + "' is available on " + testDate + " at " + TIME_SLOT);
         } else {
-            System.out.println("- Facility '" + wrongFacilityName + "' is NOT available on " + testDate + " at " + TIME_SLOT);
+            System.out.println("- Facility '" + FacilityName + "' is NOT available on " + testDate + " at " + TIME_SLOT);
         }
         long finish = System.currentTimeMillis();
 
