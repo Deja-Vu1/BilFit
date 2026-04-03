@@ -44,6 +44,15 @@ public class SessionManager {
     public boolean isDuelloRequested() {
         return isDuelloRequested;
     }
+    private boolean isJoinedWithCode = false;
+
+    public boolean isJoinedWithCode() {
+        return isJoinedWithCode;
+    }
+
+    public void setJoinedWithCode(boolean joined) {
+        this.isJoinedWithCode = joined;
+    }
 
     public void setDuelloRequested(boolean requested) {
         this.isDuelloRequested = requested;
@@ -54,5 +63,6 @@ public class SessionManager {
         this.currentUser = null;
         this.currentReservation = null;
         this.isDuelloRequested = false; // Çıkış yapınca buton hafızası da sıfırlanır
+        this.isJoinedWithCode = false;
     }
 }
