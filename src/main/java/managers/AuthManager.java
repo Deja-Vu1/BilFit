@@ -32,7 +32,8 @@ public class AuthManager {
         
         DbStatus status = db.loginStudent(email, password);
         if (status == DbStatus.SUCCESS) {
-            Student student = new Student("", email, "", "", "");
+            // HATA BURADAYDI ÇÖZÜLDÜ: Student constructor'ı artık 3 parametre alıyor (fullName, email, studentId)
+            Student student = new Student("", email, "");
             DbStatus dataStatus = db.fillStudentDataByEmail(student, email);
             if (dataStatus == DbStatus.SUCCESS) {
                 SessionManager.getInstance().setCurrentUser(student);
@@ -46,7 +47,9 @@ public class AuthManager {
         
         DbStatus status = db.loginAdmin(email, password);
         if (status == DbStatus.SUCCESS) {
-            Admin admin = new Admin("", email, "", "", "");
+            // HATA BURADAYDI ÇÖZÜLDÜ: Admin constructor'ı da büyük ihtimalle güncellendi.
+            // Eğer Admin class'ında da hata verirse 3 parametreye düşürdüm.
+            Admin admin = new Admin("", email, "");
             DbStatus dataStatus = db.fillAdminDataByEmail(admin, email);
             if (dataStatus == DbStatus.SUCCESS) {
                 SessionManager.getInstance().setCurrentUser(admin);
