@@ -90,13 +90,12 @@ public class AdminRegisterController {
 
      // Başarılı kayıttan sonra Login sayfasına yönlendiren yardımcı metod
     private void goToAdminLogin(ActionEvent event) {
-        try {
+         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminLoginView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            Scene scene = new Scene(root, 1200, 800);
-            stage.setScene(scene);
-            stage.show();
+            stage.getScene().setRoot(root);
+
         } catch (IOException e) {
             e.printStackTrace();
         }

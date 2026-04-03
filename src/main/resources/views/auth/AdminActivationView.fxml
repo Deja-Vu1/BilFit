@@ -41,6 +41,9 @@
                         <Cursor fx:constant="TEXT" />
                      </cursor></TextField>
                     </children>
+               <cursor>
+                  <Cursor fx:constant="TEXT" />
+               </cursor>
                 </VBox>
                 
                 <VBox alignment="CENTER_LEFT" spacing="5.0" />

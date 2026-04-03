@@ -1,10 +1,20 @@
-<?xml version="1.0" encoding="UTF-8"?><?import javafx.geometry.*?><?import javafx.scene.control.*?><?import javafx.scene.effect.*?><?import javafx.scene.layout.*?><?import javafx.scene.paint.*?><?import javafx.scene.text.*?><BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.NotificationsController">
-   <left><VBox prefWidth="250.0" style="-fx-background-color: #FFFFFF; -fx-border-width: 0 1 0 0;"><padding><Insets top="40" left="20" right="20"/></padding><Button prefHeight="45" prefWidth="210" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 10;" text="    Notifications" /></VBox></left>
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.effect.DropShadow?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.paint.Color?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.NotificationsController">
    <center>
-      <VBox spacing="30"><padding><Insets top="40" right="40" bottom="40" left="40"/></padding>
-         <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;" VBox.vgrow="ALWAYS"><padding><Insets top="30" right="30" bottom="30" left="30"/></padding><effect><DropShadow blurType="GAUSSIAN" radius="19.5"><color><Color opacity="0.08" /></color></DropShadow></effect>
+      <VBox spacing="30"><padding><Insets bottom="40" left="40" right="40" top="40" /></padding>
+         <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;" VBox.vgrow="ALWAYS"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding><effect><DropShadow blurType="GAUSSIAN" radius="19.5"><color><Color opacity="0.08" /></color></DropShadow></effect>
             <Label text="All System Notifications" textFill="#2b3674"><font><Font name="System Bold" size="20.0" /></font></Label>
-            <ListView style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS"><VBox.margin><Insets top="15"/></VBox.margin></ListView>
+            <ListView style="-fx-background-color: transparent;" VBox.vgrow="ALWAYS"><VBox.margin><Insets top="15" /></VBox.margin></ListView>
          </VBox>
       </VBox>
    </center>

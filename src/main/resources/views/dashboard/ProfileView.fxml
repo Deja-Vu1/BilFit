@@ -8,7 +8,7 @@
 <?import javafx.scene.shape.Circle?>
 <?import javafx.scene.text.Font?>
 
-<VBox spacing="30.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ProfileController">
+<VBox spacing="30.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.ProfileController">
    <padding>
       <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
    </padding>
@@ -32,7 +32,7 @@
             <HBox spacing="10">
                <Label fx:id="studentIdLabel" styleClass="modern-input" text="ID: Loading..." />
                <Label styleClass="modern-input" text="CS" />
-               <Label styleClass="btn-success" text="🏋 GYM RAT" />
+               <Label prefHeight="39.0" prefWidth="101.0" styleClass="btn-success" text="🏋 GYM RAT" />
                <Label styleClass="tag-orange" text="🔥 100 Day Streak" />
             </HBox>
          </VBox>
