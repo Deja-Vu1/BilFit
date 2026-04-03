@@ -1872,4 +1872,122 @@ public class Database {
 
         return currentStudent;
     }
+
+/**
+     * Fetches the incoming friend requests (Pending) for a student based on their email
+     * and populates the 'incomingFriendRequests' list inside the provided Student object.
+     * @param currentStudent The Student object to be populated
+     * @return The updated Student object
+     */
+    public Student fillIncomingFriendRequests(Student currentStudent) {
+        
+        if (currentStudent == null) {
+            return null;
+        }
+
+        String email = currentStudent.getBilkentEmail();
+        java.util.List<models.Student> incomingList = new java.util.ArrayList<>();
+
+        // Sen (me) receiver'sın. Bize isteği atan requester'ın verileri lazım.
+        String sql = "SELECT req.full_name, req.bilkent_email, req.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM friendships f " +
+                     "INNER JOIN users me ON me.id = f.receiver_id " +
+                     "INNER JOIN users req ON req.id = f.requester_id " +
+                     "INNER JOIN students s ON req.id = s.user_id " +
+                     "WHERE me.bilkent_email = ? " +
+                     "  AND f.status = 'Pending'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, email);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student requester = new Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    requester.setEloPoint(rs.getInt("elo_point"));
+                    requester.setPenaltyPoints(rs.getInt("penalty_points"));
+                    requester.setReliabilityScore(rs.getDouble("reliability_score"));
+                    requester.setMatchesPlayed(rs.getInt("matches_played"));
+                    requester.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    requester.setMatchesWon(matchesWon);
+
+                    incomingList.add(requester);
+                }
+            }
+            
+            currentStudent.setIncomingFriendRequests(incomingList);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return currentStudent;
+    }
+
+    /**
+     * Fetches the outgoing friend requests (Pending) sent by a student based on their email
+     * and populates the 'outgoingFriendRequests' list inside the provided Student object.
+     * @param currentStudent The Student object to be populated
+     * @return The updated Student object
+     */
+    public Student fillOutgoingFriendRequests(Student currentStudent) {
+        
+        if (currentStudent == null) {
+            return null;
+        }
+
+        String email = currentStudent.getBilkentEmail();
+        java.util.List<models.Student> outgoingList = new java.util.ArrayList<>();
+
+        // Sen (me) requester'sın. Bize isteği attığın receiver'ın verileri lazım.
+        String sql = "SELECT rec.full_name, rec.bilkent_email, rec.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM friendships f " +
+                     "INNER JOIN users me ON me.id = f.requester_id " +
+                     "INNER JOIN users rec ON rec.id = f.receiver_id " +
+                     "INNER JOIN students s ON rec.id = s.user_id " +
+                     "WHERE me.bilkent_email = ? " +
+                     "  AND f.status = 'Pending'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, email);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student receiver = new Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    receiver.setEloPoint(rs.getInt("elo_point"));
+                    receiver.setPenaltyPoints(rs.getInt("penalty_points"));
+                    receiver.setReliabilityScore(rs.getDouble("reliability_score"));
+                    receiver.setMatchesPlayed(rs.getInt("matches_played"));
+                    receiver.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    receiver.setMatchesWon(matchesWon);
+
+                    outgoingList.add(receiver);
+                }
+            }
+            
+            currentStudent.setOutgoingFriendRequests(outgoingList);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return currentStudent;
+    }
 }
