@@ -1598,4 +1598,87 @@ public class Database {
             }
         }
     }
+
+    /**
+     * Verifies the access code for a private duello and adds the student as a participant if correct.
+     * Checks if the code matches, if the duello is not full, and then updates participants.
+     * @param reservationId The UUID of the duello/reservation
+     * @param studentEmail The Bilkent email of the student trying to join
+     * @param code The 6-digit access code entered by the user
+     * @return DbStatus indicating SUCCESS, INVALID_CODE, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus verifyAndJoinDuello(String reservationId, String studentEmail, String code) {
+        
+        String checkCodeSql = "SELECT access_code, empty_slots FROM duellos WHERE reservation_id = ? AND is_matched = FALSE";
+        
+        String updateDuelloSql = "UPDATE duellos SET empty_slots = empty_slots - 1, " +
+                                 "is_matched = CASE WHEN empty_slots - 1 = 0 THEN TRUE ELSE FALSE END " +
+                                 "WHERE reservation_id = ? AND access_code = ? AND empty_slots > 0";
+
+        String insertAttendeeSql = "INSERT INTO reservation_attendees (reservation_id, student_id) " +
+                                   "SELECT ?, id FROM users WHERE bilkent_email = ?";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // İşlemi atomik hale getir
+
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkCodeSql)) {
+                checkStmt.setObject(1, resId);
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        String dbCode = rs.getString("access_code");
+                        int slots = rs.getInt("empty_slots");
+
+                        if (!dbCode.equals(code)) {
+                            conn.rollback();
+                            return DbStatus.INVALID_CODE; // Şifre yanlış
+                        }
+                        if (slots <= 0) {
+                            conn.rollback();
+                            return DbStatus.UNAVAILABLE; // Yer kalmamış
+                        }
+                    } else {
+                        conn.rollback();
+                        return DbStatus.DATA_NOT_FOUND; // Düello bulunamadı veya çoktan eşleşti
+                    }
+                }
+            }
+
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateDuelloSql)) {
+                updateStmt.setObject(1, resId);
+                updateStmt.setString(2, code);
+                if (updateStmt.executeUpdate() == 0) {
+                    conn.rollback();
+                    return DbStatus.QUERY_ERROR;
+                }
+            }
+
+            try (PreparedStatement attendeeStmt = conn.prepareStatement(insertAttendeeSql)) {
+                attendeeStmt.setObject(1, resId);
+                attendeeStmt.setString(2, studentEmail);
+                attendeeStmt.executeUpdate();
+            }
+
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            return (e.getSQLState() != null && e.getSQLState().startsWith("08")) 
+                    ? DbStatus.CONNECTION_ERROR : DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
+            }
+        }
+    }
+
 }
