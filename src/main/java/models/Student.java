@@ -101,4 +101,25 @@ public class Student extends User {
     
     public List<Student> getOutgoingFriendRequests() { return outgoingFriendRequests; }
     public void setOutgoingFriendRequests(List<Student> outgoingFriendRequests) { this.outgoingFriendRequests = outgoingFriendRequests; }
+
+    public String toString() {
+        return "Student{" +
+                "fullName='" + getFullName() + '\'' +
+                ", bilkentEmail='" + getBilkentEmail() + '\'' +
+                ", studentId='" + studentId + '\'' +
+                ", nickname='" + nickname + '\'' +
+                ", eloPoint=" + eloPoint +
+                ", penaltyPoints=" + penaltyPoints +
+                ", reliabilityScore=" + reliabilityScore +
+                ", ratingCount=" + ratingCount +
+                ", interests=" + interests +
+                ", badges=" + badges +
+                ", matchesPlayed=" + matchesPlayed +
+                ", matchesWon=" + matchesWon +
+                ", winRate=" + winRate +
+                ", isPublicProfile=" + isPublicProfile +
+                ", isEloMatchingEnabled=" + isEloMatchingEnabled +
+                ", isBanned=" + isBanned +
+                '}';
+    }
 }

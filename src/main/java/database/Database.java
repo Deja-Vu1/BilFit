@@ -1990,4 +1990,69 @@ public class Database {
 
         return currentStudent;
     }
+
+    /**
+     * Finds up to 5 potential opponents for a solo match based on sport type and ELO proximity.
+     * Searches for other students who have 'is_elo_matching_enabled' set to TRUE,
+     * share the same sport interest, and are ordered by how close their ELO is to the current student.
+     * @param currentStudent The student looking for a match
+     * @param sportName The name of the sport (e.g., "TENNIS" or "TABLE TENNIS")
+     * @return An ArrayList containing a maximum of 5 matching Student objects (closest ELO first).
+     */
+    public ArrayList<Student> findOpponentForMatch(Student currentStudent, String sportName) {
+        
+        ArrayList<Student> potentialOpponents = new ArrayList<>();
+
+        if (currentStudent == null || sportName == null || sportName.trim().isEmpty()) {
+            return potentialOpponents; 
+        }
+
+        String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
+
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM users u " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "INNER JOIN student_interests si ON u.id = si.student_id " +
+                     "INNER JOIN sports sp ON si.sport_id = sp.id " +
+                     "WHERE u.bilkent_email != ? " + // Kendisi hariç
+                     "  AND u.role = 'student' " +
+                     "  AND s.is_elo_matching_enabled = TRUE " + // Eşleştirmeyi açanlar
+                     "  AND UPPER(REPLACE(sp.name, ' ', '_')) = ? " + // Aynı sporu arayanlar
+                     "ORDER BY ABS(s.elo_point - ?) ASC " + // Puanı en yakın olanlar ilk gelsin
+                     "LIMIT 5"; // MAKSİMUM 5 KİŞİ GETİR
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, currentStudent.getBilkentEmail());
+            stmt.setString(2, formattedSportName);
+            stmt.setInt(3, currentStudent.getEloPoint()); // Senin ELO'nu referans alıyoruz
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    Student opponent = new Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    opponent.setEloPoint(rs.getInt("elo_point"));
+                    opponent.setPenaltyPoints(rs.getInt("penalty_points"));
+                    opponent.setReliabilityScore(rs.getDouble("reliability_score"));
+                    opponent.setMatchesPlayed(rs.getInt("matches_played"));
+                    opponent.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    opponent.setMatchesWon(matchesWon);
+
+                    potentialOpponents.add(opponent);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return potentialOpponents;
+    }
 }
