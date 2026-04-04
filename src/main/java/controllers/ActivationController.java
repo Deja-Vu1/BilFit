@@ -32,7 +32,6 @@ public class ActivationController {
 
     @FXML private TextField activationCodeField;
     
-    // Diğer sayfalardan bu ekrana geçerken atanacak statik değişkenler
     public static String emailToActivate = "";
     public static ActivationContext currentContext = ActivationContext.REGISTRATION;
 
@@ -44,9 +43,10 @@ public class ActivationController {
     public void submitCode(ActionEvent event) {
         if (isProcessing) return;
 
-        String code = activationCodeField.getText();
+        // Kodu boşluklardan temizleyelim
+        String code = activationCodeField.getText() != null ? activationCodeField.getText().trim() : "";
         
-        if (code == null || code.trim().isEmpty()) {
+        if (code.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen 6 haneli aktivasyon kodunu giriniz.");
             return;
         }
@@ -65,28 +65,31 @@ public class ActivationController {
         clickedButton.setText("Doğrulanıyor...");
 
         new Thread(() -> {
-            DbStatus status;
-            
-            // CONTEXT'e göre farklı manager/database metodu çağırıyoruz
-            if (currentContext == ActivationContext.REGISTRATION) {
-                status = authManager.activateAccount(emailToActivate, code);
-            } else {
-                // Şifre sıfırlama: Sadece kodu doğrula
-                status = db.verifyActivationCode(emailToActivate, code);
+            DbStatus status = DbStatus.QUERY_ERROR;
+            try {
+                // AUTH MANAGER BAĞLANTISI BURADA
+                if (currentContext == ActivationContext.REGISTRATION) {
+                    status = authManager.activateAccount(emailToActivate, code);
+                } else {
+                    status = db.verifyActivationCode(emailToActivate, code);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+
+            final DbStatus finalStatus = status;
 
             Platform.runLater(() -> {
                 isProcessing = false;
                 clickedButton.setDisable(false);
                 clickedButton.setText(originalText);
 
-                switch (status) {
+                switch (finalStatus) {
                     case SUCCESS:
                         if (currentContext == ActivationContext.REGISTRATION) {
                             showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Hesabınız aktive edildi! Giriş yapabilirsiniz.");
                             goToLogin(clickedButton);
                         } else {
-                            // Şifre sıfırlama için kod doğruysa yeni şifre penceresi aç
                             askForNewPassword(clickedButton);
                         }
                         break;
@@ -98,6 +101,9 @@ public class ActivationController {
                     case CONNECTION_ERROR:
                         showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
                         break;
+                    case QUERY_ERROR:
+                        showAlert(Alert.AlertType.ERROR, "Hata", "Girdiğiniz kod formatı geçersiz.");
+                        break;
                     default:
                         showAlert(Alert.AlertType.ERROR, "Hata", "İşlem sırasında bilinmeyen bir sorun oluştu.");
                         break;
@@ -106,7 +112,6 @@ public class ActivationController {
         }).start();
     }
 
-    // Şifre sıfırlama için yeni şifre isteyen dinamik JavaFX Popup'ı
     private void askForNewPassword(Node sourceNode) {
         Dialog<String> dialog = new Dialog<>();
         dialog.setTitle("Yeni Şifre Belirleme");
@@ -116,12 +121,13 @@ public class ActivationController {
         dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
 
         PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Yeni Şifre");
+        passwordField.setPromptText("En az 6 haneli yeni şifre");
         passwordField.setStyle("-fx-pref-width: 250px; -fx-pref-height: 35px;");
         dialog.getDialogPane().setContent(passwordField);
 
-        // Sahne css'ini dialog'a da ekleyelim (Uygulamanın temasını bozmamak için)
-        dialog.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
+        try {
+            dialog.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
+        } catch (Exception e) {}
 
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == saveButtonType) {
@@ -133,16 +139,23 @@ public class ActivationController {
         Optional<String> result = dialog.showAndWait();
 
         result.ifPresent(newPassword -> {
-            if (newPassword.trim().isEmpty()) {
+            // Şifre uzunluğu kuralı kontrolü
+            if (newPassword == null || newPassword.trim().isEmpty()) {
                 showAlert(Alert.AlertType.WARNING, "Uyarı", "Şifre boş bırakılamaz!");
+            } else if (newPassword.length() < 6) {
+                showAlert(Alert.AlertType.WARNING, "Zayıf Şifre", "Şifreniz en az 6 karakter olmalıdır.");
             } else {
-                DbStatus updateStatus = db.updatePassword(emailToActivate, newPassword);
-                if (updateStatus == DbStatus.SUCCESS) {
-                    showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Şifreniz başarıyla güncellendi! Giriş yapabilirsiniz.");
-                    goToLogin(sourceNode);
-                } else {
-                    showAlert(Alert.AlertType.ERROR, "Hata", "Şifre güncellenirken bir sorun oluştu.");
-                }
+                new Thread(() -> {
+                    DbStatus updateStatus = db.updatePassword(emailToActivate, newPassword);
+                    Platform.runLater(() -> {
+                        if (updateStatus == DbStatus.SUCCESS) {
+                            showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Şifreniz başarıyla güncellendi! Giriş yapabilirsiniz.");
+                            goToLogin(sourceNode);
+                        } else {
+                            showAlert(Alert.AlertType.ERROR, "Hata", "Şifre güncellenirken bir sorun oluştu.");
+                        }
+                    });
+                }).start();
             }
         });
     }
@@ -161,7 +174,6 @@ public class ActivationController {
     @FXML
     public void goBack(MouseEvent event) {
         try {
-            // Geri butonu context'e göre doğru yere dönmeli
             String viewPath = (currentContext == ActivationContext.PASSWORD_RESET) 
                               ? "/views/auth/ResetPasswordView.fxml" 
                               : "/views/auth/StudentRegisterView.fxml";
@@ -175,13 +187,17 @@ public class ActivationController {
         }
     }
 
+    // TASARIM KORUNDU
     private void showAlert(Alert.AlertType alertType, String title, String message) {
         Alert alert = new Alert(alertType);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
-        alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
+        
+        try {
+            alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
+        } catch (Exception e) {}
         
         if (activationCodeField != null && activationCodeField.getScene() != null) {
             Stage stage = (Stage) activationCodeField.getScene().getWindow();

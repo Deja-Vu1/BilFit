@@ -14,9 +14,11 @@ import managers.DuelloManager;
 import managers.SessionManager;
 import models.Duello;
 import models.Facility;
+import models.Reservation;
 import models.Student;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class ELOController {
@@ -38,16 +40,25 @@ public class ELOController {
     private void loadEloAndDuelloData() {
         new Thread(() -> {
             try {
-                // UI'dan (Geçici Hafızadan) güncel rezervasyonu çek
-                String reservationData = SessionManager.getInstance().getCurrentReservation();
+                // HATA DÜZELTİLDİ: Artık SessionManager'dan Liste(ArrayList) çekiyoruz
+                ArrayList<Reservation> myReservations = SessionManager.getInstance().getCurrentReservations();
+                String reservationData = "";
                 
+                // Eğer listede rezervasyon varsa, en son yapılanı alıp String formatına çeviriyoruz
+                if (myReservations != null && !myReservations.isEmpty()) {
+                    Reservation latestRes = myReservations.get(myReservations.size() - 1);
+                    String facilityName = latestRes.getFacility() != null ? latestRes.getFacility().getName() : "Saha";
+                    reservationData = "Main Campus   |   " + facilityName + "   |   " + latestRes.getDate() + "   |   " + latestRes.getTimeSlot();
+                }
+                
+                final String finalReservationData = reservationData;
                 String duelloMainData = "Main Campus   |   Basketball Field YSS   |   Max 10 player   |   20.02.2026";
                 String duelloSubData = "B**** j**** S**** |   Empty Slots: 4   |   Pro";
 
                 Platform.runLater(() -> {
                     if (activeReservationLabel != null) {
-                        if (reservationData != null && !reservationData.isEmpty()) {
-                            activeReservationLabel.setText(reservationData);
+                        if (!finalReservationData.isEmpty()) {
+                            activeReservationLabel.setText(finalReservationData);
                         } else {
                             activeReservationLabel.setText("Aktif bir rezervasyonunuz bulunmamaktadır.");
                         }
@@ -71,7 +82,9 @@ public class ELOController {
     public void handleCreateDuello(ActionEvent event) {
         if (isProcessing) return;
         
-        if (SessionManager.getInstance().getCurrentReservation() == null) {
+        // HATA DÜZELTİLDİ: Liste boş mu diye kontrol ediliyor
+        ArrayList<Reservation> myReservations = SessionManager.getInstance().getCurrentReservations();
+        if (myReservations == null || myReservations.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "İşlem Reddedildi", "Düello oluşturabilmek için öncelikle bir saha rezervasyonu yapmalısınız.");
             return;
         }
@@ -216,11 +229,9 @@ public class ELOController {
                 final DbStatus finalStatus = status;
                 
                 Platform.runLater(() -> {
-                    // SADECE VERİTABANI "SUCCESS" DÖNERSE KABUL ET
                     if (finalStatus == DbStatus.SUCCESS) { 
                          showAlert(Alert.AlertType.INFORMATION, "İşlem Başarılı", "Koda sahip düelloya başarıyla katıldınız!");
                     } else {
-                         // Eğer veritabanı kodları henüz tamamlanmadıysa hep bu hata mesajını göreceksin, bu çok normal.
                          showAlert(Alert.AlertType.ERROR, "Hata", "Geçersiz kod, dolu kontenjan veya veritabanı onayı alınamadı.");
                     }
                 });
