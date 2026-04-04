@@ -6,6 +6,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.paint.Color?>
@@ -18,11 +19,14 @@
          <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding><effect><DropShadow blurType="GAUSSIAN" radius="19.5"><color><Color opacity="0.08" /></color></DropShadow></effect>
             <Label text="Interests" textFill="#2b3674"><font><Font name="System Bold" size="20.0" /></font></Label>
             <Label text="User's interests are listed below which is editable by user again." textFill="#a3aed0"><VBox.margin><Insets bottom="15" top="5" /></VBox.margin></Label>
-            <HBox spacing="10"><VBox.margin><Insets bottom="15" /></VBox.margin>
-               <Button fx:id="removeBasketballBtn" onAction="#handleRemoveInterest" prefHeight="35" prefWidth="120" style="-fx-background-color: #F4F7FE; -fx-text-fill: #2b3674; -fx-border-radius: 10; -fx-background-radius: 10;" text="🗑 Basketball" />
-               <Button fx:id="removeFootballBtn" onAction="#handleRemoveInterest" prefHeight="35" prefWidth="120" style="-fx-background-color: #F4F7FE; -fx-text-fill: #2b3674; -fx-border-radius: 10; -fx-background-radius: 10;" text="🗑 Football" />
+            
+            <FlowPane hgap="10" vgap="10" alignment="CENTER_LEFT">
+               <VBox.margin><Insets bottom="15" /></VBox.margin>
+               
+               <FlowPane fx:id="interestsContainer" hgap="10" vgap="10" alignment="CENTER_LEFT" />
+               
                <Button fx:id="addInterestBtn" onAction="#handleAddInterest" prefHeight="35" prefWidth="120" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-border-radius: 10; -fx-background-radius: 10; -fx-font-weight: bold;" text="+ Add Interest" />
-            </HBox>
+            </FlowPane>
          </VBox>
          
          <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;" VBox.vgrow="ALWAYS"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding><effect><DropShadow blurType="GAUSSIAN" radius="19.5"><color><Color opacity="0.08" /></color></DropShadow></effect>

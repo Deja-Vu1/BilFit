@@ -1,5 +1,8 @@
 package managers;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import database.Database;
 import database.DbStatus;
 import models.SportType;
@@ -33,6 +36,13 @@ public class StudentManager {
             student.getInterests().remove(sport);
         }
         return status;
+    }
+
+    public List<SportType> getUserInterests(Student student) {
+        if (student == null) {
+            return new ArrayList<>();
+        }
+        return student.getInterests();
     }
 
     public DbStatus toggleEloMatching(Student student, boolean enabled) {

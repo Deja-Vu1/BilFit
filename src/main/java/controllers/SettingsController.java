@@ -1,5 +1,7 @@
 package controllers;
 
+import java.util.List;
+
 import database.Database;
 import database.DbStatus;
 import javafx.application.Platform;
@@ -12,12 +14,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-
 import managers.AuthManager;
 import managers.SessionManager;
 import managers.StudentManager;
@@ -30,6 +32,7 @@ public class SettingsController {
     @FXML private Button eloToggle;
     @FXML private TextField passwordField;
     @FXML private Button changePasswordBtn;
+    @FXML private FlowPane interestsContainer; // FXML'den bu Container'ı alıyoruz
 
     private StudentManager studentManager = new StudentManager(Database.getInstance());
     private AuthManager authManager = new AuthManager(Database.getInstance());
@@ -44,7 +47,57 @@ public class SettingsController {
         if (currentUser != null) {
             updateToggleVisual(publicAccountToggle, currentUser.isPublicProfile());
             updateToggleVisual(eloToggle, currentUser.isEloMatchingEnabled());
+            
+            // Kullanıcının ilgi alanlarını DB'den çekip ekrana diziyoruz
+            loadUserInterests(currentUser);
         }
+    }
+
+    private void loadUserInterests(Student currentUser) {
+        new Thread(() -> {
+            // DB'den taze interest listesini çekiyoruz
+            List<SportType> dbInterests = studentManager.getUserInterests(currentUser);
+            
+            Platform.runLater(() -> {
+                if (interestsContainer != null) {
+                    interestsContainer.getChildren().clear(); // Eski/sabit verileri temizle
+                    
+                    if (dbInterests != null && !dbInterests.isEmpty()) {
+                        for (SportType sport : dbInterests) {
+                            interestsContainer.getChildren().add(createInterestButton(sport));
+                        }
+                    } else {
+                        Label emptyLabel = new Label("Kayıtlı ilgi alanınız bulunmamaktadır.");
+                        emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
+                        interestsContainer.getChildren().add(emptyLabel);
+                    }
+                }
+            });
+        }).start();
+    }
+
+    private Button createInterestButton(SportType sportType) {
+        String displayName = sportType.name().replace("_", " ");
+        
+        Button btn = new Button("🗑 " + displayName);
+        
+        // Varsayılan (Default) Tasarım ve Tıklama İmleci (hand cursor) eklendi
+        String defaultStyle = "-fx-background-color: #F4F7FE; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-cursor: hand;";
+        
+        // Üzerine Gelince (Hover) Görünecek Kırmızı Tasarım
+        String hoverStyle = "-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-border-color: #D93025; -fx-border-radius: 10; -fx-cursor: hand;";
+
+        btn.setStyle(defaultStyle);
+        btn.setPrefHeight(40.0);
+
+        // Mouse butonun üstüne geldiğinde stili kırmızı yap
+        btn.setOnMouseEntered(e -> btn.setStyle(hoverStyle));
+        
+        // Mouse butonun üzerinden çekildiğinde stili eski haline döndür
+        btn.setOnMouseExited(e -> btn.setStyle(defaultStyle));
+        
+        btn.setOnAction(e -> handleRemoveInterest(sportType, btn));
+        return btn;
     }
 
     private void updateToggleVisual(Button btn, boolean isOn) {
@@ -58,19 +111,16 @@ public class SettingsController {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         if (currentUser == null) return;
 
-        // 1. OPTIMISTIC UPDATE: Butonu ve hafızayı beklemeden ANINDA değiştir (Şimşek hızı!)
         boolean targetStatus = !currentUser.isPublicProfile(); 
         currentUser.setPublicProfile(targetStatus);
         updateToggleVisual(publicAccountToggle, targetStatus);
 
-        // 2. ARKA PLAN: Veritabanına bildir
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
                 status = studentManager.updateProfileVisibility(currentUser, targetStatus);
             } catch (Exception e) {}
 
-            // 3. ROLLBACK: Eğer DB hata verirse, çaktırmadan eski haline çevir
             if (status != DbStatus.SUCCESS) {
                 Platform.runLater(() -> {
                     currentUser.setPublicProfile(!targetStatus);
@@ -86,19 +136,16 @@ public class SettingsController {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         if (currentUser == null) return;
 
-        // 1. OPTIMISTIC UPDATE: ANINDA DEĞİŞTİR
         boolean targetStatus = !currentUser.isEloMatchingEnabled();
         currentUser.setEloMatchingEnabled(targetStatus);
         updateToggleVisual(eloToggle, targetStatus);
 
-        // 2. ARKA PLAN İŞLEMİ
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
                 status = studentManager.toggleEloMatching(currentUser, targetStatus);
             } catch (Exception e) {}
 
-            // 3. ROLLBACK (Hata olursa geri al)
             if (status != DbStatus.SUCCESS) {
                 Platform.runLater(() -> {
                     currentUser.setEloMatchingEnabled(!targetStatus);
@@ -146,27 +193,25 @@ public class SettingsController {
         }).start();
     }
 
-    @FXML
-    public void handleRemoveInterest(ActionEvent event) {
-        Button clickedBtn = (Button) event.getSource();
+    // Artık ActionEvent beklemiyor, doğrudan obje ve buton alıyor (Çünkü dinamik yaratıldı)
+    private void handleRemoveInterest(SportType sportType, Button clickedBtn) {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-        
-        String sportName = clickedBtn.getText().replace("🗑 ", "").trim().toUpperCase();
         
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
-                SportType type = SportType.valueOf(sportName);
-                status = studentManager.removeInterest(currentUser, type);
+                status = studentManager.removeInterest(currentUser, sportType);
             } catch (Exception e) {}
             
             final DbStatus finalStatus = status;
             
             Platform.runLater(() -> {
                 if (finalStatus == DbStatus.SUCCESS) {
-                    clickedBtn.setVisible(false); 
-                    clickedBtn.setManaged(false);
-                    showCustomAlert("Silindi", sportName + " ilgi alanlarınızdan çıkarıldı.");
+                    // DB'den silindiyse, ekrandaki butonu tamamen yok et
+                    if (interestsContainer != null) {
+                        interestsContainer.getChildren().remove(clickedBtn);
+                    }
+                    showCustomAlert("Silindi", sportType.name().replace("_", " ") + " ilgi alanlarınızdan çıkarıldı.");
                 } else {
                     showCustomAlert("Hata", "Veritabanından silinemedi.");
                 }
@@ -179,18 +224,16 @@ public class SettingsController {
          showCustomAlert("Eklenecek", "Add Interest için pop-up tasarımı gelince Manager'a bağlanacak.");
     }
 
-    // %100 BİLFİT TASARIMINA UYGUN, ÖZEL YAPIM POP-UP
     private void showCustomAlert(String title, String message) {
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
-        dialogStage.initStyle(StageStyle.TRANSPARENT); // Arka planı şeffaf yapıp kendi köşelerimizi çizeceğiz
+        dialogStage.initStyle(StageStyle.TRANSPARENT);
 
         VBox layout = new VBox(20);
         layout.setAlignment(Pos.CENTER);
         layout.setPadding(new Insets(30));
         layout.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #E2E8F0; -fx-border-width: 1;");
         
-        // Tasarımındaki o güzel gölgelendirme efekti
         DropShadow shadow = new DropShadow();
         shadow.setRadius(20);
         shadow.setColor(Color.rgb(0, 0, 0, 0.15));
@@ -211,10 +254,9 @@ public class SettingsController {
         layout.getChildren().addAll(titleLabel, msgLabel, okBtn);
 
         Scene scene = new Scene(layout);
-        scene.setFill(Color.TRANSPARENT); // Siyah kare çıkmasını engeller
+        scene.setFill(Color.TRANSPARENT); 
         dialogStage.setScene(scene);
         
-        // Ortada açılması için
         dialogStage.centerOnScreen();
         dialogStage.showAndWait();
     }
