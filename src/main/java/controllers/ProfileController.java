@@ -21,15 +21,14 @@ public class ProfileController {
    }
 
    private void loadProfileData() {
-       // Arayüz donmasın diye arka planda çalıştırıyoruz
        new Thread(() -> {
            try {
                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
 
                Platform.runLater(() -> {
                    if (currentUser != null) {
-                       // DÜZELTME BURADA: Artık sadece gerçek ismi değil, yanına havalı bir şekilde güncel Nickname'i de ekliyoruz!
-                       if (nameLabel != null) nameLabel.setText(currentUser.getFullName() + " (@" + currentUser.getNickname() + ")");
+                       // Sadece Full Name gösteriliyor, sen değiştirdikçe bu da anında değişecek!
+                       if (nameLabel != null) nameLabel.setText(currentUser.getFullName());
                        if (studentIdLabel != null) studentIdLabel.setText("ID: " + currentUser.getStudentId());
                        
                        if (eloPointLabel != null) eloPointLabel.setText(String.valueOf(currentUser.getEloPoint()));

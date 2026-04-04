@@ -54,10 +54,10 @@ public class SettingsController {
             updateToggleVisual(publicAccountToggle, currentUser.isPublicProfile());
             updateToggleVisual(eloToggle, currentUser.isEloMatchingEnabled());
             
-            // DÜZELTME BURADA: setText yerine setPromptText kullanıyoruz ve kutuyu temizliyoruz.
             if (nicknameField != null) {
-                nicknameField.clear(); // İçini temizle
-                nicknameField.setPromptText("Mevcut: " + currentUser.getNickname()); // Silik ipucu olarak göster
+                nicknameField.clear(); 
+                // getNickname yerine getFullName kullanıyoruz
+                nicknameField.setPromptText("Mevcut: " + currentUser.getFullName()); 
             }
             
             loadUserInterests(currentUser);
@@ -204,7 +204,7 @@ public class SettingsController {
     }
 
     // --- YENİ EKLENEN: NICKNAME DEĞİŞTİRME FONKSİYONU ---
-  @FXML
+ @FXML
     public void handleChangeNickname(ActionEvent event) {
         if (isProcessing) return;
         
@@ -212,7 +212,7 @@ public class SettingsController {
         String newNick = nicknameField.getText();
 
         if (newNick == null || newNick.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "Nickname alanı boş bırakılamaz.");
+            showCustomAlert("Uyarı", "İsim alanı boş bırakılamaz.");
             return;
         }
 
@@ -222,6 +222,7 @@ public class SettingsController {
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
+                // Veritabanına yolluyoruz
                 status = studentManager.updateNickname(currentUser, newNick);
             } catch (Exception e) {}
 
@@ -232,13 +233,13 @@ public class SettingsController {
                 changeNicknameBtn.setText("Change");
                 
                 if (finalStatus == DbStatus.SUCCESS) {
-                    // DÜZELTME BURADA: Başarılı olunca hem kutuyu temizle, hem de silik ipucunu(prompt) yenile!
+                    // Başarılıysa kutuyu temizle ve silik ipucunu yeni isminle (getFullName) güncelle!
                     nicknameField.clear(); 
-                    nicknameField.setPromptText("Mevcut: " + currentUser.getNickname());
+                    nicknameField.setPromptText("Mevcut: " + currentUser.getFullName());
                     
-                    showCustomAlert("Başarılı", "Kullanıcı adınız başarıyla değiştirildi!");
+                    showCustomAlert("Başarılı", "İsminiz başarıyla değiştirildi!");
                 } else {
-                    showCustomAlert("Hata", "Kullanıcı adı güncellenirken sunucu kaynaklı bir sorun oluştu.");
+                    showCustomAlert("Hata", "İsim güncellenirken sunucu kaynaklı bir sorun oluştu.");
                 }
             });
         }).start();
