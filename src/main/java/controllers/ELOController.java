@@ -12,6 +12,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.layout.HBox;
@@ -30,6 +31,8 @@ public class ELOController {
     @FXML private VBox reservationsContainer;
     @FXML private VBox myDuellosContainer;
     @FXML private VBox duellosContainer;
+    @FXML private VBox incomingRequestsContainer;
+    @FXML private ComboBox<String> sportTypeComboBox;
 
     private DuelloManager duelloManager = new DuelloManager(Database.getInstance());
     private ReservationManager resManager = new ReservationManager(Database.getInstance());
@@ -37,6 +40,10 @@ public class ELOController {
 
     @FXML
     public void initialize() {
+        if (sportTypeComboBox != null) {
+            sportTypeComboBox.getItems().addAll("BASKETBALL", "TENNIS", "TABLE TENNIS", "SQUASH", "VOLLEYBALL", "FOOTBALL");
+            sportTypeComboBox.getSelectionModel().selectFirst();
+        }
         loadEloAndDuelloData();
     }
 
@@ -44,11 +51,13 @@ public class ELOController {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         if (currentUser == null) return;
 
+        String selectedSport = sportTypeComboBox != null && sportTypeComboBox.getValue() != null ? sportTypeComboBox.getValue() : "BASKETBALL";
+
         new Thread(() -> {
             try {
                 ArrayList<Reservation> dbReservations = resManager.getUserReservations(currentUser);
                 ArrayList<Duello> myDuellos = duelloManager.getUserDuellos(currentUser);
-                ArrayList<Duello> suitableDuellos = duelloManager.findOpponentForMatch(currentUser, "BASKETBALL");
+                ArrayList<Duello> suitableDuellos = duelloManager.findOpponentForMatch(currentUser, selectedSport);
 
                 ArrayList<Reservation> validReservations = new ArrayList<>();
                 if (dbReservations != null) {
@@ -63,6 +72,20 @@ public class ELOController {
                             }
                             if (!isAlreadyDuello) {
                                 validReservations.add(res);
+                            }
+                        }
+                    }
+                }
+
+                ArrayList<HBox> requestRows = new ArrayList<>();
+                if (myDuellos != null) {
+                    for (Duello d : myDuellos) {
+                        if (!d.isMatched() && !d.isCancelled()) {
+                            ArrayList<Student> requesters = duelloManager.getPendingRequestsForDuello(d.getReservationId());
+                            if (requesters != null) {
+                                for (Student requester : requesters) {
+                                    requestRows.add(createIncomingRequestRow(d, requester));
+                                }
                             }
                         }
                     }
@@ -95,6 +118,17 @@ public class ELOController {
                         }
                     }
 
+                    if (incomingRequestsContainer != null) {
+                        incomingRequestsContainer.getChildren().clear();
+                        if (!requestRows.isEmpty()) {
+                            incomingRequestsContainer.getChildren().addAll(requestRows);
+                        } else {
+                            Label emptyReqLabel = new Label("Şu an bekleyen gelen isteğiniz yok.");
+                            emptyReqLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
+                            incomingRequestsContainer.getChildren().add(emptyReqLabel);
+                        }
+                    }
+
                     if (duellosContainer != null) {
                         duellosContainer.getChildren().clear();
                         if (suitableDuellos != null && !suitableDuellos.isEmpty()) {
@@ -112,6 +146,14 @@ public class ELOController {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    @FXML
+    public void handleFindDuello(ActionEvent event) {
+        String selectedSport = sportTypeComboBox.getValue();
+        if (selectedSport != null) {
+            loadEloAndDuelloData();
+        }
     }
 
     private HBox createReservationRow(Reservation res) {
@@ -181,6 +223,43 @@ public class ELOController {
         return row;
     }
 
+    private HBox createIncomingRequestRow(Duello duello, Student requester) {
+        HBox row = new HBox();
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setStyle("-fx-background-color: #FEF4F4; -fx-border-color: #FFB547; -fx-border-radius: 15; -fx-background-radius: 15;");
+        row.setPadding(new Insets(10, 20, 10, 20));
+
+        VBox infoBox = new VBox(5);
+        String mainText = "Requester: " + requester.getFullName() + " (ELO: " + requester.getEloPoint() + ")";
+        String facilityName = duello.getFacility() != null ? duello.getFacility().getName() : "Saha";
+        String subText = "Match: " + facilityName + " | " + duello.getDate() + " " + duello.getTimeSlot();
+
+        Label mainLabel = new Label(mainText);
+        mainLabel.setStyle("-fx-text-fill: #2b3674; -fx-font-weight: bold; -fx-font-size: 13px;");
+        Label subLabel = new Label(subText);
+        subLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-size: 12px;");
+        infoBox.getChildren().addAll(mainLabel, subLabel);
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button acceptBtn = new Button("Accept");
+        acceptBtn.setPrefHeight(30.0);
+        acceptBtn.setPrefWidth(80.0);
+        acceptBtn.setStyle("-fx-background-color: #05CD99; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;");
+        acceptBtn.setOnAction(e -> handleAcceptRequest(duello, requester, acceptBtn));
+
+        Button rejectBtn = new Button("Reject");
+        rejectBtn.setPrefHeight(30.0);
+        rejectBtn.setPrefWidth(80.0);
+        rejectBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;");
+        rejectBtn.setOnAction(e -> handleRejectRequest(duello, requester, rejectBtn));
+
+        HBox btnBox = new HBox(10, acceptBtn, rejectBtn);
+        row.getChildren().addAll(infoBox, spacer, btnBox);
+        return row;
+    }
+
     private HBox createAvailableDuelloRow(Duello duello) {
         HBox row = new HBox();
         row.setAlignment(Pos.CENTER_LEFT);
@@ -217,6 +296,51 @@ public class ELOController {
 
         row.getChildren().addAll(infoBox, spacer, iconLabel, requestBtn);
         return row;
+    }
+
+    private void handleAcceptRequest(Duello duello, Student requester, Button btn) {
+        if (isProcessing) return;
+        isProcessing = true;
+        String originalText = btn.getText();
+        btn.setDisable(true);
+        btn.setText("...");
+
+        new Thread(() -> {
+            DbStatus status = duelloManager.acceptDuelloRequest(duello, requester);
+            Platform.runLater(() -> {
+                isProcessing = false;
+                if (status == DbStatus.SUCCESS) {
+                    showAlert(Alert.AlertType.INFORMATION, "Başarılı", "İsteği kabul ettiniz. Eşleşme tamamlandı!");
+                    loadEloAndDuelloData();
+                } else {
+                    btn.setDisable(false);
+                    btn.setText(originalText);
+                    showAlert(Alert.AlertType.ERROR, "Hata", "İstek kabul edilemedi.");
+                }
+            });
+        }).start();
+    }
+
+    private void handleRejectRequest(Duello duello, Student requester, Button btn) {
+        if (isProcessing) return;
+        isProcessing = true;
+        String originalText = btn.getText();
+        btn.setDisable(true);
+        btn.setText("...");
+
+        new Thread(() -> {
+            DbStatus status = duelloManager.declineDuelloRequest(duello, requester);
+            Platform.runLater(() -> {
+                isProcessing = false;
+                if (status == DbStatus.SUCCESS) {
+                    loadEloAndDuelloData();
+                } else {
+                    btn.setDisable(false);
+                    btn.setText(originalText);
+                    showAlert(Alert.AlertType.ERROR, "Hata", "İstek reddedilemedi.");
+                }
+            });
+        }).start();
     }
 
     private void handleCreateSpecificDuello(Reservation targetRes, Button clickedButton) {
@@ -356,10 +480,8 @@ public class ELOController {
             }
             new Thread(() -> {
                 Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-                
                 DbStatus status = DbStatus.QUERY_ERROR;
                 
-                // ARTIK SAHTE OBJE YOK! Sadece DB'nin anlayacağı saf string kodu yolluyoruz.
                 try { 
                     status = duelloManager.joinDuelloWithCode(code.trim(), currentUser); 
                 } catch (Exception ex) { ex.printStackTrace(); }
