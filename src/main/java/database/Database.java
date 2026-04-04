@@ -2458,6 +2458,56 @@ public class Database {
     }
 
     /**
+     * Retrieves all notifications for a specific student.
+     * This includes specific notifications targeted at the student AND system-wide broadcasts (target_user_id IS NULL).
+     * @param currentStudent The student requesting their notifications
+     * @return An ArrayList of Notification objects ordered by date (newest first).
+     */
+    public ArrayList<models.Notification> getNotificationsByStudent(models.Student currentStudent) {
+        
+        ArrayList<models.Notification> notifications = new ArrayList<>();
+
+        if (currentStudent == null || currentStudent.getBilkentEmail() == null) {
+            return notifications;
+        }
+
+        String sql = "SELECT notification_id, title, message, created_date " +
+                     "FROM notifications " +
+                     "WHERE target_user_id IS NULL " +
+                     "   OR target_user_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "ORDER BY created_date DESC";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, currentStudent.getBilkentEmail());
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    String notificationId = rs.getString("notification_id");
+                    String title = rs.getString("title");
+                    String message = rs.getString("message");
+                    
+                    java.sql.Timestamp dbTimestamp = rs.getTimestamp("created_date");
+
+                    models.Notification notification = new models.Notification(notificationId, title, message);
+                    
+                    if (dbTimestamp != null) {
+                        notification.setDate(dbTimestamp.toLocalDateTime());
+                    }
+                    
+                    notifications.add(notification);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return notifications;
+    }
+
+    /**
      * Retrieves all Duellos associated with a specific student.
      * This includes duellos created by the student AND duellos the student has joined as an attendee.
      * @param currentStudent The student whose duellos are being fetched
