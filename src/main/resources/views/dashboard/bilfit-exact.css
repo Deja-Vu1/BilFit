@@ -253,3 +253,38 @@
 .dialog-pane .button:hover {
     -fx-background-color: #2B3674;
 }
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.scroll-bar:vertical, .scroll-bar:horizontal {
+    -fx-background-color: #F4F7FE; 
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: #D1D9E6;
+    -fx-background-insets: 2;
+    -fx-background-radius: 10;
+}
+
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: #A3AED0;
+}
+
+.scroll-bar .thumb:pressed {
+    -fx-background-color: #4318FF;
+}
+
+.scroll-bar .increment-button, .scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar .increment-arrow, .scroll-bar .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
+}

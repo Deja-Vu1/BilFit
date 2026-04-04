@@ -29,8 +29,8 @@ public class StudentRegisterController {
     @FXML private PasswordField passwordField;
 
     private boolean isProcessing = false;
-    /*private Database db = Database.getInstance();
-    private AuthManager authManager = new AuthManager(db);*/
+    private Database db = Database.getInstance();
+    private AuthManager authManager = new AuthManager(db);
 
     @FXML
     public void attemptRegister(ActionEvent event) {

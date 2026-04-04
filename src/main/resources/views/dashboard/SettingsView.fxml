@@ -4,6 +4,7 @@
 <?import javafx.scene.Cursor?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.layout.BorderPane?>
@@ -12,74 +13,130 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
-<?import org.controlsfx.control.ToggleSwitch?>
 
-<BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.SettingsController">
-   <center>
-      <VBox spacing="30"><padding><Insets bottom="40" left="40" right="40" top="40" /></padding>
-         
-         <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding><effect><DropShadow blurType="GAUSSIAN" radius="19.5"><color><Color opacity="0.08" /></color></DropShadow></effect>
-            <HBox prefHeight="46.0" prefWidth="1059.0">
-               <children>
-                  <Label text="Interests   " textFill="#2b3674">
+
+<ScrollPane fitToWidth="true" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.SettingsController">
+   <content>
+      <BorderPane prefHeight="800.0" prefWidth="1200.0" style="-fx-background-color: #F4F7FE;">
+         <center>
+            <VBox spacing="30">
+               <padding>
+                  <Insets bottom="40" left="40" right="40" top="40" />
+               </padding>
+               
+               <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;">
+                  <padding>
+                     <Insets bottom="30" left="30" right="30" top="30" />
+                  </padding>
+                  <effect>
+                     <DropShadow blurType="GAUSSIAN" radius="19.5">
+                        <color>
+                           <Color opacity="0.08" />
+                        </color>
+                     </DropShadow>
+                  </effect>
+                  <HBox prefHeight="46.0" prefWidth="1059.0">
+                     <children>
+                        <Label text="Interests   " textFill="#2b3674">
+                           <font>
+                              <Font name="System Bold" size="20.0" />
+                           </font>
+                        </Label>
+                        <Button prefHeight="35" prefWidth="120" styleClass="btn-success" stylesheets="@bilfit-exact.css" text="+ Add Interest">
+                           <cursor>
+                              <Cursor fx:constant="HAND" />
+                           </cursor>
+                        </Button>
+                     </children>
+                  </HBox>
+                  <Label text="User's interests are listed below which is editable by user again." textFill="#a3aed0">
+                     <VBox.margin>
+                        <Insets bottom="15" top="5" />
+                     </VBox.margin>
+                  </Label>
+                  
+                  <FlowPane alignment="CENTER_LEFT" hgap="10" vgap="10">
+                     <VBox.margin>
+                        <Insets bottom="15" />
+                     </VBox.margin>
+                     
+                     <FlowPane fx:id="interestsContainer" alignment="CENTER_LEFT" hgap="10" vgap="10" />
+                     
+                     <Button fx:id="addInterestBtn" onAction="#handleAddInterest" prefHeight="35" prefWidth="120" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-border-radius: 10; -fx-background-radius: 10; -fx-font-weight: bold;" text="+ Add Interest" />
+                  </FlowPane>
+               </VBox>
+               
+               <VBox spacing="5.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;" VBox.vgrow="ALWAYS">
+                  <padding>
+                     <Insets bottom="30" left="30" right="30" top="30" />
+                  </padding>
+                  <effect>
+                     <DropShadow blurType="GAUSSIAN" radius="19.5">
+                        <color>
+                           <Color opacity="0.08" />
+                        </color>
+                     </DropShadow>
+                  </effect>
+                  <Label text="User Settings" textFill="#2b3674">
                      <font>
                         <Font name="System Bold" size="20.0" />
                      </font>
                   </Label>
-                  <Button prefHeight="35" prefWidth="120" styleClass="btn-success" stylesheets="@bilfit-exact.css" text="+ Add Interest">
-                     <cursor>
-                        <Cursor fx:constant="HAND" />
-                     </cursor></Button>
-               </children>
-            </HBox>
-            <Label text="User's interests are listed below which is editable by user again." textFill="#a3aed0"><VBox.margin><Insets bottom="15" top="5" /></VBox.margin></Label>
-            
-            <FlowPane hgap="10" vgap="10" alignment="CENTER_LEFT">
-               <VBox.margin><Insets bottom="15" /></VBox.margin>
+                  <HBox alignment="CENTER_LEFT" spacing="20">
+                     <VBox.margin>
+                        <Insets bottom="15" top="15" />
+                     </VBox.margin>
+                     
+                     <Label text="Public account" textFill="#2b3674">
+                        <font>
+                           <Font name="System Bold" size="14.0" />
+                        </font>
+                     </Label>
+                     <Button fx:id="publicAccountToggle" onAction="#handleTogglePublic" prefHeight="25" prefWidth="50" style="-fx-background-color: #1E8E3E; -fx-background-radius: 20;" /> 
+                     
+                     <Label text="ELO" textFill="#2b3674">
+                        <font>
+                           <Font name="System Bold" size="14.0" />
+                        </font>
+                        <HBox.margin>
+                           <Insets left="30" />
+                        </HBox.margin>
+                     </Label>
+                     <Button fx:id="eloToggle" onAction="#handleToggleElo" prefHeight="25" prefWidth="50" style="-fx-background-color: #E2E8F0; -fx-background-radius: 20;" /> 
+                  </HBox>
+                  
+                  <HBox alignment="CENTER_LEFT" spacing="10">
+                     <Label prefHeight="20.0" prefWidth="70.0" text="Password" textFill="#2b3674">
+                        <font>
+                           <Font name="System Bold" size="14.0" />
+                        </font>
+                     </Label>
+                     <TextField fx:id="passwordField" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10;" />
+                     <Button fx:id="changePasswordBtn" onAction="#handleChangePassword" prefHeight="35" prefWidth="100" style="-fx-background-color: #E9EDF7; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10;" text="Change" />
+                  </HBox>
+                  <HBox alignment="CENTER_LEFT" spacing="10">
+                     <children>
+                        <Label prefHeight="20.0" prefWidth="70.0" text="Nickname" textFill="#2b3674">
+                           <font>
+                              <Font name="System Bold" size="14.0" />
+                           </font>
+                        </Label>
+                        <TextField style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10;">
+                           <cursor>
+                              <Cursor fx:constant="TEXT" />
+                           </cursor>
+                        </TextField>
+                        <Button prefHeight="35" prefWidth="100" styleClass="btn-secondary" stylesheets="@bilfit-exact.css" text="Change">
+                           <cursor>
+                              <Cursor fx:constant="HAND" />
+                           </cursor>
+                        </Button>
+                     </children>
+                  </HBox>
+               </VBox>
                
-               <FlowPane fx:id="interestsContainer" hgap="10" vgap="10" alignment="CENTER_LEFT" />
-               
-               <Button fx:id="addInterestBtn" onAction="#handleAddInterest" prefHeight="35" prefWidth="120" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-border-radius: 10; -fx-background-radius: 10; -fx-font-weight: bold;" text="+ Add Interest" />
-            </FlowPane>
-         </VBox>
-         
-         <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;" VBox.vgrow="ALWAYS"><padding><Insets bottom="30" left="30" right="30" top="30" /></padding><effect><DropShadow blurType="GAUSSIAN" radius="19.5"><color><Color opacity="0.08" /></color></DropShadow></effect>
-            <Label text="User Settings" textFill="#2b3674"><font><Font name="System Bold" size="20.0" /></font></Label>
-            <HBox alignment="CENTER_LEFT" spacing="20"><VBox.margin><Insets bottom="15" top="15" /></VBox.margin>
-               
-               <Label text="Public account" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
-               <Button fx:id="publicAccountToggle" onAction="#handleTogglePublic" prefHeight="25" prefWidth="50" style="-fx-background-color: #1E8E3E; -fx-background-radius: 20;" /> 
-               
-               <Label text="ELO" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font><HBox.margin><Insets left="30" /></HBox.margin></Label>
-               <Button fx:id="eloToggle" onAction="#handleToggleElo" prefHeight="25" prefWidth="50" style="-fx-background-color: #E2E8F0; -fx-background-radius: 20;" /> 
-            </HBox>
-            
-            <HBox alignment="CENTER_LEFT" spacing="10">
-               <Label text="Password" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
-               <TextField fx:id="passwordField" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10;" />
-               <Button fx:id="changePasswordBtn" onAction="#handleChangePassword" prefHeight="35" prefWidth="100" style="-fx-background-color: #E9EDF7; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10;" text="Change" />
-            </HBox>
-            <HBox alignment="CENTER_LEFT" spacing="10">
-               <children>
-                  <Label prefHeight="20.0" prefWidth="70.0" text="Nickname" textFill="#2b3674">
-                     <font>
-                        <Font name="System Bold" size="14.0" />
-                     </font>
-                  </Label>
-                  <TextField style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10;">
-                     <cursor>
-                        <Cursor fx:constant="TEXT" />
-                     </cursor>
-                  </TextField>
-                  <Button prefHeight="35" prefWidth="100" styleClass="btn-secondary" stylesheets="@bilfit-exact.css" text="Change">
-                     <cursor>
-                        <Cursor fx:constant="HAND" />
-                     </cursor>
-                  </Button>
-               </children>
-            </HBox>
-         </VBox>
-         
-      </VBox>
-   </center>
-</BorderPane>
+            </VBox>
+         </center>
+      </BorderPane>
+   </content>
+</ScrollPane>
