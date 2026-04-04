@@ -74,34 +74,14 @@
          </VBox.margin>
       </Separator>
       
-      <VBox spacing="15.0">
-         <padding>
-            <Insets left="10.0" />
-         </padding>
-         <HBox alignment="CENTER_LEFT" spacing="15.0">
-            <Circle fill="#FF9120" radius="6.0" />
-            <Label fx:id="notification1Label" text="Loading..." textFill="#2b3674">
-               <font>
-                  <Font name="System Bold" size="13.0" />
-               </font>
-            </Label>
-         </HBox>
-         <HBox alignment="CENTER_LEFT" spacing="15.0">
-            <Circle fill="#FF9120" radius="6.0" />
-            <Label fx:id="notification2Label" text="Loading..." textFill="#2b3674">
-               <font>
-                  <Font name="System Bold" size="13.0" />
-               </font>
-            </Label>
-         </HBox>
-         <HBox alignment="CENTER_LEFT" spacing="15.0">
-            <Circle fill="#FF9120" radius="6.0" />
-            <Label fx:id="notification3Label" text="Loading..." textFill="#2b3674">
-               <font>
-                  <Font name="System Bold" size="13.0" />
-               </font>
-            </Label>
-         </HBox>
-      </VBox>
+      <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent; -fx-control-inner-background: transparent; -fx-background: transparent; -fx-border-color: transparent;">
+          <content>
+              <VBox fx:id="notificationsContainer" spacing="15.0">
+                  <padding>
+                      <Insets top="5.0" right="15.0" bottom="5.0" left="5.0"/>
+                  </padding>
+              </VBox>
+          </content>
+      </ScrollPane>
   </VBox>
 </VBox>
