@@ -2351,4 +2351,59 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Inserts a notification into the database.
+     * If the target is "BROADCAST", target_user_id is set to NULL (visible to everyone).
+     * If a specific target is provided, it looks up the user's UUID by their Bilkent email.
+     * @param target "BROADCAST" for everyone, or the Bilkent email of the specific user
+     * @param title The title of the notification
+     * @param message The content of the notification
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if specific user doesn't exist), or errors.
+     */
+    public DbStatus insertNotification(String targetEmail, String title, String message) {
+        String target = targetEmail;
+        if (target == null || title == null || message == null) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        boolean isBroadcast = target.equalsIgnoreCase("BROADCAST");
+        String sql;
+
+        if (isBroadcast) {
+            sql = "INSERT INTO notifications (target_user_id, title, message) VALUES (NULL, ?, ?)";
+        } else {
+            sql = "INSERT INTO notifications (target_user_id, title, message) " +
+                  "SELECT id, ?, ? FROM users WHERE bilkent_email = ?";
+        }
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            if (isBroadcast) {
+                stmt.setString(1, title);
+                stmt.setString(2, message);
+            } else {
+                stmt.setString(1, title);
+                stmt.setString(2, message);
+                stmt.setString(3, target); // Spesifik kullanıcının emaili
+            }
+
+            int insertedRows = stmt.executeUpdate();
+
+            if (!isBroadcast && insertedRows == 0) {
+                return DbStatus.DATA_NOT_FOUND;
+            }
+
+            return DbStatus.SUCCESS;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
