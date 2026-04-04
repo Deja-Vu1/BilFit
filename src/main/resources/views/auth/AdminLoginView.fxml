@@ -2,7 +2,6 @@
 
 <?import java.net.URL?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.Cursor?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
@@ -36,45 +35,27 @@
                 
                 <VBox alignment="CENTER_LEFT" spacing="5.0">
                     <Label text="Enter your Bilkent e-mail:" />
-                    <TextField fx:id="emailField" prefHeight="35.0" styleClass="input-field">
-                  <cursor>
-                     <Cursor fx:constant="TEXT" />
-                  </cursor></TextField>
+                    <TextField fx:id="emailField" prefHeight="35.0" styleClass="input-field" />
                 </VBox>
                 
                 <VBox alignment="CENTER_LEFT" spacing="5.0">
                     <Label text="Enter your Password:" />
-                    <PasswordField fx:id="passwordField" prefHeight="35.0" styleClass="input-field">
-                  <cursor>
-                     <Cursor fx:constant="TEXT" />
-                  </cursor></PasswordField>
+                    <PasswordField fx:id="passwordField" prefHeight="35.0" styleClass="input-field" />
                 </VBox>
                 
                 <Button maxWidth="Infinity" mnemonicParsing="false" onAction="#attemptAdminLogin" prefHeight="40.0" styleClass="admin-button" text="Log in as an Admin">
                     <VBox.margin>
                         <Insets top="10.0" />
                     </VBox.margin>
-               <cursor>
-                  <Cursor fx:constant="HAND" />
-               </cursor>
                 </Button>
                 
                 <VBox alignment="CENTER" spacing="10.0">
-                    <Label onMouseClicked="#goToAdminRegister" styleClass="link-label" text="Register as an Admin">
-                  <cursor>
-                     <Cursor fx:constant="HAND" />
-                  </cursor></Label>
-               <Label onMouseClicked="#goToAdminResetPassword" styleClass="link-label" text="Forgot Password">
-                  <cursor>
-                     <Cursor fx:constant="HAND" />
-                  </cursor></Label>
+                    <Label onMouseClicked="#goToAdminRegister" styleClass="link-label" text="Register as an Admin" />
+               <Label onMouseClicked="#goToAdminResetPassword" styleClass="link-label" text="Forgot Password" />
                     <Label onMouseClicked="#goBack" styleClass="link-label" text="back">
                         <VBox.margin>
                             <Insets top="5.0" />
                         </VBox.margin>
-                  <cursor>
-                     <Cursor fx:constant="HAND" />
-                  </cursor>
                     </Label>
                 </VBox>
             </children>

@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.lang.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.shape.*?>
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.Cursor?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
@@ -12,7 +16,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
 
-<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminSidebarController">
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminSidebarController">
    <children>
       <VBox prefWidth="280.0" styleClass="sidebar">
          <children>
@@ -55,18 +59,9 @@
                   <Insets left="20.0" right="20.0" />
                </padding>
                <children>
-                  <Button fx:id="btnAccount" alignment="BASELINE_LEFT" onAction="#loadAccount" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Account">
-                     <cursor>
-                        <Cursor fx:constant="HAND" />
-                     </cursor></Button>
-                  <Button fx:id="btnHome" alignment="BASELINE_LEFT" onAction="#loadHome" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn, active" stylesheets="@bilfit-exact.css" text="    Home">
-                     <cursor>
-                        <Cursor fx:constant="HAND" />
-                     </cursor></Button>
-                  <Button fx:id="btnReservation" alignment="BASELINE_LEFT" onAction="#loadReservations" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Reservation">
-                     <cursor>
-                        <Cursor fx:constant="HAND" />
-                     </cursor></Button>
+                  <Button fx:id="btnAccount" alignment="BASELINE_LEFT" onAction="#loadAccount" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Account" />
+                  <Button fx:id="btnHome" alignment="BASELINE_LEFT" onAction="#loadHome" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn, active" stylesheets="@bilfit-exact.css" text="    Home" />
+                  <Button fx:id="btnReservation" alignment="BASELINE_LEFT" onAction="#loadReservations" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Reservation" />
                   <Label prefHeight="45.0" prefWidth="210.0" />
                   <Label prefHeight="45.0" prefWidth="210.0" />
                </children>
@@ -77,14 +72,8 @@
                   <Insets bottom="30.0" left="20.0" right="20.0" />
                </padding>
                <children>
-                  <Button fx:id="btnSettings" alignment="BASELINE_LEFT" onAction="#loadSettings" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Settings" textAlignment="CENTER">
-                     <cursor>
-                        <Cursor fx:constant="HAND" />
-                     </cursor></Button>
-                  <Button alignment="BASELINE_LEFT" onAction="#logout" prefHeight="45.0" prefWidth="210.0" style="-fx-text-fill: #D93025; -fx-background-color: #FCE8E8; -fx-background-radius: 10;" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Logout">
-                     <cursor>
-                        <Cursor fx:constant="HAND" />
-                     </cursor></Button>
+                  <Button fx:id="btnSettings" alignment="BASELINE_LEFT" onAction="#loadSettings" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Settings" textAlignment="CENTER" />
+                  <Button alignment="BASELINE_LEFT" onAction="#logout" prefHeight="45.0" prefWidth="210.0" style="-fx-text-fill: #D93025; -fx-background-color: #FCE8E8; -fx-background-radius: 10;" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Logout" />
                </children>
             </VBox>
          </children>

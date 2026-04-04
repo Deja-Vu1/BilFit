@@ -138,9 +138,11 @@ public class StudentManager {
     public DbStatus updateNickname(Student student, String newNickname) {
         if (student == null || newNickname == null || newNickname.trim().isEmpty()) return DbStatus.QUERY_ERROR;
 
+        // Veritabanındaki full_name'i günceller
         DbStatus status = db.updateUserNickname(student.getBilkentEmail(), newNickname);
         if (status == DbStatus.SUCCESS) {
-            student.setNickname(newNickname);
+            // İŞTE ÇÖZÜM BURADA: Hafızadaki (Session) aktif kullanıcının adını da anında güncelliyoruz!
+            student.setFullName(newNickname);
         }
         return status;
     }
