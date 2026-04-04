@@ -65,6 +65,15 @@ public class DuelloManager {
             return DbStatus.QUERY_ERROR;
         }
 
+        if (!student.isCanAttend() || student.isBanned()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        Student creator = duello.getAttendees().get(0);
+        if (!creator.isCanAttend() || creator.isBanned()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
         DbStatus status = db.updateDuelloParticipant(duello.getReservationId(), student.getBilkentEmail());
         if (status == DbStatus.SUCCESS) {
             duello.getAttendees().add(student);
@@ -105,6 +114,10 @@ public class DuelloManager {
         }
 
         Student creator = duello.getAttendees().get(0);
+        if (!creator.isCanAttend() || creator.isBanned()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
         if (creator.isEloMatchingEnabled() && student.isEloMatchingEnabled()) {
             if (Math.abs(creator.getEloPoint() - student.getEloPoint()) > 400) {
                 return DbStatus.QUERY_ERROR;
@@ -127,6 +140,13 @@ public class DuelloManager {
         if (duello.getAttendees().size() == 2) {
             Student p1 = duello.getAttendees().get(0);
             Student p2 = duello.getAttendees().get(1);
+
+            if (!p1.isCanAttend() || p1.isBanned() || !p2.isCanAttend() || p2.isBanned()) {
+                duello.setEmptySlots(1);
+                duello.getAttendees().remove(p2);
+                return;
+            }
+
             SportType sport = duello.getFacility().getSportType();
             String matchId = UUID.randomUUID().toString();
             
