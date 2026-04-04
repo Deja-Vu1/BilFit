@@ -2717,6 +2717,72 @@ public class Database {
     }
 
     /**
+     * Retrieves a list of students who have 'Pending' requests to join a specific duello.
+     * @param reservationId The UUID of the duello/reservation
+     * @return An ArrayList of Student objects representing the requesters.
+     */
+    public ArrayList<models.Student> getPendingRequestsForDuello(String reservationId) {
+        
+        ArrayList<models.Student> pendingStudents = new ArrayList<>();
+
+        if (reservationId == null || reservationId.trim().isEmpty()) {
+            return pendingStudents;
+        }
+
+        // duello_requests tablosu üzerinden users ve students tablolarını birleştirerek 
+        // istek atan kişinin tüm istatistiklerini çekiyoruz.
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM duello_requests dr " +
+                     "INNER JOIN users u ON dr.requester_id = u.id " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE dr.reservation_id = ? AND dr.status = 'Pending'";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+                
+                stmt.setObject(1, resId);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        
+                        // 1. Temel bilgileri kullanarak Student objesini oluştur
+                        models.Student requester = new models.Student(
+                            rs.getString("full_name"), 
+                            rs.getString("bilkent_email"), 
+                            rs.getString("uni_id")
+                        );
+                        
+                        // 2. Öğrencinin spor/oyun istatistiklerini set et
+                        requester.setEloPoint(rs.getInt("elo_point"));
+                        requester.setPenaltyPoints(rs.getInt("penalty_points"));
+                        requester.setReliabilityScore(rs.getDouble("reliability_score"));
+                        requester.setMatchesPlayed(rs.getInt("matches_played"));
+                        requester.setWinRate(rs.getDouble("win_rate"));
+                        
+                        // Kazanılan maç sayısını (win_rate * matches_played) formülüyle hesapla
+                        int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                        requester.setMatchesWon(matchesWon);
+
+                        // 3. Listeye ekle
+                        pendingStudents.add(requester);
+                    }
+                }
+            }
+
+        } catch (IllegalArgumentException e) {
+            // Geçersiz formattaki UUID'leri yakalar (Sistemin çökmesini engeller)
+            System.err.println("Geçersiz Reservation ID formatı: " + reservationId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return pendingStudents;
+    }
+    
+    /**
      * Fetches admin records from the 'users' and 'admins' tables
      * and updates the provided Admin object with this data.
      * @param admin The existing Admin object to be updated
