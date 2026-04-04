@@ -705,23 +705,49 @@ public class Database {
 
     /**
      * Updates a user's password directly without any prior verification.
+     * Checks if the new password is the same as the current one.
      * @param email User's Bilkent email address
      * @param newPassword The new raw password to be set
-     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, CONNECTION_ERROR, or QUERY_ERROR
+     * @return DbStatus indicating SUCCESS, SAME_PASSWORD, DATA_NOT_FOUND, CONNECTION_ERROR, or QUERY_ERROR
      */
     public DbStatus updatePassword(String email, String newPassword) {
+        
+        // Önce mevcut şifreyi çekmek için SELECT sorgusu
+        String selectSql = "SELECT password_hash FROM users WHERE bilkent_email = ?";
+        // Güncelleme için UPDATE sorgusu
         String updateSql = "UPDATE users SET password_hash = ? WHERE bilkent_email = ?";
 
-        try (PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
-            
+        try {
+            // Yeni şifreyi metodun başında bir kez hashliyoruz
             String newPasswordHash = hashPassword(newPassword);
-            
-            updateStmt.setString(1, newPasswordHash);
-            updateStmt.setString(2, email);
 
-            int updatedRows = updateStmt.executeUpdate();
-            
-            return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            // 1. ADIM: Mevcut şifreyi veritabanından çek ve karşılaştır
+            try (PreparedStatement selectStmt = getConnection().prepareStatement(selectSql)) {
+                selectStmt.setString(1, email);
+                
+                try (ResultSet rs = selectStmt.executeQuery()) {
+                    if (rs.next()) {
+                        String currentHash = rs.getString("password_hash");
+                        
+                        // Yeni şifrenin hash'i veritabanındaki ile eşleşiyorsa güncellemeyi durdur
+                        if (newPasswordHash.equals(currentHash)) {
+                            return DbStatus.SAME_PASSWORD; // DbStatus enum'ına eklemeyi unutma!
+                        }
+                    } else {
+                        // Eğer rs.next() false dönerse böyle bir e-posta veritabanında yoktur
+                        return DbStatus.DATA_NOT_FOUND;
+                    }
+                }
+            }
+
+            // 2. ADIM: Şifreler farklıysa (yukarıdaki if'e girmediyse) güncellemeyi yap
+            try (PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
+                updateStmt.setString(1, newPasswordHash);
+                updateStmt.setString(2, email);
+
+                int updatedRows = updateStmt.executeUpdate();
+                return updatedRows > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -732,7 +758,7 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
+    
     /**
      * Updates the public profile visibility status for a student.
      * Finds the user by email and updates their preference in the students table.
