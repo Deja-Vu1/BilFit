@@ -2137,6 +2137,7 @@ public class Database {
      * Finds up to 5 suitable open Duellos for a specific sport.
      * Searches for active duellos created by other users, ordered by how close 
      * the creator's ELO point is to the current student's ELO.
+     * Also fetches the creator of each duello and adds them to the duello's attendees list.
      * @param currentStudent The student looking for a match
      * @param sportName The name of the sport (e.g., "TENNIS" or "TABLE TENNIS")
      * @return An ArrayList containing a maximum of 5 matching Duello objects.
@@ -2151,10 +2152,13 @@ public class Database {
 
         String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
 
+        // SELECT kısmına kurucunun (creator_u ve creator_s) tüm kişisel ve istatistiksel verileri eklendi
         String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
                      "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
                      "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
-                     "sp.name AS sport_name " +
+                     "sp.name AS sport_name, " +
+                     "creator_u.full_name, creator_u.bilkent_email, creator_u.student_id AS uni_id, " +
+                     "creator_s.elo_point, creator_s.penalty_points, creator_s.reliability_score, creator_s.matches_played, creator_s.win_rate " +
                      "FROM duellos d " +
                      "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
                      "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
@@ -2179,6 +2183,7 @@ public class Database {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     
+                    // 1. Tesis (Facility) Objesini Oluşturma
                     String facilityId = rs.getObject("facility_id").toString();
                     String facilityName = rs.getString("facility_name");
                     String location = rs.getString("campus_location");
@@ -2198,6 +2203,7 @@ public class Database {
                     models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
                     facility.setUnderMaintenance(maintenance);
 
+                    // 2. Duello ve Reservation Özelliklerini Çekme
                     String reservationId = rs.getObject("reservation_id").toString();
                     java.sql.Date sqlDate = rs.getDate("reservation_date");
                     java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
@@ -2210,11 +2216,37 @@ public class Database {
                     boolean cancelled = rs.getBoolean("is_cancelled");
                     boolean attended = rs.getBoolean("has_attended");
 
-                    // 3. Duello objesini oluştur ve listeye ekle
-                    models.Duello duello = new models.Duello(reservationId, facility, resDate, timeSlot, accessCode, reqSkill, slots);
+                    // 3. Duello Objesini Oluşturma
+                    models.Duello duello = new models.Duello(
+                        reservationId, facility, resDate, timeSlot, accessCode, reqSkill, slots
+                    );
                     duello.setMatched(matched);
                     duello.setCancelled(cancelled);
                     duello.setHasAttended(attended);
+
+                    // 4. Kurucu (Creator) Objesini Oluşturma ve Ekleme
+                    models.Student creator = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    creator.setEloPoint(rs.getInt("elo_point"));
+                    creator.setPenaltyPoints(rs.getInt("penalty_points"));
+                    creator.setReliabilityScore(rs.getDouble("reliability_score"));
+                    creator.setMatchesPlayed(rs.getInt("matches_played"));
+                    creator.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    creator.setMatchesWon(matchesWon);
+
+                    // Eğer attendees listesi null ise hata almamak için kontrol edip başlatıyoruz
+                    if (duello.getAttendees() == null) {
+                        duello.setAttendees(new java.util.ArrayList<>());
+                    }
+                    
+                    // Kurucuyu katılımcı listesine ekliyoruz (İlk eleman / get(0) olarak erişilebilir)
+                    duello.getAttendees().add(creator);
                     
                     suitableDuellos.add(duello);
                 }
@@ -2226,7 +2258,7 @@ public class Database {
 
         return suitableDuellos;
     }
-
+    
 /**
      * Deletes a duello request from the database.
      * Can be used to either cancel an outgoing request or reject an incoming request.
