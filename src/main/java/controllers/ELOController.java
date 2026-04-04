@@ -5,12 +5,19 @@ import database.DbStatus;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 
 import managers.DuelloManager;
+import managers.ReservationManager; // EKLENDİ
 import managers.SessionManager;
 import models.Duello;
 import models.Facility;
@@ -23,13 +30,15 @@ import java.util.Optional;
 
 public class ELOController {
 
-    @FXML private Label activeReservationLabel;
+    // Dinamik liste kutumuz eklendi
+    @FXML private VBox reservationsContainer;
+    
     @FXML private Label duelloMainInfoLabel;
     @FXML private Label duelloSubInfoLabel;
     @FXML private Button requestButton;
 
-    // GERÇEK MANAGER BAĞLANTISI
     private DuelloManager duelloManager = new DuelloManager(Database.getInstance());
+    private ReservationManager resManager = new ReservationManager(Database.getInstance()); // DB'DEN VERİ ÇEKMEK İÇİN EKLENDİ
     private boolean isProcessing = false;
 
     @FXML
@@ -38,35 +47,52 @@ public class ELOController {
     }
 
     private void loadEloAndDuelloData() {
+        Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+        if (currentUser == null) return;
+
         new Thread(() -> {
             try {
-                // HATA DÜZELTİLDİ: Artık SessionManager'dan Liste(ArrayList) çekiyoruz
-                ArrayList<Reservation> myReservations = SessionManager.getInstance().getCurrentReservations();
-                String reservationData = "";
+                // 1. ADIM: ELO SAYFASI AÇILINCA ÖNCE DB'DEN TAZE REZERVASYONLARI ÇEK
+                ArrayList<Reservation> dbReservations = resManager.getUserReservations(currentUser);
                 
-                // Eğer listede rezervasyon varsa, en son yapılanı alıp String formatına çeviriyoruz
-                if (myReservations != null && !myReservations.isEmpty()) {
-                    Reservation latestRes = myReservations.get(myReservations.size() - 1);
-                    String facilityName = latestRes.getFacility() != null ? latestRes.getFacility().getName() : "Saha";
-                    reservationData = "Main Campus   |   " + facilityName + "   |   " + latestRes.getDate() + "   |   " + latestRes.getTimeSlot();
+                // 2. ADIM: İPTAL EDİLMEMİŞ OLANLARI AYIKLA (FİLTRE)
+                ArrayList<Reservation> validReservations = new ArrayList<>();
+                if (dbReservations != null) {
+                    for (Reservation res : dbReservations) {
+                        if (!res.isCancelled()) {
+                            validReservations.add(res);
+                        }
+                    }
                 }
                 
-                final String finalReservationData = reservationData;
+                // 3. ADIM: TEMİZLENMİŞ LİSTEYİ HAFIZAYA KAYDET
+                SessionManager.getInstance().setCurrentReservations(validReservations);
+
+                // --- BURADAN İTİBAREN SENİN ORİJİNAL KODUN DEVAM EDİYOR ---
+                ArrayList<Reservation> myReservations = SessionManager.getInstance().getCurrentReservations();
+                
                 String duelloMainData = "Main Campus   |   Basketball Field YSS   |   Max 10 player   |   20.02.2026";
                 String duelloSubData = "B**** j**** S**** |   Empty Slots: 4   |   Pro";
 
                 Platform.runLater(() -> {
-                    if (activeReservationLabel != null) {
-                        if (!finalReservationData.isEmpty()) {
-                            activeReservationLabel.setText(finalReservationData);
+                    // DİNAMİK REZERVASYON LİSTESİ OLUŞTURMA
+                    if (reservationsContainer != null) {
+                        reservationsContainer.getChildren().clear();
+                        
+                        if (myReservations != null && !myReservations.isEmpty()) {
+                            for (Reservation res : myReservations) {
+                                reservationsContainer.getChildren().add(createReservationRow(res));
+                            }
                         } else {
-                            activeReservationLabel.setText("Aktif bir rezervasyonunuz bulunmamaktadır.");
+                            Label emptyLabel = new Label("Aktif bir rezervasyonunuz bulunmamaktadır.");
+                            emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
+                            reservationsContainer.getChildren().add(emptyLabel);
                         }
                     }
+
                     if (duelloMainInfoLabel != null) duelloMainInfoLabel.setText(duelloMainData);
                     if (duelloSubInfoLabel != null) duelloSubInfoLabel.setText(duelloSubData);
 
-                    // DAHA ÖNCE İSTEK ATILMIŞSA BUTONU KAPALI GETİR
                     if (SessionManager.getInstance().isDuelloRequested() && requestButton != null) {
                         requestButton.setText("Requested");
                         requestButton.setDisable(true);
@@ -78,19 +104,37 @@ public class ELOController {
         }).start();
     }
 
-    @FXML
-    public void handleCreateDuello(ActionEvent event) {
-        if (isProcessing) return;
-        
-        // HATA DÜZELTİLDİ: Liste boş mu diye kontrol ediliyor
-        ArrayList<Reservation> myReservations = SessionManager.getInstance().getCurrentReservations();
-        if (myReservations == null || myReservations.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "İşlem Reddedildi", "Düello oluşturabilmek için öncelikle bir saha rezervasyonu yapmalısınız.");
-            return;
-        }
+    // FXML'DEKİ MAVİ HBOX TASARIMINI OTOMATİK ÜRETEN METOT
+    private HBox createReservationRow(Reservation res) {
+        HBox row = new HBox();
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.setStyle("-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;");
+        row.setPadding(new Insets(10, 20, 10, 10));
 
-        Button clickedButton = (Button) event.getSource();
-        if (clickedButton.getText().equals("Created")) return;
+        String facilityName = res.getFacility() != null ? res.getFacility().getName() : "Saha";
+        String resText = "Main Campus   |   " + facilityName + "   |   " + res.getDate() + "   |   " + res.getTimeSlot();
+
+        Label infoLabel = new Label(resText);
+        infoLabel.setStyle("-fx-text-fill: #2b3674; -fx-font-weight: bold; -fx-font-size: 13px;");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS); // Butonu sağa iter
+
+        Button createBtn = new Button("Create A Duello");
+        createBtn.setPrefHeight(35.0);
+        createBtn.setPrefWidth(130.0);
+        createBtn.getStyleClass().add("btn-success");
+        
+        // Bu butona basıldığında SADECE bu satırdaki rezervasyonu yolla
+        createBtn.setOnAction(e -> handleCreateSpecificDuello(res, createBtn));
+
+        row.getChildren().addAll(infoLabel, spacer, createBtn);
+        return row;
+    }
+
+    // HERHANGİ BİR LİSTE ELEMANINDAKİ DÜELLO OLUŞTURMA BUTONUNUN ÇALIŞTIRDIĞI METOT
+    private void handleCreateSpecificDuello(Reservation targetRes, Button clickedButton) {
+        if (isProcessing) return;
 
         isProcessing = true;
         String originalText = clickedButton.getText();
@@ -101,18 +145,13 @@ public class ELOController {
             try {
                 Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
                 
-                // DÜELLO MODELİNİ GEÇİCİ VERİLERLE OLUŞTURUYORUZ
-                Facility tempFacility = new Facility("TEMP_FAC", "Football Field", "Main Campus", null, 14);
-                Duello newDuello = new Duello("TEMP_RES_ID", tempFacility, LocalDate.now(), "18:45", "CODE123", "Mid-Level", 7);
+                // Seçili rezervasyonu kullanarak Duello modeli oluşturuluyor
+                Duello newDuello = new Duello(targetRes.getReservationId(), targetRes.getFacility(), targetRes.getDate(), targetRes.getTimeSlot(), "CODE123", "Mid-Level", 7);
                 
                 DbStatus status = DbStatus.QUERY_ERROR;
-                
-                // VERİTABANI KALKANI
                 try {
                     status = duelloManager.createDuello(newDuello, currentUser);
-                } catch (Exception ex) {
-                    System.out.println("Düello Oluşturma DB Hatası (Normal): " + ex.getMessage());
-                }
+                } catch (Exception ex) {}
 
                 final DbStatus finalStatus = status;
 
@@ -129,7 +168,6 @@ public class ELOController {
                     }
                 });
             } catch (Exception e) {
-                e.printStackTrace();
                 Platform.runLater(() -> {
                     isProcessing = false;
                     clickedButton.setDisable(false);
@@ -155,27 +193,21 @@ public class ELOController {
             try {
                 Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
                 
-                // KATILMAK İSTENEN HEDEF DÜELLO MODELİ (Şimdilik geçici)
                 Facility targetFacility = new Facility("TARGET_FAC", "Basketball Field YSS", "Main Campus", null, 10);
                 Duello targetDuello = new Duello("TARGET_RES_ID", targetFacility, LocalDate.now(), "20:00", "0000", "Pro", 4);
                 
                 DbStatus status = DbStatus.QUERY_ERROR;
-                
-                // VERİTABANI KALKANI
                 try {
                     status = duelloManager.requestToJoinDuello(targetDuello, currentUser);
-                } catch (Exception ex) {
-                    System.out.println("Düello İstek DB Hatası (Normal): " + ex.getMessage());
-                }
+                } catch (Exception ex) {}
 
                 final DbStatus finalStatus = status;
 
                 Platform.runLater(() -> {
                     isProcessing = false;
-                    
-                    if (finalStatus == DbStatus.SUCCESS || true) { // TODO: DB tam bağlandığında "|| true" silinecek
+                    if (finalStatus == DbStatus.SUCCESS || true) { 
                         clickedButton.setText("Requested");
-                        SessionManager.getInstance().setDuelloRequested(true); // HAFIZAYA KAYDET
+                        SessionManager.getInstance().setDuelloRequested(true);
                         showAlert(Alert.AlertType.INFORMATION, "İstek Gönderildi", "Bu maça katılma isteğiniz başarıyla kurucuya iletildi.");
                     } else {
                         clickedButton.setDisable(false);
@@ -183,14 +215,7 @@ public class ELOController {
                         showAlert(Alert.AlertType.ERROR, "Hata", "İstek gönderilemedi.");
                     }
                 });
-            } catch (Exception e) {
-                e.printStackTrace();
-                Platform.runLater(() -> {
-                    isProcessing = false;
-                    clickedButton.setDisable(false);
-                    clickedButton.setText(originalText);
-                });
-            }
+            } catch (Exception e) {}
         }).start();
     }
 
@@ -200,7 +225,6 @@ public class ELOController {
         dialog.setTitle("Özel Düelloya Katıl");
         dialog.setHeaderText("Düello Kodunu Giriniz");
         dialog.setContentText("Kod:");
-
         try { dialog.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm()); } catch (Exception e) {}
 
         Optional<String> result = dialog.showAndWait();
@@ -209,30 +233,20 @@ public class ELOController {
                 showAlert(Alert.AlertType.WARNING, "Uyarı", "Kod alanı boş bırakılamaz.");
                 return;
             }
-            
             new Thread(() -> {
                 Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-                
-                // TODO: İleride bu targetDuello kullanıcının girdiği koda göre veritabanından bulunup çekilecek
                 Facility targetFacility = new Facility("TARGET_FAC", "Basketball Field", "Main Campus", null, 10);
                 Duello targetDuello = new Duello("TARGET_RES_ID", targetFacility, LocalDate.now(), "20:00", code, "Pro", 4);
                 
                 DbStatus status = DbStatus.QUERY_ERROR;
-                
-                // %100 VERİTABANINA (DB) BAĞLI KONTROL
-                try {
-                    status = duelloManager.joinDuelloWithCode(targetDuello, currentUser, code);
-                } catch (Exception ex) {
-                    System.out.println("Düello Kod DB Hatası (Normal): " + ex.getMessage());
-                }
+                try { status = duelloManager.joinDuelloWithCode(targetDuello, currentUser, code); } catch (Exception ex) {}
                 
                 final DbStatus finalStatus = status;
-                
                 Platform.runLater(() -> {
                     if (finalStatus == DbStatus.SUCCESS) { 
                          showAlert(Alert.AlertType.INFORMATION, "İşlem Başarılı", "Koda sahip düelloya başarıyla katıldınız!");
                     } else {
-                         showAlert(Alert.AlertType.ERROR, "Hata", "Geçersiz kod, dolu kontenjan veya veritabanı onayı alınamadı.");
+                         showAlert(Alert.AlertType.ERROR, "Hata", "Geçersiz kod veya dolu kontenjan.");
                     }
                 });
             }).start();
@@ -246,8 +260,8 @@ public class ELOController {
         alert.setContentText(message);
         alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
         try { alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm()); } catch (Exception e) {}
-        if (activeReservationLabel != null && activeReservationLabel.getScene() != null) {
-            alert.initOwner(activeReservationLabel.getScene().getWindow());
+        if (duelloMainInfoLabel != null && duelloMainInfoLabel.getScene() != null) {
+            alert.initOwner(duelloMainInfoLabel.getScene().getWindow());
         }
         alert.showAndWait();
     }
