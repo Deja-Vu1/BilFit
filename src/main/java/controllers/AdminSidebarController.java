@@ -7,24 +7,24 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
-import models.Admin;
+import managers.SessionManager;
 
 public class AdminSidebarController {
+    
     private AdminMainController mainController;
-    @FXML 
-    private Button btnHome;
+    
+    @FXML private Button btnHome;
+    @FXML private Button btnAccount;
+    @FXML private Button btnReservation;
+    @FXML private Button btnSettings;
     
     @FXML 
-    private Button btnAccount;
-    
-    
-    @FXML 
-    private Button btnReservation;
+    public void initialize() {
+        // Başlangıçta ekstra bir şey yapmaya gerek yok, MainController bağlanınca Home aktif olacak
+    }
 
-    @FXML 
-    private Button btnSettings;
-    @FXML public void initialize() {}
-        private void updateActiveButton(Button clickedButton) {
+    // Aktif butonu CSS ile vurgulamak için
+    private void updateActiveButton(Button clickedButton) {
         Button[] allButtons = {btnHome, btnAccount, btnReservation, btnSettings};
         
         for (Button btn : allButtons) {
@@ -37,43 +37,55 @@ public class AdminSidebarController {
             clickedButton.getStyleClass().add("active");
         }
     }
-    @FXML
+
+    // AdminMainController tarafından çağrılır ve iki controller'ı birbirine bağlar
     public void setMainController(AdminMainController controller) {
-        updateActiveButton(btnHome);
         this.mainController = controller;
+        updateActiveButton(btnHome); // Varsayılan olarak Home butonunu aktif yap
     }
 
     @FXML
     private void loadHome() {
         updateActiveButton(btnHome);
-        mainController.loadHome();
+        if (mainController != null) mainController.loadHome();
     }
 
     @FXML
     private void loadAccount() {
         updateActiveButton(btnAccount);
-        mainController.loadAccount();
+        if (mainController != null) mainController.loadAccount();
     }
 
-    @FXML private void loadReservations() {
+    @FXML 
+    private void loadReservations() {
         updateActiveButton(btnReservation);
-        mainController.loadReservations();
+        if (mainController != null) mainController.loadReservations();
     }
-    @FXML private void loadSettings() {
-        updateActiveButton(btnSettings);
-        mainController.loadSettings();
-    }
-    @FXML private void logout() {
-        System.out.println("Redirecting to Main Selection Screen");
-        try {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
-        Parent root = loader.load();
-        Stage stage = (Stage) btnHome.getScene().getWindow(); 
-        stage.getScene().setRoot(root);
 
-    } catch (IOException e) {
-        System.err.println("Error: Could not load SelectionView.");
-        e.printStackTrace();
+    @FXML 
+    private void loadSettings() {
+        updateActiveButton(btnSettings);
+        if (mainController != null) mainController.loadSettings();
     }
+
+    @FXML 
+    private void logout() {
+        System.out.println("Admin çıkış yapıyor...");
+        
+        // ÇÖZÜM: SessionManager üzerinden oturumu kapatıyoruz ki eski veriler hafızada kalmasın!
+        SessionManager.getInstance().logout();
+        
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
+            Parent root = loader.load();
+            
+            // Mevcut pencereyi (Stage) bul ve sahneyi değiştir
+            Stage stage = (Stage) btnHome.getScene().getWindow(); 
+            stage.getScene().setRoot(root);
+
+        } catch (IOException e) {
+            System.err.println("HATA: Çıkış yapılırken SelectionView sayfası yüklenemedi!");
+            e.printStackTrace();
+        }
     }
 }

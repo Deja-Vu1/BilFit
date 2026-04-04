@@ -40,10 +40,9 @@ public class AdminMainController {
     // --- YÖNLENDİRME METOTLARI ---
     
     public void loadHome() {
-        // Not: Eğer Admin'e özel bir home sayfan varsa (Örn: AdminHomeView.fxml) burayı değiştirebilirsin
-        loadView("/views/dashboard/HomeView.fxml");
+        // Artık Admin'in kendi özel paneli (Duyuru Merkezi) açılacak!
+        loadView("/views/dashboard/AdminHomeView.fxml");
     }
-
     public void loadAccount() {
         loadView("/views/dashboard/ProfileView.fxml");
     }
