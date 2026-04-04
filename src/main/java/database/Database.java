@@ -2176,4 +2176,179 @@ public class Database {
 
         return suitableDuellos;
     }
+
+/**
+     * Deletes a duello request from the database.
+     * Can be used to either cancel an outgoing request or reject an incoming request.
+     * @param reservationId The UUID of the duello/reservation
+     * @param requesterEmail The Bilkent email of the student who made the request
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus deleteDuelloRequest(String reservationId, String requesterEmail) {
+        
+        // İlgili rezervasyon ID'sine ve isteği atan kişinin email'ine göre silme işlemi
+        String deleteSql = "DELETE FROM duello_requests " +
+                           "WHERE reservation_id = ? " +
+                           "AND requester_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(deleteSql)) {
+                
+                stmt.setObject(1, resId);
+                stmt.setString(2, requesterEmail);
+
+                int deletedRows = stmt.executeUpdate();
+
+                // Eğer etkilenen satır 0 ise: Böyle bir istek veritabanında yok demektir (zaten silinmiş veya hiç açılmamış)
+                if (deletedRows == 0) {
+                    return DbStatus.DATA_NOT_FOUND; 
+                }
+
+                return DbStatus.SUCCESS;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR; // String'den UUID'ye çevirirken format hatası olursa
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            // Veritabanı bağlantı hatası kontrolü
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Deletes a duello, reverts the associated reservation back to 'Standard' type,
+     * and removes all other attendees from the reservation except the creator.
+     * Ensures that only the creator of the reservation can perform this action.
+     * Note: Due to ON DELETE CASCADE, all associated duello requests will also be deleted automatically.
+     * @param reservationId The UUID of the reservation/duello
+     * @param creatorEmail The Bilkent email of the student who owns the reservation
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus deleteDuello(String reservationId, String creatorEmail) {
+        
+        // 1. Rezervasyonun sahibini doğrula ve tipini tekrar 'Standard' yap
+        String updateResSql = "UPDATE reservations SET type = 'Standard' " +
+                              "WHERE reservation_id = ? AND reserved_by = (SELECT id FROM users WHERE bilkent_email = ?)";
+                              
+        // 2. Duellos tablosundan kaydı sil (ON DELETE CASCADE ile istekler de silinir)
+        String deleteDuelloSql = "DELETE FROM duellos WHERE reservation_id = ?";
+        
+        // 3. Kurucu (creator) hariç diğer tüm katılımcıları rezervasyondan çıkar
+        String deleteAttendeesSql = "DELETE FROM reservation_attendees " +
+                                    "WHERE reservation_id = ? AND student_id != (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // Transaction başlat
+
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            // ADIM 1: Rezervasyonu güncelle ve yetkiyi kontrol et
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateResSql)) {
+                updateStmt.setObject(1, resId);
+                updateStmt.setString(2, creatorEmail);
+                
+                int updatedRows = updateStmt.executeUpdate();
+
+                // Eğer 0 satır güncellendiyse: Ya ID yanlıştır ya da bu işlemi yapmaya çalışan kişi kurucu değildir
+                if (updatedRows == 0) {
+                    conn.rollback();
+                    return DbStatus.DATA_NOT_FOUND; 
+                }
+            }
+
+            // ADIM 2: Duelloyu sil
+            try (PreparedStatement deleteStmt = conn.prepareStatement(deleteDuelloSql)) {
+                deleteStmt.setObject(1, resId);
+                deleteStmt.executeUpdate(); 
+            }
+            
+            // ADIM 3: Diğer katılımcıları (rakipleri) rezervasyondan çıkar
+            try (PreparedStatement attendeeStmt = conn.prepareStatement(deleteAttendeesSql)) {
+                attendeeStmt.setObject(1, resId);
+                attendeeStmt.setString(2, creatorEmail);
+                attendeeStmt.executeUpdate(); // Kimse yoksa 0 satır etkilenir, sorun teşkil etmez.
+            }
+
+            conn.commit(); // Tüm işlemleri onayla
+            return DbStatus.SUCCESS;
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
+            }
+        }
+    }
+
+    /**
+     * Sends a join request to an open duello.
+     * Ensures the duello is not already matched and has empty slots available.
+     * @param reservationId The UUID of the duello/reservation
+     * @param studentEmail The Bilkent email of the requester
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if duello is full/unavailable), or errors.
+     */
+    public DbStatus insertDuelloRequest(String reservationId, String studentEmail) {
+        
+        String insertSql = "INSERT INTO duello_requests (reservation_id, requester_id, status) " +
+                           "SELECT d.reservation_id, u.id, 'Pending' " +
+                           "FROM users u, duellos d " +
+                           "WHERE u.bilkent_email = ? " +
+                           "  AND d.reservation_id = ? " +
+                           "  AND d.is_matched = FALSE " +
+                           "  AND d.empty_slots > 0";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(insertSql)) {
+                
+                stmt.setString(1, studentEmail);
+                stmt.setObject(2, resId);
+
+                int insertedRows = stmt.executeUpdate();
+                if (insertedRows == 0) {
+                    return DbStatus.DATA_NOT_FOUND; 
+                }
+
+                return DbStatus.SUCCESS;
+            }
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if ("23505".equals(e.getSQLState())) {
+                return DbStatus.QUERY_ERROR; 
+            }
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
