@@ -216,10 +216,11 @@ public class Database {
      * Registers a new admin to the database.
      * Requires a valid code from the 'admin_activation' table to proceed.
      * Checks for duplicate email before insertion.
+     * Inserts the generated user UUID into the 'admins' table.
      * student_id is implicitly set to NULL and role is set to 'admin'.
      * @param name Admin's full name
      * @param email Admin's email address
-     * @param passwordHash Admin's hashed password
+     * @param passwordHash The raw password to be hashed (Note: Variable name implies hash, but it's hashed inside)
      * @param adminActivationCode The special code required to register as an admin
      * @return DbStatus indicating SUCCESS, EMAIL_ALREADY_EXISTS, INVALID_CODE, QUERY_ERROR, etc.
      */
@@ -227,64 +228,82 @@ public class Database {
         
         String gcSql = "DELETE FROM users WHERE is_activated = FALSE AND created_at < NOW() - INTERVAL '30 minutes'";
         String checkEmailSql = "SELECT bilkent_email FROM users WHERE bilkent_email = ?";
-        
         String checkAdminCodeSql = "SELECT id FROM admin_activation WHERE activation_code = ?";
         String deleteAdminCodeSql = "DELETE FROM admin_activation WHERE activation_code = ?";
         
-        String insertSql = "INSERT INTO users (full_name, bilkent_email, student_id, password_hash, role, is_activated) VALUES (?, ?, NULL, ?, 'admin', FALSE)";
+        String insertUserSql = "INSERT INTO users (full_name, bilkent_email, student_id, password_hash, role, is_activated) " +
+                               "VALUES (?, ?, NULL, ?, 'admin', FALSE) RETURNING id";
+                               
+        String insertAdminSql = "INSERT INTO admins (admin_id) VALUES (?)";
 
+        Connection conn = null;
         try {
-
-            try (PreparedStatement gcStmt = getConnection().prepareStatement(gcSql)) {
+            conn = getConnection();
+            
+            try (PreparedStatement gcStmt = conn.prepareStatement(gcSql)) {
                 gcStmt.executeUpdate();
             }
 
-            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkEmailSql)) {
-                checkStmt.setString(1, email);
+            conn.setAutoCommit(false);
 
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkEmailSql)) {
+                checkStmt.setString(1, email);
                 try (ResultSet rs = checkStmt.executeQuery()) {
                     if (rs.next()) {
+                        conn.rollback();
                         return DbStatus.EMAIL_ALREADY_EXISTS; 
                     }
                 }
             }
 
-            try (PreparedStatement checkCodeStmt = getConnection().prepareStatement(checkAdminCodeSql)) {
-                
+            try (PreparedStatement checkCodeStmt = conn.prepareStatement(checkAdminCodeSql)) {
                 checkCodeStmt.setString(1, adminActivationCode); 
-
                 try (ResultSet rs = checkCodeStmt.executeQuery()) {
                     if (!rs.next()) {
+                        conn.rollback();
                         return DbStatus.INVALID_CODE; 
                     }
                 }
             }
 
-            try (PreparedStatement insertStmt = getConnection().prepareStatement(insertSql)) {
-                
-                passwordHash = hashPassword(passwordHash); 
-                
-                insertStmt.setString(1, name);           // full_name
-                insertStmt.setString(2, email);          // bilkent_email
-                insertStmt.setString(3, passwordHash);   // password_hash
+            java.util.UUID newUserId = null;
+            String finalHashedPassword = hashPassword(passwordHash); 
 
-                int insertedRows = insertStmt.executeUpdate();
-                
-                if (insertedRows > 0) {
-                    
-                    try (PreparedStatement deleteCodeStmt = getConnection().prepareStatement(deleteAdminCodeSql)) {
-                        deleteCodeStmt.setString(1, adminActivationCode);
-                        deleteCodeStmt.executeUpdate();
+            try (PreparedStatement insertUserStmt = conn.prepareStatement(insertUserSql)) {
+                insertUserStmt.setString(1, name);
+                insertUserStmt.setString(2, email);
+                insertUserStmt.setString(3, finalHashedPassword);
+
+                try (ResultSet rs = insertUserStmt.executeQuery()) {
+                    if (rs.next()) {
+                        newUserId = (java.util.UUID) rs.getObject("id");
+                    } else {
+                        conn.rollback();
+                        return DbStatus.QUERY_ERROR;
                     }
-
-                    createActivationCode(email);
-                    return DbStatus.SUCCESS;
                 }
-                
-                return DbStatus.QUERY_ERROR;
             }
 
+            try (PreparedStatement insertAdminStmt = conn.prepareStatement(insertAdminSql)) {
+                insertAdminStmt.setObject(1, newUserId);
+                insertAdminStmt.executeUpdate();
+            }
+
+            try (PreparedStatement deleteCodeStmt = conn.prepareStatement(deleteAdminCodeSql)) {
+                deleteCodeStmt.setString(1, adminActivationCode);
+                deleteCodeStmt.executeUpdate();
+            }
+
+            conn.commit();
+            
+            createActivationCode(email);
+            
+            return DbStatus.SUCCESS;
+
         } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
             e.printStackTrace();
             
             if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
@@ -296,9 +315,14 @@ public class Database {
             }
             
             return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
+            }
         }
     }
-/**
+    
+    /**
      * Authenticates a student based on email and password.
      * Ensures the account is activated and the user has the 'student' role.
      * If authentication is successful, updates the 'last_seen' timestamp in the students table.
@@ -2640,5 +2664,58 @@ public class Database {
         }
 
         return null; // Düello bulunamazsa veya hata çıkarsa null döner
+    }
+
+    /**
+     * Fetches admin records from the 'users' and 'admins' tables
+     * and updates the provided Admin object with this data.
+     * @param admin The existing Admin object to be updated
+     * @param email Admin's Bilkent email address to query the database
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus fillAdminDataByEmail(models.Admin admin, String email) {
+        
+        // Null kontrolü, gelen objenin boş olmasını engeller
+        if (admin == null) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // users ve admins tablolarını birleştiren sorgu
+        String sql = "SELECT u.full_name, u.bilkent_email, u.password_hash, " +
+                     "a.actions_performed " +
+                     "FROM users u " +
+                     "INNER JOIN admins a ON u.id = a.admin_id " +
+                     "WHERE u.bilkent_email = ? AND u.role = 'admin'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, email);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    // 1. Üst sınıf (User) verilerini güncelle
+                    admin.setFullName(rs.getString("full_name"));
+                    admin.setBilkentEmail(rs.getString("bilkent_email"));
+                    admin.setPassword(rs.getString("password_hash"));
+                    
+                    // 2. Admin'e özel verileri set et
+                    // Güncellenen modele uygun olarak setActionsPerformed kullanıldı
+                    admin.setActionsPerformed(rs.getInt("actions_performed"));
+
+                    return DbStatus.SUCCESS;
+                } else {
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
     }
 }

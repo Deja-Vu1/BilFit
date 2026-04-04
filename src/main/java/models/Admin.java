@@ -1,24 +1,24 @@
 package models;
 
 public class Admin extends User {
-    private int actionPerformed;
+    private int actionsPerformed;
 
     public Admin(String fullName, String bilkentEmail, int actionsPerformed) {
         super(fullName, bilkentEmail);
-        this.actionPerformed = actionsPerformed;
+        this.actionsPerformed = actionsPerformed;
     }
-    public int getActionPerformed() {
-        return actionPerformed;
+    public int getActionsPerformed() {
+        return actionsPerformed;
     }
-    public void setActionPerformed(int actionPerformed) {
-        this.actionPerformed = actionPerformed;
+    public void setActionsPerformed(int actionPerformed) {
+        this.actionsPerformed = actionPerformed;
     }
 
     public String toString() {
         return "Admin{" +
                 "fullName='" + getFullName() + '\'' +
                 ", bilkentEmail='" + getBilkentEmail() + '\'' +
-                ", actionPerformed=" + actionPerformed +
+                ", actionPerformed=" + actionsPerformed +
                 '}';
     }
 }

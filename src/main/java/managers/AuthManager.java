@@ -72,7 +72,7 @@ public class AuthManager {
         DbStatus status = db.loginAdmin(cleanEmail, password);
         
         if (status == DbStatus.SUCCESS) {
-            Admin admin = new Admin("", cleanEmail, "");
+            Admin admin = new Admin("", cleanEmail, 0);
             DbStatus dataStatus = db.fillAdminDataByEmail(admin, cleanEmail);
             if (dataStatus == DbStatus.SUCCESS) {
                 SessionManager.getInstance().setCurrentUser(admin);
