@@ -2673,7 +2673,6 @@ public class Database {
             return null;
         }
 
-        // users ve students tabloları JOIN edilerek kurucu (creator) bilgileri sorguya eklendi
         String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
                      "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
                      "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
@@ -2695,7 +2694,6 @@ public class Database {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     
-                    // 1. Tesis (Facility) Objesini Oluşturma
                     String facilityId = rs.getObject("facility_id").toString();
                     String facilityName = rs.getString("facility_name");
                     String location = rs.getString("campus_location");
@@ -2715,7 +2713,6 @@ public class Database {
                     models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
                     facility.setUnderMaintenance(maintenance);
 
-                    // 2. Duello ve Reservation Özelliklerini Çekme
                     String reservationId = rs.getObject("reservation_id").toString();
                     java.sql.Date sqlDate = rs.getDate("reservation_date");
                     java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
@@ -2728,7 +2725,6 @@ public class Database {
                     boolean cancelled = rs.getBoolean("is_cancelled");
                     boolean attended = rs.getBoolean("has_attended");
 
-                    // 3. Duello Objesini Oluşturma
                     models.Duello duello = new models.Duello(
                             reservationId, 
                             facility, 
@@ -2743,7 +2739,6 @@ public class Database {
                     duello.setCancelled(cancelled);
                     duello.setHasAttended(attended);
 
-                    // 4. Kurucu (Creator) Objesini Oluşturma ve Ekleme
                     models.Student creator = new models.Student(
                         rs.getString("full_name"), 
                         rs.getString("bilkent_email"), 
@@ -2759,12 +2754,10 @@ public class Database {
                     int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
                     creator.setMatchesWon(matchesWon);
 
-                    // Eğer attendees listesi null ise (Reservation class'ında initialize edilmemişse) hata almamak için kontrol edelim
                     if (duello.getAttendees() == null) {
                         duello.setAttendees(new java.util.ArrayList<>());
                     }
                     
-                    // Kurucuyu katılımcı listesine ekle
                     duello.getAttendees().add(creator);
                     
                     return duello; // Bulunan düelloyu döndür
