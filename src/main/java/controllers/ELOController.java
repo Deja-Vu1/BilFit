@@ -24,6 +24,7 @@ import managers.ReservationManager;
 import managers.SessionManager;
 import models.Duello;
 import models.Reservation;
+import models.SportType;
 import models.Student;
 
 public class ELOController {
@@ -41,7 +42,10 @@ public class ELOController {
     @FXML
     public void initialize() {
         if (sportTypeComboBox != null) {
-            sportTypeComboBox.getItems().addAll("BASKETBALL", "TENNIS", "TABLE TENNIS", "SQUASH", "VOLLEYBALL", "FOOTBALL");
+            sportTypeComboBox.getItems().clear();
+            for (SportType sport : SportType.values()) {
+                sportTypeComboBox.getItems().add(sport.toString());
+            }
             sportTypeComboBox.getSelectionModel().selectFirst();
         }
         loadEloAndDuelloData();
@@ -51,7 +55,7 @@ public class ELOController {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         if (currentUser == null) return;
 
-        String selectedSport = sportTypeComboBox != null && sportTypeComboBox.getValue() != null ? sportTypeComboBox.getValue() : "BASKETBALL";
+        String selectedSport = sportTypeComboBox != null && sportTypeComboBox.getValue() != null ? sportTypeComboBox.getValue() : "Basketball";
 
         new Thread(() -> {
             try {
@@ -270,7 +274,7 @@ public class ELOController {
         
         String facilityName = duello.getFacility() != null ? duello.getFacility().getName() : "Saha";
         String loc = duello.getFacility() != null ? duello.getFacility().getCampusLocation() : "Kampüs";
-        String mainText = loc + "   |   " + facilityName + "   |   Max " + (duello.getFacility() != null ? duello.getFacility().getCapacity() : "0") + " player   |   " + duello.getDate();
+        String mainText = loc + "   |   " + facilityName + "   |   Max " + (duello.getFacility() != null ? duello.getFacility().getCapacity() : "0") + " player   |   " + duello.getDate() + " " + duello.getTimeSlot();
         String subText = "Empty Slots: " + duello.getEmptySlots() + "   |   Skill: " + duello.getRequiredSkillLevel();
 
         Label mainLabel = new Label(mainText);
