@@ -2527,6 +2527,7 @@ public class Database {
 
     /**
      * Retrieves a specific Duello based on its unique access code.
+     * Also fetches the creator of the duello and adds them to the attendees list.
      * @param code The 6-digit access code of the duello
      * @return The matching Duello object, or null if not found
      */
@@ -2536,14 +2537,19 @@ public class Database {
             return null;
         }
 
+        // users ve students tabloları JOIN edilerek kurucu (creator) bilgileri sorguya eklendi
         String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
                      "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
                      "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
-                     "sp.name AS sport_name " +
+                     "sp.name AS sport_name, " +
+                     "u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
                      "FROM duellos d " +
                      "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
                      "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
                      "LEFT JOIN sports sp ON f.sport_id = sp.id " +
+                     "INNER JOIN users u ON r.reserved_by = u.id " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
                      "WHERE d.access_code = ?";
 
         try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
@@ -2600,6 +2606,30 @@ public class Database {
                     duello.setMatched(matched);
                     duello.setCancelled(cancelled);
                     duello.setHasAttended(attended);
+
+                    // 4. Kurucu (Creator) Objesini Oluşturma ve Ekleme
+                    models.Student creator = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    creator.setEloPoint(rs.getInt("elo_point"));
+                    creator.setPenaltyPoints(rs.getInt("penalty_points"));
+                    creator.setReliabilityScore(rs.getDouble("reliability_score"));
+                    creator.setMatchesPlayed(rs.getInt("matches_played"));
+                    creator.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    creator.setMatchesWon(matchesWon);
+
+                    // Eğer attendees listesi null ise (Reservation class'ında initialize edilmemişse) hata almamak için kontrol edelim
+                    if (duello.getAttendees() == null) {
+                        duello.setAttendees(new java.util.ArrayList<>());
+                    }
+                    
+                    // Kurucuyu katılımcı listesine ekle
+                    duello.getAttendees().add(creator);
                     
                     return duello; // Bulunan düelloyu döndür
                 }
