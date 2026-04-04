@@ -11,10 +11,12 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Modality;
@@ -32,10 +34,14 @@ public class SettingsController {
     @FXML private Button eloToggle;
     @FXML private TextField passwordField;
     @FXML private Button changePasswordBtn;
-    @FXML private FlowPane interestsContainer; // FXML'den bu Container'ı alıyoruz
+    
+    // YENİ EKLENEN NİCKNAME ELEMANLARI
+    @FXML private TextField nicknameField;
+    @FXML private Button changeNicknameBtn;
+    
+    @FXML private FlowPane interestsContainer; 
 
     private StudentManager studentManager = new StudentManager(Database.getInstance());
-    private AuthManager authManager = new AuthManager(Database.getInstance());
     private boolean isProcessing = false;
 
     private final String COLOR_ON = "-fx-background-color: #1E8E3E; -fx-background-radius: 20;";
@@ -48,19 +54,23 @@ public class SettingsController {
             updateToggleVisual(publicAccountToggle, currentUser.isPublicProfile());
             updateToggleVisual(eloToggle, currentUser.isEloMatchingEnabled());
             
-            // Kullanıcının ilgi alanlarını DB'den çekip ekrana diziyoruz
+            if (nicknameField != null) {
+                nicknameField.clear(); 
+                // getNickname yerine getFullName kullanıyoruz
+                nicknameField.setPromptText("Mevcut: " + currentUser.getFullName()); 
+            }
+            
             loadUserInterests(currentUser);
         }
     }
 
     private void loadUserInterests(Student currentUser) {
         new Thread(() -> {
-            // DB'den taze interest listesini çekiyoruz
             List<SportType> dbInterests = studentManager.getUserInterests(currentUser);
             
             Platform.runLater(() -> {
                 if (interestsContainer != null) {
-                    interestsContainer.getChildren().clear(); // Eski/sabit verileri temizle
+                    interestsContainer.getChildren().clear(); 
                     
                     if (dbInterests != null && !dbInterests.isEmpty()) {
                         for (SportType sport : dbInterests) {
@@ -81,19 +91,13 @@ public class SettingsController {
         
         Button btn = new Button("🗑 " + displayName);
         
-        // Varsayılan (Default) Tasarım ve Tıklama İmleci (hand cursor) eklendi
         String defaultStyle = "-fx-background-color: #F4F7FE; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-cursor: hand;";
-        
-        // Üzerine Gelince (Hover) Görünecek Kırmızı Tasarım
         String hoverStyle = "-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-border-color: #D93025; -fx-border-radius: 10; -fx-cursor: hand;";
 
         btn.setStyle(defaultStyle);
         btn.setPrefHeight(40.0);
 
-        // Mouse butonun üstüne geldiğinde stili kırmızı yap
         btn.setOnMouseEntered(e -> btn.setStyle(hoverStyle));
-        
-        // Mouse butonun üzerinden çekildiğinde stili eski haline döndür
         btn.setOnMouseExited(e -> btn.setStyle(defaultStyle));
         
         btn.setOnAction(e -> handleRemoveInterest(sportType, btn));
@@ -168,6 +172,12 @@ public class SettingsController {
             return;
         }
 
+        // 6 KARAKTER KURALI EKLENDİ!
+        if (newPass.length() < 6) {
+            showCustomAlert("Zayıf Şifre", "Yeni şifreniz en az 6 karakter olmalıdır.");
+            return;
+        }
+
         isProcessing = true;
         changePasswordBtn.setText("...");
 
@@ -187,16 +197,62 @@ public class SettingsController {
                     passwordField.clear();
                     showCustomAlert("Başarılı", "Şifreniz başarıyla değiştirildi.");
                 } else {
-                    showCustomAlert("Hata", "Şifre güncellenemedi. Lütfen tekrar deneyin.");
+                    showCustomAlert("Hata", "Şifre güncellenemedi. Yeni şifre eskisinden farklı olmalıdır.");
                 }
             });
         }).start();
     }
 
-    // Artık ActionEvent beklemiyor, doğrudan obje ve buton alıyor (Çünkü dinamik yaratıldı)
+    // --- YENİ EKLENEN: NICKNAME DEĞİŞTİRME FONKSİYONU ---
+ @FXML
+    public void handleChangeNickname(ActionEvent event) {
+        if (isProcessing) return;
+        
+        Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+        String newNick = nicknameField.getText();
+
+        if (newNick == null || newNick.trim().isEmpty()) {
+            showCustomAlert("Uyarı", "İsim alanı boş bırakılamaz.");
+            return;
+        }
+
+        isProcessing = true;
+        changeNicknameBtn.setText("...");
+
+        new Thread(() -> {
+            DbStatus status = DbStatus.QUERY_ERROR;
+            try {
+                // Veritabanına yolluyoruz
+                status = studentManager.updateNickname(currentUser, newNick);
+            } catch (Exception e) {}
+
+            final DbStatus finalStatus = status;
+
+            Platform.runLater(() -> {
+                isProcessing = false;
+                changeNicknameBtn.setText("Change");
+                
+                if (finalStatus == DbStatus.SUCCESS) {
+                    // Başarılıysa kutuyu temizle ve silik ipucunu yeni isminle (getFullName) güncelle!
+                    nicknameField.clear(); 
+                    nicknameField.setPromptText("Mevcut: " + currentUser.getFullName());
+                    
+                    showCustomAlert("Başarılı", "İsminiz başarıyla değiştirildi!");
+                } else {
+                    showCustomAlert("Hata", "İsim güncellenirken sunucu kaynaklı bir sorun oluştu.");
+                }
+            });
+        }).start();
+    }
+
+    // --- IŞIK HIZINDA SİLME (OPTIMISTIC UI) ---
     private void handleRemoveInterest(SportType sportType, Button clickedBtn) {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         
+        if (interestsContainer != null) {
+            interestsContainer.getChildren().remove(clickedBtn);
+        }
+
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
@@ -206,13 +262,10 @@ public class SettingsController {
             final DbStatus finalStatus = status;
             
             Platform.runLater(() -> {
-                if (finalStatus == DbStatus.SUCCESS) {
-                    // DB'den silindiyse, ekrandaki butonu tamamen yok et
+                if (finalStatus != DbStatus.SUCCESS) {
                     if (interestsContainer != null) {
-                        interestsContainer.getChildren().remove(clickedBtn);
+                        interestsContainer.getChildren().add(clickedBtn);
                     }
-                    showCustomAlert("Silindi", sportType.name().replace("_", " ") + " ilgi alanlarınızdan çıkarıldı.");
-                } else {
                     showCustomAlert("Hata", "Veritabanından silinemedi.");
                 }
             });
@@ -221,7 +274,101 @@ public class SettingsController {
 
     @FXML
     public void handleAddInterest(ActionEvent event) {
-         showCustomAlert("Eklenecek", "Add Interest için pop-up tasarımı gelince Manager'a bağlanacak.");
+        showAddInterestDialog();
+    }
+
+    private void showAddInterestDialog() {
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.initStyle(StageStyle.TRANSPARENT);
+
+        VBox layout = new VBox(20);
+        layout.setAlignment(Pos.CENTER);
+        layout.setPadding(new Insets(30));
+        layout.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #E2E8F0; -fx-border-width: 1;");
+        
+        DropShadow shadow = new DropShadow();
+        shadow.setRadius(20);
+        shadow.setColor(Color.rgb(0, 0, 0, 0.15));
+        layout.setEffect(shadow);
+
+        Label titleLabel = new Label("Yeni İlgi Alanı Ekle");
+        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2b3674;");
+
+        ComboBox<String> sportCombo = new ComboBox<>();
+        sportCombo.setStyle("-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-pref-width: 200; -fx-pref-height: 40;");
+        for (SportType sport : SportType.values()) {
+            sportCombo.getItems().add(sport.name().replace("_", " "));
+        }
+        if (!sportCombo.getItems().isEmpty()) {
+            sportCombo.getSelectionModel().selectFirst();
+        }
+
+        HBox btnBox = new HBox(15);
+        btnBox.setAlignment(Pos.CENTER);
+
+        Button cancelBtn = new Button("İptal");
+        cancelBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 90; -fx-pref-height: 35; -fx-cursor: hand;");
+        cancelBtn.setOnAction(e -> dialogStage.close());
+
+        Button addBtn = new Button("Ekle");
+        addBtn.setStyle("-fx-background-color: #1E8E3E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 90; -fx-pref-height: 35; -fx-cursor: hand;");
+        addBtn.setOnAction(e -> {
+            String selectedSportString = sportCombo.getValue();
+            if (selectedSportString != null) {
+                SportType selectedType = SportType.valueOf(selectedSportString.replace(" ", "_"));
+                processAddInterest(selectedType); 
+                dialogStage.close();
+            }
+        });
+
+        btnBox.getChildren().addAll(cancelBtn, addBtn);
+        layout.getChildren().addAll(titleLabel, sportCombo, btnBox);
+
+        Scene scene = new Scene(layout);
+        scene.setFill(Color.TRANSPARENT); 
+        dialogStage.setScene(scene);
+        dialogStage.centerOnScreen();
+        dialogStage.showAndWait();
+    }
+
+    // --- IŞIK HIZINDA EKLEME (OPTIMISTIC UI) ---
+    private void processAddInterest(SportType sportType) {
+        Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+        if (currentUser == null) return;
+        
+        if (interestsContainer != null) {
+            interestsContainer.getChildren().removeIf(node -> node instanceof Label);
+            
+            boolean alreadyExists = interestsContainer.getChildren().stream()
+                .filter(node -> node instanceof Button)
+                .map(node -> ((Button) node).getText())
+                .anyMatch(text -> text.contains(sportType.name().replace("_", " ")));
+            
+            if (alreadyExists) {
+                showCustomAlert("Uyarı", "Bu ilgi alanı zaten ekli.");
+                return;
+            }
+            
+            Button newBtn = createInterestButton(sportType);
+            interestsContainer.getChildren().add(newBtn);
+
+            new Thread(() -> {
+                DbStatus status = DbStatus.QUERY_ERROR;
+                try {
+                    status = studentManager.addInterest(currentUser, sportType);
+                } catch (Exception e) {}
+                
+                final DbStatus finalStatus = status;
+                
+                Platform.runLater(() -> {
+                    if (finalStatus != DbStatus.SUCCESS) {
+                        interestsContainer.getChildren().remove(newBtn);
+                        showCustomAlert("Hata", "Bu ilgi alanı zaten ekli olabilir veya sunucu bağlantısı kurulamadı.");
+                    }
+                });
+            }).start();
+        }
     }
 
     private void showCustomAlert(String title, String message) {
@@ -248,7 +395,7 @@ public class SettingsController {
         msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #a3aed0; -fx-text-alignment: center;");
 
         Button okBtn = new Button("Tamam");
-        okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40;");
+        okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
         okBtn.setOnAction(e -> dialogStage.close());
 
         layout.getChildren().addAll(titleLabel, msgLabel, okBtn);
