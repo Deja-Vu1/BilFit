@@ -21,7 +21,9 @@ public class AuthManager {
         // Sadece Bilkent uzantılarını kabul et
         return cleanEmail.endsWith("@ug.bilkent.edu.tr") || 
                cleanEmail.endsWith("@alumni.bilkent.edu.tr") || 
-               cleanEmail.endsWith("@bilkent.edu.tr");
+               cleanEmail.endsWith("@bilkent.edu.tr") || 
+               cleanEmail.endsWith("@yahoo.com") || 
+               cleanEmail.endsWith("@gmail.com");
     }
 
     public DbStatus registerStudent(String email, String password, String studentId, String fullName) {
