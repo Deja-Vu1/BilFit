@@ -1499,76 +1499,34 @@ public class Database {
         }
     }
 
-/**
-     * Sends a join request to an open duello.
-     * Ensures the duello is not already matched and has empty slots available.
-     * @param reservationId The UUID of the duello/reservation
-     * @param studentEmail The Bilkent email of the requester
-     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if duello is full/unavailable), or errors.
-     */
-    public DbStatus insertDuelloRequest(String reservationId, String studentEmail) {
-        
-        String insertSql = "INSERT INTO duello_requests (reservation_id, requester_id, status) " +
-                           "SELECT d.reservation_id, u.id, 'Pending' " +
-                           "FROM users u, duellos d " +
-                           "WHERE u.bilkent_email = ? " +
-                           "  AND d.reservation_id = ? " +
-                           "  AND d.is_matched = FALSE " +
-                           "  AND d.empty_slots > 0";
-
-        try {
-            java.util.UUID resId = java.util.UUID.fromString(reservationId);
-
-            try (PreparedStatement stmt = getConnection().prepareStatement(insertSql)) {
-                
-                stmt.setString(1, studentEmail);
-                stmt.setObject(2, resId);
-
-                int insertedRows = stmt.executeUpdate();
-
-                if (insertedRows == 0) {
-                    return DbStatus.DATA_NOT_FOUND; 
-                }
-
-                return DbStatus.SUCCESS;
-            }
-
-        } catch (IllegalArgumentException e) {
-            return DbStatus.QUERY_ERROR;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            
-            if ("23505".equals(e.getSQLState())) {
-                return DbStatus.QUERY_ERROR; 
-            }
-            
-            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
-                return DbStatus.CONNECTION_ERROR;
-            }
-            
-            return DbStatus.QUERY_ERROR;
-        }
-    }
-
     /**
      * Accepts a duello request and adds the student as an official participant.
-     * Updates request status, decrements empty slots, and manages matching status.
+     * Updates request status, decrements empty slots, manages matching status,
+     * and auto-rejects other pending requests if the duello becomes full.
      * @param reservationId The UUID of the duello/reservation
      * @param studentEmail The Bilkent email of the student being accepted
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
      */
     public DbStatus updateDuelloParticipant(String reservationId, String studentEmail) {
         
+        // 1. İsteği kabul et
         String updateRequestSql = "UPDATE duello_requests SET status = 'Accepted' " +
                                   "WHERE reservation_id = ? AND requester_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
                                   "AND status = 'Pending'";
 
+        // 2. Kontenjanı düşür ve is_matched durumunu güncelle
         String updateDuelloSql = "UPDATE duellos SET empty_slots = empty_slots - 1, " +
                                  "is_matched = CASE WHEN empty_slots - 1 = 0 THEN TRUE ELSE FALSE END " +
                                  "WHERE reservation_id = ? AND empty_slots > 0";
 
+        // 3. Öğrenciyi katılımcılara ekle
         String insertAttendeeSql = "INSERT INTO reservation_attendees (reservation_id, student_id) " +
                                    "SELECT ?, id FROM users WHERE bilkent_email = ?";
+                                   
+        // 4. (YENİ) Eğer düello dolduysa, bekleyen diğer tüm istekleri reddet
+        String autoRejectOthersSql = "UPDATE duello_requests SET status = 'Rejected' " +
+                                     "WHERE reservation_id = ? AND status = 'Pending' " +
+                                     "AND (SELECT empty_slots FROM duellos WHERE reservation_id = ?) = 0";
 
         Connection conn = null;
         try {
@@ -1599,10 +1557,20 @@ public class Database {
                 stmt.setString(2, studentEmail);
                 stmt.executeUpdate();
             }
+            
+            // YENİ EKLENEN KISIM: Diğer istekleri temizle (Düello dolduysa çalışır)
+            try (PreparedStatement stmt = conn.prepareStatement(autoRejectOthersSql)) {
+                stmt.setObject(1, resId);
+                stmt.setObject(2, resId);
+                stmt.executeUpdate(); // Etkilenen satır 0 olsa da sorun yok, hata fırlatmaz
+            }
 
             conn.commit();
             return DbStatus.SUCCESS;
 
+        // EKSİKTİ, EKLENDİ
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
         } catch (SQLException e) {
             if (conn != null) {
                 try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
@@ -1616,7 +1584,7 @@ public class Database {
         }
     }
 
-    /**
+   /**
      * Verifies the access code for a private duello and adds the student as a participant if correct.
      * Checks if the code matches, if the duello is not full, and then updates participants.
      * @param reservationId The UUID of the duello/reservation
@@ -1680,6 +1648,130 @@ public class Database {
             }
 
             conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (IllegalArgumentException e) {
+            return DbStatus.QUERY_ERROR;
+        } catch (SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            return (e.getSQLState() != null && e.getSQLState().startsWith("08")) 
+                    ? DbStatus.CONNECTION_ERROR : DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
+            }
+        }
+    }
+    
+    /**
+     * Updates the match result and automatically calculates/updates ELO points, 
+     * win rates, and matches played for both the creator and the opponent in a single transaction.
+     * @param matchId The UUID of the match/duello (reservation_id)
+     * @param isCreatorWin TRUE if the creator won, FALSE if the opponent won, NULL for a draw.
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateMatchWinner(String matchId, Boolean isCreatorWin) {
+        
+        // 1. Maçtaki oyuncuların mevcut istatistiklerini çekmek için sorgu
+        String fetchStatsSql = "SELECT r.reserved_by AS c_id, cs.elo_point AS c_elo, cs.matches_played AS c_mp, cs.win_rate AS c_wr, " +
+                               "ra.student_id AS o_id, os.elo_point AS o_elo, os.matches_played AS o_mp, os.win_rate AS o_wr " +
+                               "FROM reservations r " +
+                               "INNER JOIN students cs ON r.reserved_by = cs.user_id " +
+                               "INNER JOIN reservation_attendees ra ON r.reservation_id = ra.reservation_id " +
+                               "INNER JOIN students os ON ra.student_id = os.user_id " +
+                               "WHERE r.reservation_id = ?";
+
+        // 2. Duello sonucunu güncellemek için sorgu
+        String updateDuelloSql = "UPDATE duellos SET is_creator_win = ? WHERE reservation_id = ?";
+
+        // 3. Öğrenci istatistiklerini güncellemek için sorgu
+        String updateStudentSql = "UPDATE students SET elo_point = ?, matches_played = ?, win_rate = ? WHERE user_id = ?";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false);
+
+            java.util.UUID resId = java.util.UUID.fromString(matchId);
+
+            java.util.UUID creatorId = null;
+            int c_elo = 0, c_mp = 0;
+            double c_wr = 0.0;
+
+            java.util.UUID opponentId = null;
+            int o_elo = 0, o_mp = 0;
+            double o_wr = 0.0;
+
+            try (PreparedStatement fetchStmt = conn.prepareStatement(fetchStatsSql)) {
+                fetchStmt.setObject(1, resId);
+                try (ResultSet rs = fetchStmt.executeQuery()) {
+                    if (rs.next()) {
+                        creatorId = (java.util.UUID) rs.getObject("c_id");
+                        c_elo = rs.getInt("c_elo");
+                        c_mp = rs.getInt("c_mp");
+                        c_wr = rs.getDouble("c_wr");
+
+                        opponentId = (java.util.UUID) rs.getObject("o_id");
+                        o_elo = rs.getInt("o_elo");
+                        o_mp = rs.getInt("o_mp");
+                        o_wr = rs.getDouble("o_wr");
+                    } else {
+                        conn.rollback();
+                        return DbStatus.DATA_NOT_FOUND; // Maç veya katılımcı bulunamadı
+                    }
+                }
+            }
+
+            double c_score = (isCreatorWin == null) ? 0.5 : (isCreatorWin ? 1.0 : 0.0);
+            double o_score = (isCreatorWin == null) ? 0.5 : (isCreatorWin ? 0.0 : 1.0);
+
+            double expected_c = 1.0 / (1.0 + Math.pow(10.0, (o_elo - c_elo) / 400.0));
+            double expected_o = 1.0 / (1.0 + Math.pow(10.0, (c_elo - o_elo) / 400.0));
+
+            int K = 32;
+            int new_c_elo = c_elo + (int) Math.round(K * (c_score - expected_c));
+            int new_o_elo = o_elo + (int) Math.round(K * (o_score - expected_o));
+
+            int c_wins = (int) Math.round(c_mp * c_wr) + (c_score == 1.0 ? 1 : 0);
+            int o_wins = (int) Math.round(o_mp * o_wr) + (o_score == 1.0 ? 1 : 0);
+            
+            int new_c_mp = c_mp + 1;
+            int new_o_mp = o_mp + 1;
+            
+            double new_c_wr = (double) c_wins / new_c_mp;
+            double new_o_wr = (double) o_wins / new_o_mp;
+
+
+            try (PreparedStatement duelloStmt = conn.prepareStatement(updateDuelloSql)) {
+                if (isCreatorWin == null) {
+                    duelloStmt.setNull(1, java.sql.Types.BOOLEAN);
+                } else {
+                    duelloStmt.setBoolean(1, isCreatorWin);
+                }
+                duelloStmt.setObject(2, resId);
+                duelloStmt.executeUpdate();
+            }
+
+            try (PreparedStatement updateCStmt = conn.prepareStatement(updateStudentSql)) {
+                updateCStmt.setInt(1, new_c_elo);
+                updateCStmt.setInt(2, new_c_mp);
+                updateCStmt.setDouble(3, new_c_wr);
+                updateCStmt.setObject(4, creatorId);
+                updateCStmt.executeUpdate();
+            }
+
+            try (PreparedStatement updateOStmt = conn.prepareStatement(updateStudentSql)) {
+                updateOStmt.setInt(1, new_o_elo);
+                updateOStmt.setInt(2, new_o_mp);
+                updateOStmt.setDouble(3, new_o_wr);
+                updateOStmt.setObject(4, opponentId);
+                updateOStmt.executeUpdate();
+            }
+
+            conn.commit(); // Tüm güncellemeler başarılıysa veritabanına kalıcı olarak kaydet
             return DbStatus.SUCCESS;
 
         } catch (IllegalArgumentException e) {
@@ -1992,35 +2084,41 @@ public class Database {
     }
 
     /**
-     * Finds up to 5 potential opponents for a solo match based on sport type and ELO proximity.
-     * Searches for other students who have 'is_elo_matching_enabled' set to TRUE,
-     * share the same sport interest, and are ordered by how close their ELO is to the current student.
+     * Finds up to 5 suitable open Duellos for a specific sport.
+     * Searches for active duellos created by other users, ordered by how close 
+     * the creator's ELO point is to the current student's ELO.
      * @param currentStudent The student looking for a match
      * @param sportName The name of the sport (e.g., "TENNIS" or "TABLE TENNIS")
-     * @return An ArrayList containing a maximum of 5 matching Student objects (closest ELO first).
+     * @return An ArrayList containing a maximum of 5 matching Duello objects.
      */
-    public ArrayList<Student> findOpponentForMatch(Student currentStudent, String sportName) {
+    public ArrayList<models.Duello> findOpponentForMatch(models.Student currentStudent, String sportName) {
         
-        ArrayList<Student> potentialOpponents = new ArrayList<>();
+        ArrayList<models.Duello> suitableDuellos = new ArrayList<>();
 
         if (currentStudent == null || sportName == null || sportName.trim().isEmpty()) {
-            return potentialOpponents; 
+            return suitableDuellos; 
         }
 
         String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
 
-        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
-                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
-                     "FROM users u " +
-                     "INNER JOIN students s ON u.id = s.user_id " +
-                     "INNER JOIN student_interests si ON u.id = si.student_id " +
-                     "INNER JOIN sports sp ON si.sport_id = sp.id " +
-                     "WHERE u.bilkent_email != ? " + // Kendisi hariç
-                     "  AND u.role = 'student' " +
-                     "  AND s.is_elo_matching_enabled = TRUE " + // Eşleştirmeyi açanlar
-                     "  AND UPPER(REPLACE(sp.name, ' ', '_')) = ? " + // Aynı sporu arayanlar
-                     "ORDER BY ABS(s.elo_point - ?) ASC " + // Puanı en yakın olanlar ilk gelsin
-                     "LIMIT 5"; // MAKSİMUM 5 KİŞİ GETİR
+        String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
+                     "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
+                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
+                     "sp.name AS sport_name " +
+                     "FROM duellos d " +
+                     "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
+                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                     "INNER JOIN sports sp ON f.sport_id = sp.id " +
+                     "INNER JOIN users creator_u ON r.reserved_by = creator_u.id " +
+                     "INNER JOIN students creator_s ON creator_u.id = creator_s.user_id " +
+                     "WHERE creator_u.bilkent_email != ? " + // Kendi açtığın düelloları görme
+                     "  AND d.is_matched = FALSE " +         // Eşleşme henüz tamamlanmamış olsun
+                     "  AND d.empty_slots > 0 " +            // Boş yer olsun
+                     "  AND r.is_cancelled = FALSE " +       // İptal edilmemiş olsun
+                     "  AND r.reservation_date >= CURRENT_DATE " + // Geçmiş tarihli düelloları gösterme
+                     "  AND UPPER(REPLACE(sp.name, ' ', '_')) = ? " + // Seçilen spor türü
+                     "ORDER BY ABS(creator_s.elo_point - ?) ASC " + // Kurucunun ELO'su senin ELO'na en yakın olanlar üstte
+                     "LIMIT 5";
 
         try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
             
@@ -2030,22 +2128,45 @@ public class Database {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    Student opponent = new Student(
-                        rs.getString("full_name"), 
-                        rs.getString("bilkent_email"), 
-                        rs.getString("uni_id")
-                    );
                     
-                    opponent.setEloPoint(rs.getInt("elo_point"));
-                    opponent.setPenaltyPoints(rs.getInt("penalty_points"));
-                    opponent.setReliabilityScore(rs.getDouble("reliability_score"));
-                    opponent.setMatchesPlayed(rs.getInt("matches_played"));
-                    opponent.setWinRate(rs.getDouble("win_rate"));
+                    String facilityId = rs.getObject("facility_id").toString();
+                    String facilityName = rs.getString("facility_name");
+                    String location = rs.getString("campus_location");
+                    int capacity = rs.getInt("capacity");
+                    boolean maintenance = rs.getBoolean("is_under_maintenance");
                     
-                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
-                    opponent.setMatchesWon(matchesWon);
+                    models.SportType st = null;
+                    try {
+                        String fetchedSportName = rs.getString("sport_name");
+                        if (fetchedSportName != null) {
+                            st = models.SportType.valueOf(fetchedSportName.trim().toUpperCase().replace(" ", "_"));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
+                    }
 
-                    potentialOpponents.add(opponent);
+                    models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
+                    facility.setUnderMaintenance(maintenance);
+
+                    String reservationId = rs.getObject("reservation_id").toString();
+                    java.sql.Date sqlDate = rs.getDate("reservation_date");
+                    java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
+                    String timeSlot = rs.getString("time_slot");
+                    
+                    String accessCode = rs.getString("access_code");
+                    String reqSkill = rs.getString("required_skill_level");
+                    int slots = rs.getInt("empty_slots");
+                    boolean matched = rs.getBoolean("is_matched");
+                    boolean cancelled = rs.getBoolean("is_cancelled");
+                    boolean attended = rs.getBoolean("has_attended");
+
+                    // 3. Duello objesini oluştur ve listeye ekle
+                    models.Duello duello = new models.Duello(reservationId, facility, resDate, timeSlot, accessCode, reqSkill, slots);
+                    duello.setMatched(matched);
+                    duello.setCancelled(cancelled);
+                    duello.setHasAttended(attended);
+                    
+                    suitableDuellos.add(duello);
                 }
             }
 
@@ -2053,6 +2174,6 @@ public class Database {
             e.printStackTrace();
         }
 
-        return potentialOpponents;
+        return suitableDuellos;
     }
 }
