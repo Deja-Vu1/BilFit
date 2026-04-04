@@ -36,8 +36,8 @@ public class ActivationController {
     public static ActivationContext currentContext = ActivationContext.REGISTRATION;
 
     private boolean isProcessing = false;
-    /*private Database db = Database.getInstance();
-    private AuthManager authManager = new AuthManager(db);*/
+    private Database db = Database.getInstance();
+    private AuthManager authManager = new AuthManager(db);
 
     @FXML
     public void submitCode(ActionEvent event) {
@@ -109,8 +109,7 @@ public class ActivationController {
                         break;
                 }
             });
-        }).start();*/
-        goToLogin(event);
+        }).start();
     }
 
     private void askForNewPassword(Node sourceNode) {
