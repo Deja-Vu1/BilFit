@@ -2718,4 +2718,96 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Inserts a new facility into the database.
+     * @param facilityName The name of the facility (e.g., "Main Sports Hall")
+     * @param location The campus location (e.g., "Main Campus" or "East Campus")
+     * @param capacity The maximum capacity of the facility
+     * @param sportName The name of the sport associated with this facility (e.g., "BASKETBALL")
+     * @param isUnderMaintenance Whether the facility is initially under maintenance
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if sport not found), or errors.
+     */
+    public DbStatus insertFacility(String facilityName, String location, int capacity, String sportName, boolean isUnderMaintenance) {
+        
+        String insertSql = "INSERT INTO facilities (name, campus_location, capacity, is_under_maintenance, sport_id) " +
+                           "SELECT ?, ?, ?, ?, id FROM sports WHERE UPPER(REPLACE(name, ' ', '_')) = ?";
+
+        try (PreparedStatement insertStmt = getConnection().prepareStatement(insertSql)) {
+            
+            String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
+
+            insertStmt.setString(1, facilityName);
+            insertStmt.setString(2, location);
+            insertStmt.setInt(3, capacity);
+            insertStmt.setBoolean(4, isUnderMaintenance);
+            insertStmt.setString(5, formattedSportName);
+            
+            int insertedRows = insertStmt.executeUpdate();
+            
+            if (insertedRows == 0) {
+                return DbStatus.DATA_NOT_FOUND; 
+            }
+
+            return DbStatus.SUCCESS;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Increments the 'actions_performed' count for the specified admin in the database.
+     * Uses RETURNING to instantly fetch the updated count and sync it with the Admin object.
+     * @param currentAdmin The Admin object performing the action
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus addActionPerformed(models.Admin currentAdmin) {
+        
+        // Objenin veya email'in null olma ihtimaline karşı güvenlik kontrolü
+        if (currentAdmin == null || currentAdmin.getBilkentEmail() == null) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // UPDATE işlemini yapar ve yeni değeri RETURNING ile ResultSet olarak döndürür
+        String sql = "UPDATE admins SET actions_performed = actions_performed + 1 " +
+                     "WHERE admin_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "RETURNING actions_performed";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, currentAdmin.getBilkentEmail());
+
+            // RETURNING kullandığımız için executeUpdate() yerine executeQuery() kullanıyoruz
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    // Veritabanındaki güncel değeri alıp anında Java objesine set ediyoruz
+                    int updatedCount = rs.getInt("actions_performed");
+                    currentAdmin.setActionsPerformed(updatedCount);
+                    
+                    return DbStatus.SUCCESS;
+                } else {
+                    // Eğer rs.next() false ise, bu e-postaya ait bir admin bulunamadı demektir
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            // Veritabanı bağlantı hatası kontrolü
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }
