@@ -22,8 +22,11 @@ public class Student extends User {
     private boolean isEloMatchingEnabled;
     private boolean isBanned;
     private List<Match> matchHistory;
-    private List<Student> friends;
-    private List<Student> friendRequests;
+    
+    // Arkadaşlık sistemi listeleri
+    private List<Student> friends; // Kabul edilmiş arkadaşlar
+    private List<Student> incomingFriendRequests; // Bana gelen ve kabul etmemi bekleyen istekler
+    private List<Student> outgoingFriendRequests; // Benim attığım ve karşı tarafın kabul etmesini beklediğim istekler
 
     public Student(String fullName, String bilkentEmail, String studentId) {
         super(fullName, bilkentEmail);
@@ -40,14 +43,19 @@ public class Student extends User {
         this.isPublicProfile = true;
         this.isEloMatchingEnabled = true;
         this.isBanned = false;
+        
         this.interests = new ArrayList<>();
         this.badges = new ArrayList<>();
         this.matchHistory = new ArrayList<>();
+        
+        // Listelerin başlatılması
         this.friends = new ArrayList<>();
-        this.friendRequests = new ArrayList<>();
+        this.incomingFriendRequests = new ArrayList<>();
+        this.outgoingFriendRequests = new ArrayList<>();
     }
+    
 
-    // EKLENEN KISIM: Nickname için Getter ve Setter metotları
+    // Getter ve Setter metotları
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }
 
@@ -84,8 +92,34 @@ public class Student extends User {
     
     public List<Match> getMatchHistory() { return matchHistory; }
     public void setMatchHistory(List<Match> matchHistory) { this.matchHistory = matchHistory; }
+    
     public List<Student> getFriends() { return friends; }
     public void setFriends(List<Student> friends) { this.friends = friends; }
-    public List<Student> getFriendRequests() { return friendRequests; }
-    public void setFriendRequests(List<Student> friendRequests) { this.friendRequests = friendRequests; }
+    
+    public List<Student> getIncomingFriendRequests() { return incomingFriendRequests; }
+    public void setIncomingFriendRequests(List<Student> incomingFriendRequests) { this.incomingFriendRequests = incomingFriendRequests; }
+    
+    public List<Student> getOutgoingFriendRequests() { return outgoingFriendRequests; }
+    public void setOutgoingFriendRequests(List<Student> outgoingFriendRequests) { this.outgoingFriendRequests = outgoingFriendRequests; }
+
+    public String toString() {
+        return "Student{" +
+                "fullName='" + getFullName() + '\'' +
+                ", bilkentEmail='" + getBilkentEmail() + '\'' +
+                ", studentId='" + studentId + '\'' +
+                ", nickname='" + nickname + '\'' +
+                ", eloPoint=" + eloPoint +
+                ", penaltyPoints=" + penaltyPoints +
+                ", reliabilityScore=" + reliabilityScore +
+                ", ratingCount=" + ratingCount +
+                ", interests=" + interests +
+                ", badges=" + badges +
+                ", matchesPlayed=" + matchesPlayed +
+                ", matchesWon=" + matchesWon +
+                ", winRate=" + winRate +
+                ", isPublicProfile=" + isPublicProfile +
+                ", isEloMatchingEnabled=" + isEloMatchingEnabled +
+                ", isBanned=" + isBanned +
+                '}';
+    }
 }

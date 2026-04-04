@@ -3,12 +3,8 @@ package managers;
 import database.Database;
 import database.DbStatus;
 import models.Duello;
-import models.Match;
-import models.SportType;
 import models.Student;
-import models.Team;
-import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.ArrayList;
 
 public class DuelloManager {
 
@@ -27,7 +23,13 @@ public class DuelloManager {
 
         duello.setEmptySlots(1);
 
-        DbStatus status = db.insertDuello(duello.getReservationId(), creator.getBilkentEmail());
+        DbStatus status = db.insertDuello(
+            duello.getReservationId(), 
+            creator.getBilkentEmail(), 
+            duello.getRequiredSkillLevel(), 
+            duello.getEmptySlots()
+        );
+        
         if (status == DbStatus.SUCCESS) {
             duello.setMatched(false);
             if (!duello.getAttendees().contains(creator)) {
@@ -65,6 +67,15 @@ public class DuelloManager {
             return DbStatus.QUERY_ERROR;
         }
 
+        if (!student.isCanAttend() || student.isBanned()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        Student creator = duello.getAttendees().get(0);
+        if (!creator.isCanAttend() || creator.isBanned()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
         DbStatus status = db.updateDuelloParticipant(duello.getReservationId(), student.getBilkentEmail());
         if (status == DbStatus.SUCCESS) {
             duello.getAttendees().add(student);
@@ -79,18 +90,13 @@ public class DuelloManager {
 
     public DbStatus declineDuelloRequest(Duello duello, Student student) {
         if (duello == null || student == null) return DbStatus.QUERY_ERROR;
-        
         return db.deleteDuelloRequest(duello.getReservationId(), student.getBilkentEmail());
     }
 
     public DbStatus cancelDuello(Duello duello, Student creator) {
         if (duello == null || creator == null || duello.isMatched()) return DbStatus.QUERY_ERROR;
         
-        if(duello.getAttendees().isEmpty() || !duello.getAttendees().get(0).getBilkentEmail().equals(creator.getBilkentEmail())) {
-            return DbStatus.QUERY_ERROR;
-        }
-
-        DbStatus status = db.deleteDuello(duello.getReservationId());
+        DbStatus status = db.deleteDuello(duello.getReservationId(), creator.getBilkentEmail());
         if(status == DbStatus.SUCCESS) {
             duello.setCancelled(true);
             duello.getAttendees().clear();
@@ -105,6 +111,10 @@ public class DuelloManager {
         }
 
         Student creator = duello.getAttendees().get(0);
+        if (!creator.isCanAttend() || creator.isBanned()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
         if (creator.isEloMatchingEnabled() && student.isEloMatchingEnabled()) {
             if (Math.abs(creator.getEloPoint() - student.getEloPoint()) > 400) {
                 return DbStatus.QUERY_ERROR;
@@ -123,28 +133,39 @@ public class DuelloManager {
         return status;
     }
 
+    public ArrayList<Duello> findOpponentForMatch(Student currentStudent, String sportName) {
+        if (currentStudent == null || sportName == null || sportName.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        return db.findOpponentForMatch(currentStudent, sportName);
+    }
+    
+    public ArrayList<Duello> getUserDuellos(Student currentStudent) {
+        if (currentStudent == null) return new ArrayList<>();
+        return db.getUserDuellos(currentStudent);
+    }
+
+    public DbStatus updateMatchWinner(String matchId, Boolean isCreatorWin) {
+        if (matchId == null || matchId.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+        return db.updateMatchWinner(matchId, isCreatorWin);
+    }
+
     private void finalizeDuelloMatch(Duello duello) {
         if (duello.getAttendees().size() == 2) {
             Student p1 = duello.getAttendees().get(0);
             Student p2 = duello.getAttendees().get(1);
-            SportType sport = duello.getFacility().getSportType();
-            String matchId = UUID.randomUUID().toString();
-            
-            DbStatus matchStatus = db.insertMatch(matchId, p1.getBilkentEmail(), p2.getBilkentEmail(), sport.name());
-            
-            if (matchStatus == DbStatus.SUCCESS) {
-                Team t1 = new Team(p1.getStudentId() + "_T", p1.getNickname(), "SOLO", 1, false, p1);
-                Team t2 = new Team(p2.getStudentId() + "_T", p2.getNickname(), "SOLO", 1, false, p2);
-                Match m = new Match(matchId, LocalDateTime.now(), sport, t1, t2);
-                duello.setScheduledMatch(m);
-                duello.setMatched(true);
 
-                notifManager.sendToUser(p1, "Duello Matched", "An opponent has been found for your duello!");
-                notifManager.sendToUser(p2, "Duello Matched", "Your duello match is ready!");
-            } else {
+            if (!p1.isCanAttend() || p1.isBanned() || !p2.isCanAttend() || p2.isBanned()) {
                 duello.setEmptySlots(1);
                 duello.getAttendees().remove(p2);
+                return;
             }
+
+            duello.setMatched(true);
+            notifManager.sendToUser(p1, "Duello Matched", "An opponent has been found for your duello!");
+            notifManager.sendToUser(p2, "Duello Matched", "Your duello match is ready!");
         }
     }
 }

@@ -1,19 +1,21 @@
 package managers;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import models.Reservation;
 import models.Student;
 import models.User;
-import java.util.ArrayList;
-
-import database.Database;
 
 public class SessionManager {
 
     private static final SessionManager instance = new SessionManager();
     
     private User currentUser;
-    // TEK OBJE YERİNE ARRAYLIST OLDU
     private ArrayList<Reservation> currentReservations = new ArrayList<>();
+    private ArrayList<Student> currentFriends = new ArrayList<>();
+    private ArrayList<Student> incomingFriendRequests = new ArrayList<>();
+    private ArrayList<Student> outgoingFriendRequests = new ArrayList<>();
 
     private boolean isDuelloRequested = false;
     private boolean isJoinedWithCode = false;
@@ -34,7 +36,6 @@ public class SessionManager {
         return currentUser;
     }
 
-    // YENİ ARRAYLIST GETTER / SETTER
     public ArrayList<Reservation> getCurrentReservations() {
         return currentReservations;
     }
@@ -45,6 +46,30 @@ public class SessionManager {
     
     public void addReservation(Reservation res) {
         if (res != null) this.currentReservations.add(res);
+    }
+
+    public ArrayList<Student> getCurrentFriends() {
+        return currentFriends;
+    }
+
+    public void setCurrentFriends(List<Student> friends) {
+        this.currentFriends = friends != null ? new ArrayList<>(friends) : new ArrayList<>();
+    }
+
+    public ArrayList<Student> getIncomingFriendRequests() {
+        return incomingFriendRequests;
+    }
+
+    public void setIncomingFriendRequests(List<Student> incomingFriendRequests) {
+        this.incomingFriendRequests = incomingFriendRequests != null ? new ArrayList<>(incomingFriendRequests) : new ArrayList<>();
+    }
+
+    public ArrayList<Student> getOutgoingFriendRequests() {
+        return outgoingFriendRequests;
+    }
+
+    public void setOutgoingFriendRequests(List<Student> outgoingFriendRequests) {
+        this.outgoingFriendRequests = outgoingFriendRequests != null ? new ArrayList<>(outgoingFriendRequests) : new ArrayList<>();
     }
 
     public boolean isDuelloRequested() {
@@ -81,11 +106,13 @@ public class SessionManager {
 
     public void logout() {
         this.currentUser = null;
-        this.currentReservations.clear(); // Liste temizlendi
+        this.currentReservations.clear();
+        this.currentFriends.clear();
+        this.incomingFriendRequests.clear();
+        this.outgoingFriendRequests.clear();
         this.isDuelloRequested = false;
         this.isJoinedWithCode = false;
         this.isTournamentApplied = false;
         this.isTournamentJoinedWithCode = false;
     }
-    
 }

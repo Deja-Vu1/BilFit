@@ -28,4 +28,17 @@ public class Duello extends Reservation {
     public void setMatched(boolean matched) { isMatched = matched; }
     public Match getScheduledMatch() { return scheduledMatch; }
     public void setScheduledMatch(Match scheduledMatch) { this.scheduledMatch = scheduledMatch; }
+
+    public String toString() {
+        return "Duello{" +
+                "reservationId='" + getReservationId() + '\'' +
+                ", facility=" + getFacility().getName() +
+                ", date=" + getDate() +
+                ", timeSlot='" + getTimeSlot() + '\'' +
+                ", accessCode='" + accessCode + '\'' +
+                ", requiredSkillLevel='" + requiredSkillLevel + '\'' +
+                ", emptySlots=" + emptySlots +
+                ", isMatched=" + isMatched +
+                '}';
+    }
 }
