@@ -104,16 +104,20 @@ public class DuelloManager {
         return status;
     }
 
-    public DbStatus joinDuelloWithCode(Duello duello, Student student, String code) {
-        if (duello == null || student == null || code == null) return DbStatus.QUERY_ERROR;
-        if (duello.isCancelled() || !student.isCanAttend() || student.isBanned() || !code.equals(duello.getAccessCode()) || duello.isMatched() || duello.getEmptySlots() <= 0 || duello.getAttendees().contains(student)) {
-            return DbStatus.QUERY_ERROR;
-        }
+    public DbStatus joinDuelloWithCode(String code, Student student) {
+        if (code == null || student == null || code.trim().isEmpty()) return DbStatus.QUERY_ERROR;
 
+        // 1. Koda ait GERÇEK düelloyu veritabanından çek
+        Duello duello = db.getDuelloByCode(code);
+        
+        if (duello == null) return DbStatus.DATA_NOT_FOUND; // Kod hatalıysa veya düello silinmişse
+        if (duello.getAttendees().contains(student)) return DbStatus.QUERY_ERROR; // Öğrenci zaten düellonun içindeyse
+
+        if (!student.isCanAttend() || student.isBanned()) return DbStatus.QUERY_ERROR;
+
+        // Gerçek kurucuyu DB'den çektiğimiz için artık burası güvenle çalışır
         Student creator = duello.getAttendees().get(0);
-        if (!creator.isCanAttend() || creator.isBanned()) {
-            return DbStatus.QUERY_ERROR;
-        }
+        if (!creator.isCanAttend() || creator.isBanned()) return DbStatus.QUERY_ERROR;
 
         if (creator.isEloMatchingEnabled() && student.isEloMatchingEnabled()) {
             if (Math.abs(creator.getEloPoint() - student.getEloPoint()) > 400) {

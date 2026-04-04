@@ -2524,4 +2524,121 @@ public class Database {
 
         return userDuellos;
     }
+
+    /**
+     * Retrieves a specific Duello based on its unique access code.
+     * Also fetches the creator of the duello and adds them to the attendees list.
+     * @param code The 6-digit access code of the duello
+     * @return The matching Duello object, or null if not found
+     */
+    public models.Duello getDuelloByCode(String code) {
+        
+        if (code == null || code.trim().isEmpty()) {
+            return null;
+        }
+
+        // users ve students tabloları JOIN edilerek kurucu (creator) bilgileri sorguya eklendi
+        String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
+                     "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
+                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
+                     "sp.name AS sport_name, " +
+                     "u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM duellos d " +
+                     "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
+                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                     "LEFT JOIN sports sp ON f.sport_id = sp.id " +
+                     "INNER JOIN users u ON r.reserved_by = u.id " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE d.access_code = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, code);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    // 1. Tesis (Facility) Objesini Oluşturma
+                    String facilityId = rs.getObject("facility_id").toString();
+                    String facilityName = rs.getString("facility_name");
+                    String location = rs.getString("campus_location");
+                    int capacity = rs.getInt("capacity");
+                    boolean maintenance = rs.getBoolean("is_under_maintenance");
+                    
+                    models.SportType st = null;
+                    try {
+                        String sportName = rs.getString("sport_name");
+                        if (sportName != null) {
+                            st = models.SportType.valueOf(sportName.trim().toUpperCase().replace(" ", "_"));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
+                    }
+
+                    models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
+                    facility.setUnderMaintenance(maintenance);
+
+                    // 2. Duello ve Reservation Özelliklerini Çekme
+                    String reservationId = rs.getObject("reservation_id").toString();
+                    java.sql.Date sqlDate = rs.getDate("reservation_date");
+                    java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
+                    String timeSlot = rs.getString("time_slot");
+                    
+                    String accessCode = rs.getString("access_code");
+                    String reqSkill = rs.getString("required_skill_level");
+                    int slots = rs.getInt("empty_slots");
+                    boolean matched = rs.getBoolean("is_matched");
+                    boolean cancelled = rs.getBoolean("is_cancelled");
+                    boolean attended = rs.getBoolean("has_attended");
+
+                    // 3. Duello Objesini Oluşturma
+                    models.Duello duello = new models.Duello(
+                            reservationId, 
+                            facility, 
+                            resDate, 
+                            timeSlot, 
+                            accessCode, 
+                            reqSkill, 
+                            slots
+                    );
+                    
+                    duello.setMatched(matched);
+                    duello.setCancelled(cancelled);
+                    duello.setHasAttended(attended);
+
+                    // 4. Kurucu (Creator) Objesini Oluşturma ve Ekleme
+                    models.Student creator = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    creator.setEloPoint(rs.getInt("elo_point"));
+                    creator.setPenaltyPoints(rs.getInt("penalty_points"));
+                    creator.setReliabilityScore(rs.getDouble("reliability_score"));
+                    creator.setMatchesPlayed(rs.getInt("matches_played"));
+                    creator.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    creator.setMatchesWon(matchesWon);
+
+                    // Eğer attendees listesi null ise (Reservation class'ında initialize edilmemişse) hata almamak için kontrol edelim
+                    if (duello.getAttendees() == null) {
+                        duello.setAttendees(new java.util.ArrayList<>());
+                    }
+                    
+                    // Kurucuyu katılımcı listesine ekle
+                    duello.getAttendees().add(creator);
+                    
+                    return duello; // Bulunan düelloyu döndür
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null; // Düello bulunamazsa veya hata çıkarsa null döner
+    }
 }

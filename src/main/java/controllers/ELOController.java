@@ -1,6 +1,5 @@
 package controllers;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -23,7 +22,6 @@ import managers.DuelloManager;
 import managers.ReservationManager;
 import managers.SessionManager;
 import models.Duello;
-import models.Facility;
 import models.Reservation;
 import models.Student;
 
@@ -358,19 +356,23 @@ public class ELOController {
             }
             new Thread(() -> {
                 Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-                Facility targetFacility = new Facility("TARGET_FAC", "Basketball Field", "Main Campus", null, 10);
-                Duello dummyDuelloForCode = new Duello("TARGET_RES_ID", targetFacility, LocalDate.now(), "20:00", code, "Pro", 4);
                 
                 DbStatus status = DbStatus.QUERY_ERROR;
-                try { status = duelloManager.joinDuelloWithCode(dummyDuelloForCode, currentUser, code); } catch (Exception ex) {}
+                
+                // ARTIK SAHTE OBJE YOK! Sadece DB'nin anlayacağı saf string kodu yolluyoruz.
+                try { 
+                    status = duelloManager.joinDuelloWithCode(code.trim(), currentUser); 
+                } catch (Exception ex) { ex.printStackTrace(); }
                 
                 final DbStatus finalStatus = status;
                 Platform.runLater(() -> {
                     if (finalStatus == DbStatus.SUCCESS) { 
                          showAlert(Alert.AlertType.INFORMATION, "İşlem Başarılı", "Koda sahip düelloya başarıyla katıldınız!");
                          loadEloAndDuelloData();
+                    } else if (finalStatus == DbStatus.DATA_NOT_FOUND) {
+                         showAlert(Alert.AlertType.ERROR, "Hata", "Girdiğiniz koda ait açık bir düello bulunamadı.");
                     } else {
-                         showAlert(Alert.AlertType.ERROR, "Hata", "Geçersiz kod veya dolu kontenjan.");
+                         showAlert(Alert.AlertType.ERROR, "Hata", "Geçersiz kod, ELO uyumsuzluğu veya kendi açtığınız maça girmeye çalışıyorsunuz.");
                     }
                 });
             }).start();
