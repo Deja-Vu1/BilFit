@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox prefHeight="700.0" prefWidth="900.0" spacing="20.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.TournamentDetailsController">
+   <padding>
+      <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
+   </padding>
+
+   <HBox alignment="CENTER_LEFT">
+      <VBox>
+         <Label fx:id="tournamentNameLabel" styleClass="content-title" text="Tournament Name" />
+         <Label fx:id="tournamentInfoLabel" styleClass="content-subtitle" text="Dates | Sport | Capacity" />
+      </VBox>
+      <Region HBox.hgrow="ALWAYS" />
+      <HBox alignment="CENTER_RIGHT" spacing="15.0">
+         <ComboBox fx:id="friendSelectionBox" prefWidth="200.0" promptText="Select Friend (Optional)" visible="false" managed="false"/>
+         <Button fx:id="applyTournamentButton" onAction="#handleApply" prefHeight="40.0" prefWidth="140.0" styleClass="btn-success" text="Join Tournament" />
+      </HBox>
+   </HBox>
+   <Separator prefWidth="200.0" />
+
+   <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent; -fx-background: #F4F7FE;">
+      <content>
+         <VBox spacing="20.0">
+            
+            <VBox fx:id="teamsListContainer" styleClass="content-card" visible="false" managed="false">
+               <Label styleClass="content-title" text="Participating Teams (Pending Fixture)" />
+               <Separator prefWidth="200.0">
+                  <VBox.margin><Insets bottom="10.0" top="5.0" /></VBox.margin>
+               </Separator>
+               <VBox fx:id="teamsVBox" spacing="10.0" />
+            </VBox>
+
+            <VBox fx:id="fixtureContainer" styleClass="content-card" visible="false" managed="false">
+               <Label styleClass="content-title" text="Tournament Fixture" />
+               <Separator prefWidth="200.0">
+                  <VBox.margin><Insets bottom="10.0" top="5.0" /></VBox.margin>
+               </Separator>
+               
+               <HBox fx:id="byeTeamBox" alignment="CENTER" style="-fx-background-color: #FFF3CD; -fx-border-color: #FFEEBA; -fx-border-radius: 8; -fx-background-radius: 8;" visible="false" managed="false">
+                  <padding><Insets bottom="10.0" left="15.0" right="15.0" top="10.0" /></padding>
+                  <VBox.margin><Insets bottom="15.0" /></VBox.margin>
+                  <Label fx:id="byeTeamLabel" text="Automatically Advanced (BYE): None" style="-fx-font-weight: bold; -fx-text-fill: #856404;" />
+               </HBox>
+               
+               <VBox fx:id="matchesVBox" spacing="12.0" />
+            </VBox>
+
+         </VBox>
+      </content>
+   </ScrollPane>
+</VBox>

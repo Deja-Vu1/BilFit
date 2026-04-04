@@ -2,24 +2,22 @@ package database;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
-import models.SportType;
-import models.Student;
 import models.Facility;
 import models.Reservation;
-import java.util.List;
-import java.util.ArrayList;
+import models.SportType;
+import models.Student;
 
 public class Database {
 
@@ -2978,6 +2976,513 @@ public class Database {
                 return DbStatus.CONNECTION_ERROR;
             }
             
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+    public java.util.List<models.Team> getIncomingTeamRequests(String email) {
+        java.util.List<models.Team> incomingRequests = new java.util.ArrayList<>();
+        String sql = "SELECT t.team_id, t.team_name, t.type, t.max_capacity, " +
+                     "u.full_name, u.bilkent_email, u.student_id " +
+                     "FROM team_members tm " +
+                     "INNER JOIN teams t ON tm.team_id = t.team_id " +
+                     "INNER JOIN users u ON t.captain_id = u.id " +
+                     "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "AND tm.status = 'Pending'";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, email);
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student captain = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("student_id")
+                    );
+                    models.Team team = new models.Team(
+                        rs.getString("team_id"),
+                        rs.getString("team_name"),
+                        rs.getString("type"),
+                        rs.getInt("max_capacity"),
+                        false,
+                        captain
+                    );
+                    incomingRequests.add(team);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return incomingRequests;
+    }
+
+    public java.util.List<models.Team> getOutgoingTeamRequests(String email) {
+        java.util.List<models.Team> outgoingRequests = new java.util.ArrayList<>();
+        String sql = "SELECT t.team_id, t.team_name, t.type, t.max_capacity, " +
+                     "u.full_name, u.bilkent_email, u.student_id " +
+                     "FROM teams t " +
+                     "INNER JOIN team_members tm ON t.team_id = tm.team_id " +
+                     "INNER JOIN users u ON t.captain_id = u.id " +
+                     "WHERE t.captain_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "AND tm.status = 'Pending'";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, email);
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student captain = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("student_id")
+                    );
+                    models.Team team = new models.Team(
+                        rs.getString("team_id"),
+                        rs.getString("team_name"),
+                        rs.getString("type"),
+                        rs.getInt("max_capacity"),
+                        false,
+                        captain
+                    );
+                    outgoingRequests.add(team);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return outgoingRequests;
+    }
+
+    public java.util.List<models.Team> getMyTeams(String email) {
+        java.util.List<models.Team> myTeams = new java.util.ArrayList<>();
+        String sql = "SELECT t.team_id, t.team_name, t.type, t.max_capacity, " +
+                     "u.full_name, u.bilkent_email, u.student_id " +
+                     "FROM team_members tm " +
+                     "INNER JOIN teams t ON tm.team_id = t.team_id " +
+                     "INNER JOIN users u ON t.captain_id = u.id " +
+                     "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "AND tm.status = 'Accepted'";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, email);
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student captain = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("student_id")
+                    );
+                    models.Team team = new models.Team(
+                        rs.getString("team_id"),
+                        rs.getString("team_name"),
+                        rs.getString("type"),
+                        rs.getInt("max_capacity"),
+                        false,
+                        captain
+                    );
+                    myTeams.add(team);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return myTeams;
+    }
+
+    public DbStatus registerSoloToTournament(String tournamentId, String email) {
+        String teamId = java.util.UUID.randomUUID().toString();
+        
+        String insertTeamSql = "INSERT INTO teams (team_id, team_name, type, max_capacity, captain_id) " +
+                               "SELECT ?, CONCAT(full_name, '''s Team'), 'SOLO', 1, id " +
+                               "FROM users WHERE bilkent_email = ?";
+                               
+        String insertMemberSql = "INSERT INTO team_members (team_id, student_id, status) " +
+                                 "SELECT ?, id, 'Accepted' FROM users WHERE bilkent_email = ?";
+                                 
+        String insertParticipantSql = "INSERT INTO tournament_participants (tournament_id, team_id) VALUES (?, ?)";
+
+        java.sql.Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false);
+
+            try (java.sql.PreparedStatement stmt1 = conn.prepareStatement(insertTeamSql)) {
+                stmt1.setString(1, teamId);
+                stmt1.setString(2, email);
+                if (stmt1.executeUpdate() == 0) {
+                    conn.rollback();
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+            try (java.sql.PreparedStatement stmt2 = conn.prepareStatement(insertMemberSql)) {
+                stmt2.setString(1, teamId);
+                stmt2.setString(2, email);
+                stmt2.executeUpdate();
+            }
+
+            try (java.sql.PreparedStatement stmt3 = conn.prepareStatement(insertParticipantSql)) {
+                stmt3.setString(1, tournamentId);
+                stmt3.setString(2, teamId);
+                stmt3.executeUpdate();
+            }
+
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (java.sql.SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (java.sql.SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (java.sql.SQLException e) { e.printStackTrace(); }
+            }
+        }
+    }
+
+    public DbStatus sendTeamInvite(String tournamentId, String senderEmail, String receiverEmail) {
+        String teamId = java.util.UUID.randomUUID().toString();
+
+        String insertTeamSql = "INSERT INTO teams (team_id, team_name, type, max_capacity, captain_id) " +
+                               "SELECT ?, CONCAT(full_name, '''s Team'), 'TEAM', 2, id " +
+                               "FROM users WHERE bilkent_email = ?";
+
+        String insertCaptainSql = "INSERT INTO team_members (team_id, student_id, status) " +
+                                  "SELECT ?, id, 'Accepted' FROM users WHERE bilkent_email = ?";
+
+        String insertFriendSql = "INSERT INTO team_members (team_id, student_id, status) " +
+                                 "SELECT ?, id, 'Pending' FROM users WHERE bilkent_email = ?";
+
+        String insertParticipantSql = "INSERT INTO tournament_participants (tournament_id, team_id) VALUES (?, ?)";
+
+        java.sql.Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false);
+
+            try (java.sql.PreparedStatement stmt1 = conn.prepareStatement(insertTeamSql)) {
+                stmt1.setString(1, teamId);
+                stmt1.setString(2, senderEmail);
+                if (stmt1.executeUpdate() == 0) {
+                    conn.rollback();
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+            try (java.sql.PreparedStatement stmt2 = conn.prepareStatement(insertCaptainSql)) {
+                stmt2.setString(1, teamId);
+                stmt2.setString(2, senderEmail);
+                stmt2.executeUpdate();
+            }
+
+            try (java.sql.PreparedStatement stmt3 = conn.prepareStatement(insertFriendSql)) {
+                stmt3.setString(1, teamId);
+                stmt3.setString(2, receiverEmail);
+                stmt3.executeUpdate();
+            }
+
+            try (java.sql.PreparedStatement stmt4 = conn.prepareStatement(insertParticipantSql)) {
+                stmt4.setString(1, tournamentId);
+                stmt4.setString(2, teamId);
+                stmt4.executeUpdate();
+            }
+
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (java.sql.SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (java.sql.SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (java.sql.SQLException e) { e.printStackTrace(); }
+            }
+        }
+    }
+
+    public DbStatus acceptTeamInvite(String teamId, String email) {
+        String sql = "UPDATE team_members SET status = 'Accepted' " +
+                     "WHERE team_id = ? AND student_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, teamId);
+            stmt.setString(2, email);
+            int updated = stmt.executeUpdate();
+            return updated > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public DbStatus rejectTeamInvite(String teamId, String email) {
+        String sql = "DELETE FROM team_members " +
+                     "WHERE team_id = ? AND student_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, teamId);
+            stmt.setString(2, email);
+            int deleted = stmt.executeUpdate();
+            return deleted > 0 ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public java.util.List<models.Team> getTournamentTeams(String tournamentId) {
+        java.util.List<models.Team> teams = new java.util.ArrayList<>();
+        String sql = "SELECT t.team_id, t.team_name, t.type, t.max_capacity, " +
+                     "u.full_name, u.bilkent_email, u.student_id " +
+                     "FROM tournament_participants tp " +
+                     "INNER JOIN teams t ON tp.team_id = t.team_id " +
+                     "INNER JOIN users u ON t.captain_id = u.id " +
+                     "WHERE tp.tournament_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, tournamentId);
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student captain = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("student_id")
+                    );
+                    models.Team team = new models.Team(
+                        rs.getString("team_id"),
+                        rs.getString("team_name"),
+                        rs.getString("type"),
+                        rs.getInt("max_capacity"),
+                        false,
+                        captain
+                    );
+                    teams.add(team);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return teams;
+    }
+
+    public DbStatus fillTournamentFixtures(models.Tournament tournament) {
+        if (tournament == null || tournament.getTournamentId() == null) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        if (tournament.getTournamentFixture() == null) {
+            tournament.setTournamentFixture(new models.Fixture(tournament.getTournamentId()));
+        }
+
+        String sql = "SELECT m.match_id, m.match_date, " +
+                     "t1.team_id AS t1_id, t1.team_name AS t1_name, " +
+                     "t2.team_id AS t2_id, t2.team_name AS t2_name, " +
+                     "m.winner_id " +
+                     "FROM matches m " +
+                     "LEFT JOIN teams t1 ON m.team1_id = t1.team_id " +
+                     "LEFT JOIN teams t2 ON m.team2_id = t2.team_id " +
+                     "WHERE m.tournament_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, tournament.getTournamentId());
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Team team1 = null;
+                    if (rs.getString("t1_id") != null) {
+                        team1 = new models.Team(rs.getString("t1_id"), rs.getString("t1_name"), "TEAM", 2, false, null);
+                    }
+
+                    models.Team team2 = null;
+                    if (rs.getString("t2_id") != null) {
+                        team2 = new models.Team(rs.getString("t2_id"), rs.getString("t2_name"), "TEAM", 2, false, null);
+                    }
+
+                    java.sql.Timestamp ts = rs.getTimestamp("match_date");
+                    java.time.LocalDateTime date = ts != null ? ts.toLocalDateTime() : java.time.LocalDateTime.now();
+
+                    models.Match match = new models.Match(rs.getString("match_id"), date, tournament.getSportType(), team1, team2);
+                    
+                    String winnerId = rs.getString("winner_id");
+                    if (winnerId != null) {
+                        if (team1 != null && winnerId.equals(team1.getTeamId())) {
+                            match.setWinner(team1);
+                        } else if (team2 != null && winnerId.equals(team2.getTeamId())) {
+                            match.setWinner(team2);
+                        }
+                    }
+
+                    tournament.getTournamentFixture().getScheduledMatches().add(match);
+                }
+                return DbStatus.SUCCESS;
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+    public java.util.List<models.Tournament> getAllActiveTournaments() {
+        java.util.List<models.Tournament> list = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM tournaments WHERE is_active = TRUE AND start_date >= CURRENT_DATE";
+        
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql);
+             java.sql.ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                java.sql.Date sDate = rs.getDate("start_date");
+                java.sql.Date eDate = rs.getDate("end_date");
+                
+                models.SportType st = null;
+                try {
+                    st = models.SportType.valueOf(rs.getString("sport_type"));
+                } catch (Exception e) {}
+
+                models.Tournament t = new models.Tournament(
+                    rs.getString("tournament_id"),
+                    rs.getString("name"),
+                    st,
+                    sDate != null ? sDate.toLocalDate() : java.time.LocalDate.now(),
+                    eDate != null ? eDate.toLocalDate() : java.time.LocalDate.now(),
+                    rs.getInt("max_players"),
+                    rs.getBoolean("has_ge250"),
+                    rs.getString("access_code"),
+                    rs.getString("location")
+                );
+                t.setActive(rs.getBoolean("is_active"));
+                list.add(t);
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public DbStatus insertTournament(String id, String name, String sport, java.time.LocalDate start, java.time.LocalDate end, int max, boolean ge250, String code, String loc) {
+        String sql = "INSERT INTO tournaments (tournament_id, name, sport_type, start_date, end_date, max_players, has_ge250, access_code, location, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)";
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, id);
+            stmt.setString(2, name);
+            stmt.setString(3, sport);
+            stmt.setDate(4, java.sql.Date.valueOf(start));
+            stmt.setDate(5, java.sql.Date.valueOf(end));
+            stmt.setInt(6, max);
+            stmt.setBoolean(7, ge250);
+            stmt.setString(8, code);
+            stmt.setString(9, loc);
+            return stmt.executeUpdate() > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public DbStatus insertTournamentParticipant(String tId, String teamId) {
+        String sql = "INSERT INTO tournament_participants (tournament_id, team_id) VALUES (?, ?)";
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, tId);
+            stmt.setString(2, teamId);
+            return stmt.executeUpdate() > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public DbStatus insertTeam(String teamId, String teamName, String captainEmail) {
+        String sql = "INSERT INTO teams (team_id, team_name, type, max_capacity, captain_id) SELECT ?, ?, 'TEAM', 2, id FROM users WHERE bilkent_email = ?";
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, teamId);
+            stmt.setString(2, teamName);
+            stmt.setString(3, captainEmail);
+            return stmt.executeUpdate() > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public DbStatus insertTeamMember(String teamId, String email, String status) {
+        String sql = "INSERT INTO team_members (team_id, student_id, status) SELECT ?, id, ? FROM users WHERE bilkent_email = ?";
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, teamId);
+            stmt.setString(2, "Accepted"); 
+            stmt.setString(3, email);
+            return stmt.executeUpdate() > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public DbStatus insertFixture(String tournamentId) {
+        return DbStatus.SUCCESS;
+    }
+
+    public DbStatus insertMatch(String matchId, String cap1Email, String cap2Email, String sport) {
+        String sql = "INSERT INTO matches (match_id, team1_id, team2_id, match_date) VALUES (?, " +
+                     "(SELECT t.team_id FROM teams t INNER JOIN users u ON t.captain_id = u.id WHERE u.bilkent_email = ? LIMIT 1), " +
+                     "(SELECT t.team_id FROM teams t INNER JOIN users u ON t.captain_id = u.id WHERE u.bilkent_email = ? LIMIT 1), " +
+                     "CURRENT_TIMESTAMP)";
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, matchId);
+            stmt.setString(2, cap1Email);
+            stmt.setString(3, cap2Email);
+            return stmt.executeUpdate() > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public DbStatus deleteTournamentParticipant(String tId, String teamId) {
+        String sql = "DELETE FROM tournament_participants WHERE tournament_id = ? AND team_id = ?";
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, tId);
+            stmt.setString(2, teamId);
+            return stmt.executeUpdate() > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public DbStatus updateTournamentDetails(String tId, String name, int max) {
+        String sql = "UPDATE tournaments SET name = ?, max_players = ? WHERE tournament_id = ?";
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, name);
+            stmt.setInt(2, max);
+            stmt.setString(3, tId);
+            return stmt.executeUpdate() > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public DbStatus updateTournamentStatus(String tId, boolean active) {
+        String sql = "UPDATE tournaments SET is_active = ? WHERE tournament_id = ?";
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setBoolean(1, active);
+            stmt.setString(2, tId);
+            return stmt.executeUpdate() > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    public DbStatus updateTournamentDates(String tId, java.time.LocalDate start, java.time.LocalDate end) {
+        String sql = "UPDATE tournaments SET start_date = ?, end_date = ? WHERE tournament_id = ?";
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setDate(1, java.sql.Date.valueOf(start));
+            stmt.setDate(2, java.sql.Date.valueOf(end));
+            stmt.setString(3, tId);
+            return stmt.executeUpdate() > 0 ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
             return DbStatus.QUERY_ERROR;
         }
     }
