@@ -758,7 +758,7 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-    
+
     /**
      * Updates the public profile visibility status for a student.
      * Finds the user by email and updates their preference in the students table.
@@ -2431,5 +2431,97 @@ public class Database {
             
             return DbStatus.QUERY_ERROR;
         }
+    }
+
+    /**
+     * Retrieves all Duellos associated with a specific student.
+     * This includes duellos created by the student AND duellos the student has joined as an attendee.
+     * @param currentStudent The student whose duellos are being fetched
+     * @return An ArrayList of Duello objects ordered by date (newest first).
+     */
+    public ArrayList<models.Duello> getUserDuellos(models.Student currentStudent) {
+        
+        ArrayList<models.Duello> userDuellos = new ArrayList<>();
+
+        if (currentStudent == null || currentStudent.getBilkentEmail() == null) {
+            return userDuellos;
+        }
+
+        String sql = "SELECT DISTINCT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
+                     "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
+                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
+                     "sp.name AS sport_name " +
+                     "FROM duellos d " +
+                     "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
+                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                     "LEFT JOIN sports sp ON f.sport_id = sp.id " +
+                     "LEFT JOIN reservation_attendees ra ON r.reservation_id = ra.reservation_id " +
+                     "WHERE r.reserved_by = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "   OR ra.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "ORDER BY r.reservation_date DESC, r.time_slot DESC";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            String email = currentStudent.getBilkentEmail();
+            stmt.setString(1, email);
+            stmt.setString(2, email);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    String facilityId = rs.getObject("facility_id").toString();
+                    String facilityName = rs.getString("facility_name");
+                    String location = rs.getString("campus_location");
+                    int capacity = rs.getInt("capacity");
+                    boolean maintenance = rs.getBoolean("is_under_maintenance");
+                    
+                    models.SportType st = null;
+                    try {
+                        String sportName = rs.getString("sport_name");
+                        if (sportName != null) {
+                            st = models.SportType.valueOf(sportName.trim().toUpperCase().replace(" ", "_"));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
+                    }
+
+                    models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
+                    facility.setUnderMaintenance(maintenance);
+
+                    String reservationId = rs.getObject("reservation_id").toString();
+                    java.sql.Date sqlDate = rs.getDate("reservation_date");
+                    java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
+                    String timeSlot = rs.getString("time_slot");
+                    
+                    String accessCode = rs.getString("access_code");
+                    String reqSkill = rs.getString("required_skill_level");
+                    int slots = rs.getInt("empty_slots");
+                    boolean matched = rs.getBoolean("is_matched");
+                    boolean cancelled = rs.getBoolean("is_cancelled");
+                    boolean attended = rs.getBoolean("has_attended");
+
+                    models.Duello duello = new models.Duello(
+                            reservationId, 
+                            facility, 
+                            resDate, 
+                            timeSlot, 
+                            accessCode, 
+                            reqSkill, 
+                            slots
+                    );
+                    
+                    duello.setMatched(matched);
+                    duello.setCancelled(cancelled);
+                    duello.setHasAttended(attended);
+                    
+                    userDuellos.add(duello);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return userDuellos;
     }
 }
