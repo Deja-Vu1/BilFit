@@ -1,11 +1,10 @@
 package managers;
 
-import java.util.ArrayList;
-
 import database.Database;
 import database.DbStatus;
 import models.Duello;
 import models.Student;
+import java.util.ArrayList;
 
 public class DuelloManager {
 
@@ -91,17 +90,12 @@ public class DuelloManager {
 
     public DbStatus declineDuelloRequest(Duello duello, Student student) {
         if (duello == null || student == null) return DbStatus.QUERY_ERROR;
-        
         return db.deleteDuelloRequest(duello.getReservationId(), student.getBilkentEmail());
     }
 
     public DbStatus cancelDuello(Duello duello, Student creator) {
         if (duello == null || creator == null || duello.isMatched()) return DbStatus.QUERY_ERROR;
         
-        if(duello.getAttendees().isEmpty() || !duello.getAttendees().get(0).getBilkentEmail().equals(creator.getBilkentEmail())) {
-            return DbStatus.QUERY_ERROR;
-        }
-
         DbStatus status = db.deleteDuello(duello.getReservationId(), creator.getBilkentEmail());
         if(status == DbStatus.SUCCESS) {
             duello.setCancelled(true);
@@ -144,6 +138,11 @@ public class DuelloManager {
             return new ArrayList<>();
         }
         return db.findOpponentForMatch(currentStudent, sportName);
+    }
+    
+    public ArrayList<Duello> getUserDuellos(Student currentStudent) {
+        if (currentStudent == null) return new ArrayList<>();
+        return db.getUserDuellos(currentStudent);
     }
 
     public DbStatus updateMatchWinner(String matchId, Boolean isCreatorWin) {
