@@ -55,7 +55,7 @@ public class ELOController {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         if (currentUser == null) return;
 
-        String selectedSport = sportTypeComboBox != null && sportTypeComboBox.getValue() != null ? sportTypeComboBox.getValue() : "Basketball";
+        String selectedSport = sportTypeComboBox != null && sportTypeComboBox.getValue() != null ? sportTypeComboBox.getValue() : "BASKETBALL";
 
         new Thread(() -> {
             try {
@@ -274,7 +274,7 @@ public class ELOController {
         
         String facilityName = duello.getFacility() != null ? duello.getFacility().getName() : "Saha";
         String loc = duello.getFacility() != null ? duello.getFacility().getCampusLocation() : "Kampüs";
-        String mainText = loc + "   |   " + facilityName + "   |   Max " + (duello.getFacility() != null ? duello.getFacility().getCapacity() : "0") + " player   |   " + duello.getDate() + " " + duello.getTimeSlot();
+        String mainText = loc + "   |   " + facilityName + "   |   Max " + (duello.getFacility() != null ? duello.getFacility().getCapacity() : "0") + " player   |   " + duello.getDate() + " / " +duello.getTimeSlot();
         String subText = "Empty Slots: " + duello.getEmptySlots() + "   |   Skill: " + duello.getRequiredSkillLevel();
 
         Label mainLabel = new Label(mainText);
