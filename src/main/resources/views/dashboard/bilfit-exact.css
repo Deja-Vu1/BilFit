@@ -253,3 +253,12 @@
 .dialog-pane .button:hover {
     -fx-background-color: #2B3674;
 }
+/* ControlsFX ToggleSwitch - AÇIK (Yeşil) Durumu */
+.toggle-switch:selected .thumb-area {
+    -fx-background-color: #1E8E3E;
+}
+
+/* Üzerine fareyle gelince biraz daha parlak yeşil olması için (İsteğe bağlı) */
+.toggle-switch:selected:hover .thumb-area {
+    -fx-background-color: #27a84b; 
+}

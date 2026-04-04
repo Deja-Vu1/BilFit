@@ -24,10 +24,13 @@ import managers.StudentManager;
 import models.SportType;
 import models.Student;
 
+// ControlsFX ToggleSwitch importu
+import org.controlsfx.control.ToggleSwitch; 
+
 public class SettingsController {
 
-    @FXML private Button publicAccountToggle;
-    @FXML private Button eloToggle;
+    @FXML private ToggleSwitch publicAccountSwitch;
+    @FXML private ToggleSwitch eloSwitch;
     @FXML private TextField passwordField;
     @FXML private Button changePasswordBtn;
 
@@ -35,33 +38,37 @@ public class SettingsController {
     private AuthManager authManager = new AuthManager(Database.getInstance());
     private boolean isProcessing = false;
 
-    private final String COLOR_ON = "-fx-background-color: #1E8E3E; -fx-background-radius: 20;";
-    private final String COLOR_OFF = "-fx-background-color: #E2E8F0; -fx-background-radius: 20;";
-
     @FXML
     public void initialize() {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+        
         if (currentUser != null) {
-            updateToggleVisual(publicAccountToggle, currentUser.isPublicProfile());
-            updateToggleVisual(eloToggle, currentUser.isEloMatchingEnabled());
+            // 1. Sayfa açıldığında değerleri kullanıcının ayarlarına göre set et
+            publicAccountSwitch.setSelected(currentUser.isPublicProfile());
+            eloSwitch.setSelected(currentUser.isEloMatchingEnabled());
+
+            // 2. Public Account için Listener (Değişiklikleri dinle)
+            publicAccountSwitch.selectedProperty().addListener((observable, oldValue, newValue) -> {
+                // Sadece değer gerçekten değiştiğinde DB isteği at (sayfa yüklenirken atmaması için)
+                if (currentUser.isPublicProfile() != newValue) {
+                    updatePublicAccount(currentUser, newValue);
+                }
+            });
+
+            // 3. ELO için Listener (Değişiklikleri dinle)
+            eloSwitch.selectedProperty().addListener((observable, oldValue, newValue) -> {
+                if (currentUser.isEloMatchingEnabled() != newValue) {
+                    updateEloSetting(currentUser, newValue);
+                }
+            });
         }
     }
 
-    private void updateToggleVisual(Button btn, boolean isOn) {
-        if (btn != null) {
-            btn.setStyle(isOn ? COLOR_ON : COLOR_OFF);
-        }
-    }
+    // --- TOGGLE SWITCH VERİTABANI METOTLARI ---
 
-    @FXML
-    public void handleTogglePublic(ActionEvent event) {
-        Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-        if (currentUser == null) return;
-
-        // 1. OPTIMISTIC UPDATE: Butonu ve hafızayı beklemeden ANINDA değiştir (Şimşek hızı!)
-        boolean targetStatus = !currentUser.isPublicProfile(); 
+    private void updatePublicAccount(Student currentUser, boolean targetStatus) {
+        // 1. OPTIMISTIC UPDATE: Beklemeden anında RAM'de değiştir
         currentUser.setPublicProfile(targetStatus);
-        updateToggleVisual(publicAccountToggle, targetStatus);
 
         // 2. ARKA PLAN: Veritabanına bildir
         new Thread(() -> {
@@ -74,22 +81,16 @@ public class SettingsController {
             if (status != DbStatus.SUCCESS) {
                 Platform.runLater(() -> {
                     currentUser.setPublicProfile(!targetStatus);
-                    updateToggleVisual(publicAccountToggle, !targetStatus);
+                    publicAccountSwitch.setSelected(!targetStatus);
                     showCustomAlert("Hata", "Gizlilik ayarı değiştirilemedi. Sunucu hatası.");
                 });
             }
         }).start();
     }
 
-    @FXML
-    public void handleToggleElo(ActionEvent event) {
-        Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-        if (currentUser == null) return;
-
-        // 1. OPTIMISTIC UPDATE: ANINDA DEĞİŞTİR
-        boolean targetStatus = !currentUser.isEloMatchingEnabled();
+    private void updateEloSetting(Student currentUser, boolean targetStatus) {
+        // 1. OPTIMISTIC UPDATE
         currentUser.setEloMatchingEnabled(targetStatus);
-        updateToggleVisual(eloToggle, targetStatus);
 
         // 2. ARKA PLAN İŞLEMİ
         new Thread(() -> {
@@ -102,12 +103,14 @@ public class SettingsController {
             if (status != DbStatus.SUCCESS) {
                 Platform.runLater(() -> {
                     currentUser.setEloMatchingEnabled(!targetStatus);
-                    updateToggleVisual(eloToggle, !targetStatus);
+                    eloSwitch.setSelected(!targetStatus);
                     showCustomAlert("Hata", "ELO ayarı değiştirilemedi. Sunucu hatası.");
                 });
             }
         }).start();
     }
+
+    // --- ŞİFRE VE İLGİ ALANI METOTLARI  ---
 
     @FXML
     public void handleChangePassword(ActionEvent event) {
@@ -183,14 +186,13 @@ public class SettingsController {
     private void showCustomAlert(String title, String message) {
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
-        dialogStage.initStyle(StageStyle.TRANSPARENT); // Arka planı şeffaf yapıp kendi köşelerimizi çizeceğiz
+        dialogStage.initStyle(StageStyle.TRANSPARENT); 
 
         VBox layout = new VBox(20);
         layout.setAlignment(Pos.CENTER);
         layout.setPadding(new Insets(30));
         layout.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #E2E8F0; -fx-border-width: 1;");
         
-        // Tasarımındaki o güzel gölgelendirme efekti
         DropShadow shadow = new DropShadow();
         shadow.setRadius(20);
         shadow.setColor(Color.rgb(0, 0, 0, 0.15));
@@ -211,10 +213,9 @@ public class SettingsController {
         layout.getChildren().addAll(titleLabel, msgLabel, okBtn);
 
         Scene scene = new Scene(layout);
-        scene.setFill(Color.TRANSPARENT); // Siyah kare çıkmasını engeller
+        scene.setFill(Color.TRANSPARENT); 
         dialogStage.setScene(scene);
         
-        // Ortada açılması için
         dialogStage.centerOnScreen();
         dialogStage.showAndWait();
     }
