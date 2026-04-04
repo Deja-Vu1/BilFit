@@ -12,5 +12,7 @@ public enum DbStatus {
     EMAIL_ALREADY_EXISTS, // Email is already registered in the system
     ID_ALREADY_EXISTS, // Student ID is already registered in the system
     ACCOUNT_NOT_ACTIVATED, // Account exists but is not activated yet
-    INVALID_CREDENTIALS // Wrong email or password provided during login
+    INVALID_CREDENTIALS, // Wrong email or password provided during login
+    UNAVAILABLE, // Requested facility is not available for the given time slot
+    SAME_PASSWORD, // New password is the same as the old password during password change
 }

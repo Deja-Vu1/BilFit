@@ -3,8 +3,8 @@ package controllers;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.layout.StackPane;
-
 
 public class StudentMainController {
 
@@ -21,45 +21,26 @@ public class StudentMainController {
         loadHome(); 
     }
 
-
     public void loadView(String path) {
         try {
-            Node view = FXMLLoader.load(
-                getClass().getResource(path)
-            );
+            Node view = FXMLLoader.load(getClass().getResource(path));
             contentArea.getChildren().setAll(view);
-
         } catch (Exception e) {
             e.printStackTrace();
+            // EĞER SAYFA YÜKLENEMEZSE VEYA ÇÖKERSE ARTIK EKRANDA GÖRECEĞİZ
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Sayfa Yükleme Hatası");
+            alert.setHeaderText("Arayüz dosyası yüklenemedi!");
+            alert.setContentText("Hatalı dosya: " + path + "\nNeden: " + e.getMessage());
+            alert.showAndWait();
         }
     }
 
- 
-    public void loadHome() {
-        loadView("/views/dashboard/HomeView.fxml");
-    }
-
-    public void loadAccount() {
-        loadView("/views/dashboard/ProfileView.fxml");
-    }
-
-    public void loadReservations(){
-        loadView("/views/dashboard/MyReservationsView.fxml");
-    }
-
-    public void loadELO(){
-        loadView("/views/dashboard/ELOView.fxml");
-    }
-
-    public void loadTournaments(){
-        loadView("/views/dashboard/TournamentsView.fxml");
-    }
-
-    public void loadSettings(){
-        loadView("/views/dashboard/SettingsView.fxml");
-    }
-
-    public void loadFriends(){
-        loadView("/views/dashboard/FriendsView.fxml");
-    }
+    public void loadHome() { loadView("/views/dashboard/HomeView.fxml"); }
+    public void loadAccount() { loadView("/views/dashboard/ProfileView.fxml"); }
+    public void loadReservations(){ loadView("/views/dashboard/MyReservationsView.fxml"); }
+    public void loadELO(){ loadView("/views/dashboard/ELOView.fxml"); }
+    public void loadTournaments(){ loadView("/views/dashboard/TournamentsView.fxml"); }
+    public void loadSettings(){ loadView("/views/dashboard/SettingsView.fxml"); }
+    public void loadFriends(){ loadView("/views/dashboard/FriendsView.fxml"); }
 }

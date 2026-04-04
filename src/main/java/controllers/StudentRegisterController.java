@@ -11,7 +11,6 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Stage;
-import models.Student;
 import javafx.scene.Node;
 
 import database.Database;
@@ -24,9 +23,6 @@ import java.util.List;
 
 public class StudentRegisterController {
 
-    // Giriş ekranında kullandığın geçici veritabanı simülasyonu
-    public static List<Student> temporaryDatabase = new ArrayList<>();
-
     @FXML private TextField fullnameField;
     @FXML private TextField emailField;
     @FXML private TextField studentIdField;
@@ -38,65 +34,89 @@ public class StudentRegisterController {
 
     @FXML
     public void attemptRegister(ActionEvent event) {
-        if (isProcessing) return; 
+        if (isProcessing) return;
 
-        String name = fullnameField.getText();
-        String email = emailField.getText();
-        String studentId = studentIdField.getText();
-        String password = passwordField.getText();
-        
-        /*if (name == null || name.isEmpty() || email == null || email.isEmpty() || studentId == null || studentId.isEmpty() || password == null || password.isEmpty()) {
+        String name = fullnameField.getText() != null ? fullnameField.getText().trim() : "";
+        String email = emailField.getText() != null ? emailField.getText().trim().toLowerCase() : "";
+        String studentId = studentIdField.getText() != null ? studentIdField.getText().trim() : "";
+        String password = passwordField.getText(); 
+      
+        if (name.isEmpty() || email.isEmpty() || studentId.isEmpty() || password == null || password.isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen tüm alanları doldurunuz.");
             return;
         }
-        if (!email.endsWith("@ug.bilkent.edu.tr") && !email.endsWith("@alumni.bilkent.edu.tr") && !email.endsWith("@bilkent.edu.tr")) {
+        
+        if (!email.endsWith("@ug.bilkent.edu.tr") && !email.endsWith("@bilkent.edu.tr") && !email.endsWith("@alumni.bilkent.edu.tr")) {
             showAlert(Alert.AlertType.WARNING, "Geçersiz E-posta", "Sisteme sadece Bilkent e-posta adresleri ile kayıt olunabilir.");
+            return;
+        }
+
+        // DB'nin reddetmesini engellemek için ID kuralı eklendi (Sadece sayılar ve tam 8 hane)
+        if (!studentId.matches("\\d+") || studentId.length() < 7 || studentId.length() > 9) {
+            showAlert(Alert.AlertType.WARNING, "Geçersiz ID", "Öğrenci numaranız sadece rakamlardan oluşmalı ve geçerli uzunlukta (Örn: 22200000) olmalıdır.");
+            return;
+        }
+
+        if (password.length() < 6) {
+            showAlert(Alert.AlertType.WARNING, "Zayıf Şifre", "Şifreniz en az 6 karakter uzunluğunda olmalıdır.");
             return;
         }
 
         isProcessing = true;
         Button clickedButton = (Button) event.getSource();
-        String originalButtonText = clickedButton.getText(); 
-        
+        String originalButtonText = clickedButton.getText();
+      
         clickedButton.getParent().requestFocus();
         clickedButton.setDisable(true);
         clickedButton.setText("Kayıt Yapılıyor...");
 
         new Thread(() -> {
-            DbStatus registerStatus = authManager.registerStudent(email, password, studentId, name);
+            try {
+                // Her şey tertemiz bir şekilde Manager'a iletiliyor
+                DbStatus registerStatus = authManager.registerStudent(email, password, studentId, name);
 
-            Platform.runLater(() -> {
-                isProcessing = false;
-                clickedButton.setDisable(false);
-                clickedButton.setText(originalButtonText);
+                Platform.runLater(() -> {
+                    isProcessing = false;
+                    clickedButton.setDisable(false);
+                    clickedButton.setText(originalButtonText);
 
-                switch (registerStatus) {
-                    case SUCCESS:
-                        ActivationController.emailToActivate = email; 
-                        goToActivation(event);
-                        break;
-                    case EMAIL_ALREADY_EXISTS:
-                        showAlert(Alert.AlertType.ERROR, "Kayıt Başarısız", "Bu e-posta adresi sistemde zaten mevcut.");
-                        break;
-                    case ID_ALREADY_EXISTS:
-                        showAlert(Alert.AlertType.ERROR, "Kayıt Başarısız", "Bu öğrenci numarası sistemde zaten mevcut.");
-                        break;
-                    case CONNECTION_ERROR:
-                        showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
-                        break;
-                    default:
-                        showAlert(Alert.AlertType.ERROR, "Sistem Hatası", "Kayıt sırasında beklenmeyen bir hata oluştu.");
-                        break;
-                }
-            });
-        }).start();*/
-        goToActivation(event);
+                    switch (registerStatus) {
+                        case SUCCESS:
+                            ActivationController.emailToActivate = email;
+                            goToActivation(event);
+                            break;
+                        case EMAIL_ALREADY_EXISTS:
+                            showAlert(Alert.AlertType.ERROR, "Kayıt Başarısız", "Bu e-posta adresi sistemde zaten mevcut.");
+                            break;
+                        case ID_ALREADY_EXISTS:
+                            showAlert(Alert.AlertType.ERROR, "Kayıt Başarısız", "Bu öğrenci numarası sistemde zaten mevcut.");
+                            break;
+                        case CONNECTION_ERROR:
+                            showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
+                            break;
+                        case QUERY_ERROR:
+                            // EĞER HALA BU HATAYI ALIYORSAN AŞAĞIDAKİ YAZIYI OKU!
+                            showAlert(Alert.AlertType.ERROR, "Veritabanı Reddi", "Veritabanı bu kaydı reddetti! Ya bilgilerde özel bir karakter var, ya da bu maille önceden yarım kalmış bir kayıt bulunuyor.");
+                            break;
+                        default:
+                            showAlert(Alert.AlertType.ERROR, "Sistem Hatası", "Kayıt sırasında beklenmeyen bir hata oluştu.");
+                            break;
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    isProcessing = false;
+                    clickedButton.setDisable(false);
+                    clickedButton.setText(originalButtonText);
+                });
+            }
+        }).start();
     }
 
     private void goToActivation(ActionEvent event) {
         try {
-            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/StudentLoginView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/ActivationView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
@@ -115,19 +135,6 @@ public class StudentRegisterController {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        
-    }
-        @FXML
-        public void checkActivation(ActionEvent event) {
-        System.out.println("Redirecting to RegisterActivationView");
-         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/RegisterActivationView.fxml"));
-            Parent root = loader.load();
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.getScene().setRoot(root);
-         } catch (IOException e) {
-            e.printStackTrace();
-         }
     }
 
     private void showAlert(Alert.AlertType alertType, String title, String message) {
@@ -136,13 +143,16 @@ public class StudentRegisterController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.initStyle(javafx.stage.StageStyle.UNDECORATED);
-        alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
-        // Full-screen pop-up arkaya düşme sorunu çözümü
+        
+        try {
+            alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm());
+        } catch(Exception e) {}
+
         if (emailField != null && emailField.getScene() != null) {
             Stage stage = (Stage) emailField.getScene().getWindow();
             alert.initOwner(stage);
         }
-        
+      
         alert.showAndWait();
     }
 }

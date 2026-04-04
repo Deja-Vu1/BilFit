@@ -20,15 +20,38 @@ public class RecommendationManager {
     }
 
     public List<Student> getRecommendations(Student targetStudent, double threshold) {
-        List<Student> allPublicStudents = db.getAllPublicStudents();
         List<Student> recommendedFriends = new ArrayList<>();
+        if (targetStudent == null || threshold < 0.0 || threshold > 1.0) return recommendedFriends;
 
+        List<Student> allPublicStudents = db.getAllPublicStudents();
         if (allPublicStudents == null || allPublicStudents.isEmpty()) {
             return recommendedFriends;
         }
 
         for (Student other : allPublicStudents) {
-            if (targetStudent.getStudentId().equals(other.getStudentId())) {
+            if (other == null || targetStudent.getBilkentEmail().equals(other.getBilkentEmail())) {
+                continue;
+            }
+            
+            boolean isAlreadyConnected = false;
+            
+            for (Student friend : targetStudent.getFriends()) {
+                if(friend.getBilkentEmail().equals(other.getBilkentEmail())) {
+                    isAlreadyConnected = true;
+                    break;
+                }
+            }
+            
+            if(!isAlreadyConnected) {
+                for (Student request : targetStudent.getFriendRequests()) {
+                    if(request.getBilkentEmail().equals(other.getBilkentEmail())) {
+                        isAlreadyConnected = true;
+                        break;
+                    }
+                }
+            }
+            
+            if(isAlreadyConnected) {
                 continue;
             }
 
@@ -38,7 +61,6 @@ public class RecommendationManager {
                 recommendedFriends.add(other);
             }
         }
-
         return recommendedFriends;
     }
 

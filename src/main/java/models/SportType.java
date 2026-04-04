@@ -19,4 +19,18 @@ public enum SportType {
     public int getDurationMinutes() {
         return durationMinutes;
     }
+
+    public String toString() {
+        switch (this) {
+            case BASKETBALL: return "Basketball";
+            case FOOTBALL: return "Football";
+            case BASEBALL: return "Baseball";
+            case TENNIS: return "Tennis";
+            case GYM: return "Gym";
+            case VOLLEYBALL: return "Volleyball";
+            case SWIMMING: return "Swimming";
+            case US_FOOTBALL: return "US Football";
+            default: return "Unknown Sport";
+        }
+    }
 }

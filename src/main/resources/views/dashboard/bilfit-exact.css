@@ -1,3 +1,42 @@
+/* --- TAB PANE TASARIMI --- */
+.tab-pane {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 8 20 12 20;
+    -fx-cursor: hand;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-text-fill: #A3AED0;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-alignment: center;
+}
+
+.tab-pane .tab:selected {
+    -fx-border-width: 0 0 3 0;
+    -fx-border-color: #4318FF;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #4318FF;
+}
+
+.tab-pane .tab:hover .tab-label {
+    -fx-text-fill: #2B3674;
+}
+
+.tab-pane:focused .tab-header-area .headers-region .tab:selected .focus-indicator {
+    -fx-border-width: 0;
+}
+
 /* --- GENEL ARKAPLAN VE YAZITİPİ --- */
 .root {
     -fx-background-color: #F4F7FE; /* Modern açık gri/mavi arkaplan */
