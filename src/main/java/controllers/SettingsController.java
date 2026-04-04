@@ -34,6 +34,11 @@ public class SettingsController {
     @FXML private Button eloToggle;
     @FXML private TextField passwordField;
     @FXML private Button changePasswordBtn;
+    
+    // YENİ EKLENEN NİCKNAME ELEMANLARI
+    @FXML private TextField nicknameField;
+    @FXML private Button changeNicknameBtn;
+    
     @FXML private FlowPane interestsContainer; 
 
     private StudentManager studentManager = new StudentManager(Database.getInstance());
@@ -48,6 +53,12 @@ public class SettingsController {
         if (currentUser != null) {
             updateToggleVisual(publicAccountToggle, currentUser.isPublicProfile());
             updateToggleVisual(eloToggle, currentUser.isEloMatchingEnabled());
+            
+            // DÜZELTME BURADA: setText yerine setPromptText kullanıyoruz ve kutuyu temizliyoruz.
+            if (nicknameField != null) {
+                nicknameField.clear(); // İçini temizle
+                nicknameField.setPromptText("Mevcut: " + currentUser.getNickname()); // Silik ipucu olarak göster
+            }
             
             loadUserInterests(currentUser);
         }
@@ -161,6 +172,12 @@ public class SettingsController {
             return;
         }
 
+        // 6 KARAKTER KURALI EKLENDİ!
+        if (newPass.length() < 6) {
+            showCustomAlert("Zayıf Şifre", "Yeni şifreniz en az 6 karakter olmalıdır.");
+            return;
+        }
+
         isProcessing = true;
         changePasswordBtn.setText("...");
 
@@ -180,7 +197,48 @@ public class SettingsController {
                     passwordField.clear();
                     showCustomAlert("Başarılı", "Şifreniz başarıyla değiştirildi.");
                 } else {
-                    showCustomAlert("Hata", "Şifre güncellenemedi. Yeni şifre eskisinden farklı ve en az 6 karakter olmalıdır.");
+                    showCustomAlert("Hata", "Şifre güncellenemedi. Yeni şifre eskisinden farklı olmalıdır.");
+                }
+            });
+        }).start();
+    }
+
+    // --- YENİ EKLENEN: NICKNAME DEĞİŞTİRME FONKSİYONU ---
+  @FXML
+    public void handleChangeNickname(ActionEvent event) {
+        if (isProcessing) return;
+        
+        Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+        String newNick = nicknameField.getText();
+
+        if (newNick == null || newNick.trim().isEmpty()) {
+            showCustomAlert("Uyarı", "Nickname alanı boş bırakılamaz.");
+            return;
+        }
+
+        isProcessing = true;
+        changeNicknameBtn.setText("...");
+
+        new Thread(() -> {
+            DbStatus status = DbStatus.QUERY_ERROR;
+            try {
+                status = studentManager.updateNickname(currentUser, newNick);
+            } catch (Exception e) {}
+
+            final DbStatus finalStatus = status;
+
+            Platform.runLater(() -> {
+                isProcessing = false;
+                changeNicknameBtn.setText("Change");
+                
+                if (finalStatus == DbStatus.SUCCESS) {
+                    // DÜZELTME BURADA: Başarılı olunca hem kutuyu temizle, hem de silik ipucunu(prompt) yenile!
+                    nicknameField.clear(); 
+                    nicknameField.setPromptText("Mevcut: " + currentUser.getNickname());
+                    
+                    showCustomAlert("Başarılı", "Kullanıcı adınız başarıyla değiştirildi!");
+                } else {
+                    showCustomAlert("Hata", "Kullanıcı adı güncellenirken sunucu kaynaklı bir sorun oluştu.");
                 }
             });
         }).start();
@@ -190,7 +248,6 @@ public class SettingsController {
     private void handleRemoveInterest(SportType sportType, Button clickedBtn) {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         
-        // 1. BEKLEMEDEN EKRANDAN ANINDA SİL (Sistem çok hızlı hissettirsin)
         if (interestsContainer != null) {
             interestsContainer.getChildren().remove(clickedBtn);
         }
@@ -205,13 +262,11 @@ public class SettingsController {
             
             Platform.runLater(() -> {
                 if (finalStatus != DbStatus.SUCCESS) {
-                    // SADECE HATA OLURSA EKRANA GERİ GETİR VE UYAR
                     if (interestsContainer != null) {
                         interestsContainer.getChildren().add(clickedBtn);
                     }
                     showCustomAlert("Hata", "Veritabanından silinemedi.");
                 }
-                // Başarılıysa popup çıkarma, kullanıcı beklemeden devam etsin!
             });
         }).start();
     }
@@ -281,11 +336,9 @@ public class SettingsController {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         if (currentUser == null) return;
         
-        // 1. BEKLEMEDEN EKRANA ÇİZ (Eğer "Kayıtlı alan yok" yazısı varsa onu temizle)
         if (interestsContainer != null) {
             interestsContainer.getChildren().removeIf(node -> node instanceof Label);
             
-            // Zaten ekliyse ekleme
             boolean alreadyExists = interestsContainer.getChildren().stream()
                 .filter(node -> node instanceof Button)
                 .map(node -> ((Button) node).getText())
@@ -309,11 +362,9 @@ public class SettingsController {
                 
                 Platform.runLater(() -> {
                     if (finalStatus != DbStatus.SUCCESS) {
-                        // HATA ÇIKARSA ÇAKTIRMADAN EKRANDAN GERİ AL
                         interestsContainer.getChildren().remove(newBtn);
                         showCustomAlert("Hata", "Bu ilgi alanı zaten ekli olabilir veya sunucu bağlantısı kurulamadı.");
                     }
-                    // Başarılıysa popup çıkarma, sistemin ışık hızında olduğunu hissetsin!
                 });
             }).start();
         }
