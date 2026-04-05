@@ -1,6 +1,8 @@
 package controllers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import database.Database;
 import database.DbStatus;
@@ -11,6 +13,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -29,6 +32,9 @@ import models.SportType;
 public class AdminFacilitiesController {
 
     @FXML private VBox facilitiesContainer;
+    
+    // Toplu işlemler için CheckBox'ları takip edeceğimiz harita
+    private Map<Facility, CheckBox> facilitySelectionMap = new HashMap<>();
 
     private Database db = Database.getInstance();
     private boolean isProcessing = false;
@@ -43,12 +49,13 @@ public class AdminFacilitiesController {
         if (facilitiesContainer == null) return;
         
         facilitiesContainer.getChildren().clear();
+        facilitySelectionMap.clear(); // Listeyi her yüklemede temizle
+        
         Label loadingLabel = new Label("Tesisler yükleniyor...");
         loadingLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold;");
         facilitiesContainer.getChildren().add(loadingLabel);
 
         new Thread(() -> {
-            // Veritabanındaki getFacilities metodunu kullanıyoruz
             ArrayList<Facility> facilities = db.getFacilities();
 
             Platform.runLater(() -> {
@@ -74,26 +81,24 @@ public class AdminFacilitiesController {
         card.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;");
         card.setPadding(new Insets(15, 20, 15, 20));
 
-        VBox textContainer = new VBox(5);
-        
+        // Toplu işlem için CheckBox
+        CheckBox selectBox = new CheckBox();
+        selectBox.setStyle("-fx-cursor: hand;");
+        facilitySelectionMap.put(facility, selectBox);
+
+        // --- SOL TARAF: İSİM VE DURUM YAN YANA ---
+        HBox nameAndStatusBox = new HBox(10);
+        nameAndStatusBox.setAlignment(Pos.CENTER_LEFT);
+
         Label nameLabel = new Label(facility.getName());
         nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #2B3674;");
         
-        String sportName = facility.getSportType() != null ? facility.getSportType().name().replace("_", " ") : "UNKNOWN";
-        Label detailsLabel = new Label("Kampüs: " + facility.getCampusLocation() + "  |  Spor: " + sportName + "  |  Kapasite: " + facility.getCapacity());
-        detailsLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #A3AED0;");
-        
-        textContainer.getChildren().addAll(nameLabel, detailsLabel);
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        // Durum Etiketi
+        // Durum Etiketi (Artık ismin hemen yanında!)
         Label statusLabel = new Label();
-        statusLabel.setPadding(new Insets(5, 10, 5, 10));
-        statusLabel.setStyle("-fx-background-radius: 10; -fx-font-weight: bold; -fx-font-size: 12px;");
-        
-        // İşlem Butonu
+        statusLabel.setPadding(new Insets(3, 8, 3, 8));
+        statusLabel.setStyle("-fx-background-radius: 8; -fx-font-weight: bold; -fx-font-size: 11px;");
+
+        // İşlem Butonu (En sağda kalacak)
         Button actionBtn = new Button();
         actionBtn.setPrefHeight(35);
         actionBtn.setPrefWidth(140);
@@ -111,13 +116,28 @@ public class AdminFacilitiesController {
             actionBtn.setStyle(actionBtn.getStyle() + "-fx-background-color: #FCE8E8; -fx-text-fill: #D93025;");
         }
 
+        nameAndStatusBox.getChildren().addAll(nameLabel, statusLabel); // İsim ve durumu aynı satıra koyduk
+
+        // --- ALT TARAF: DETAYLAR ---
+        VBox textContainer = new VBox(5);
+        String sportName = facility.getSportType() != null ? facility.getSportType().name().replace("_", " ") : "UNKNOWN";
+        Label detailsLabel = new Label("Kampüs: " + facility.getCampusLocation() + "  |  Spor: " + sportName + "  |  Kapasite: " + facility.getCapacity());
+        detailsLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #A3AED0;");
+        
+        textContainer.getChildren().addAll(nameAndStatusBox, detailsLabel); // Önce isim-durum, alta detaylar
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        // Tekli buton tıklaması
         actionBtn.setOnAction(e -> handleToggleMaintenance(facility, actionBtn));
 
-        card.getChildren().addAll(textContainer, spacer, statusLabel, actionBtn);
+        // Checkbox, yazılar, boşluk ve tekli buton karta ekleniyor (statusLabel artık textContainer'ın içinde)
+        card.getChildren().addAll(selectBox, textContainer, spacer, actionBtn);
         return card;
     }
 
-    // --- TESİSİ BAKIMA SOKMA VE BİLDİRİM GÖNDERME ---
+    // --- TEKLİ TESİSİ BAKIMA SOKMA VE BİLDİRİM GÖNDERME ---
     private void handleToggleMaintenance(Facility facility, Button clickedBtn) {
         if (isProcessing) return;
         isProcessing = true;
@@ -126,11 +146,9 @@ public class AdminFacilitiesController {
         new Thread(() -> {
             boolean newStatus = !facility.isUnderMaintenance(); // Tersine çevir
             
-            // 1. Tesisi Veritabanında Güncelle
             DbStatus status = db.updateFacilityMaintenance(facility.getName(), newStatus);
             
             if (status == DbStatus.SUCCESS) {
-                // 2. OTOMATİK BİLDİRİM GÖNDER! (Sistemdeki Tüm Öğrencilere)
                 if (newStatus) {
                     db.insertNotification("BROADCAST", 
                         "Tesis Bakımı: " + facility.getName(), 
@@ -148,11 +166,65 @@ public class AdminFacilitiesController {
                 isProcessing = false;
                 if (finalStatus == DbStatus.SUCCESS) {
                     showCustomAlert("Başarılı", "Tesis durumu güncellendi ve kullanıcılara bildirim gönderildi.");
-                    loadFacilities(); // Listeyi yenile
+                    loadFacilities(); 
                 } else {
                     showCustomAlert("Hata", "Tesis güncellenirken veritabanında bir hata oluştu.");
-                    loadFacilities(); // Hata olursa buton eski haline dönsün diye yenile
+                    loadFacilities(); 
                 }
+            });
+        }).start();
+    }
+
+    // --- TOPLU KAPATMA (Bakıma Alma) ---
+    @FXML
+    public void handleBulkClose(ActionEvent event) {
+        processBulkMaintenance(true, "Tesis Bakımı", " isimli tesisimiz bakıma alınmıştır.");
+    }
+
+    // --- TOPLU AÇMA (Kullanıma Açma) ---
+    @FXML
+    public void handleBulkOpen(ActionEvent event) {
+        processBulkMaintenance(false, "Tesis Kullanıma Açıldı", " isimli tesisimiz tekrar rezervasyona açılmıştır.");
+    }
+
+    // --- TOPLU İŞLEM MOTORU ---
+    private void processBulkMaintenance(boolean shouldMaintain, String notifTitle, String notifMsg) {
+        if (isProcessing) return;
+        
+        java.util.List<Facility> selectedOnes = new java.util.ArrayList<>();
+        for (Map.Entry<Facility, CheckBox> entry : facilitySelectionMap.entrySet()) {
+            if (entry.getValue().isSelected()) {
+                selectedOnes.add(entry.getKey());
+            }
+        }
+
+        if (selectedOnes.isEmpty()) {
+            showCustomAlert("Uyarı", "Lütfen işlem yapmak istediğiniz tesisleri seçin.");
+            return;
+        }
+
+        isProcessing = true;
+        new Thread(() -> {
+            int count = 0;
+            for (Facility f : selectedOnes) {
+                if (f.isUnderMaintenance() == shouldMaintain) continue;
+
+                DbStatus status = db.updateFacilityMaintenance(f.getName(), shouldMaintain);
+                if (status == DbStatus.SUCCESS) {
+                    db.insertNotification("BROADCAST", notifTitle, f.getName() + notifMsg);
+                    count++;
+                }
+            }
+            
+            final int finalCount = count;
+            Platform.runLater(() -> {
+                isProcessing = false;
+                if (finalCount > 0) {
+                    showCustomAlert("İşlem Tamamlandı", finalCount + " adet tesisin durumu güncellendi ve bildirimler gönderildi.");
+                } else {
+                    showCustomAlert("Bilgi", "Seçilen tesislerin durumu zaten istediğiniz gibi.");
+                }
+                loadFacilities();
             });
         }).start();
     }
@@ -228,7 +300,7 @@ public class AdminFacilitiesController {
                         if (status == DbStatus.SUCCESS) {
                             showCustomAlert("Başarılı", "Tesis başarıyla eklendi!");
                             dialogStage.close();
-                            loadFacilities(); // Listeyi yenile
+                            loadFacilities();
                         } else {
                             showCustomAlert("Hata", "Tesis eklenemedi. Bu isimde bir tesis zaten var olabilir.");
                         }
@@ -250,6 +322,7 @@ public class AdminFacilitiesController {
         dialogStage.showAndWait();
     }
 
+    // --- ÖZEL UYARI MESAJI KUTUSU ---
     private void showCustomAlert(String title, String message) {
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
