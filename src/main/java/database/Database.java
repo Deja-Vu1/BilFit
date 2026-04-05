@@ -4296,4 +4296,65 @@ public class Database {
 
         return studentMatches;
     }
+
+    /**
+     * Retrieves a list of students who are members of a specific team.
+     * Joins multiple tables to fetch students with 'ACCEPTED' status for the given team ID.
+     * Converts database records into Student model objects and returns them in a list.
+     * @param teamId The UUID of the team for which to fetch the members
+     * @return A List of Student objects representing the members of the specified team.
+     */
+    public java.util.ArrayList<models.Student> getTeamMembers(String teamId) {
+        java.util.ArrayList<models.Student> membersList = new java.util.ArrayList<>();
+        
+        if (teamId == null || teamId.trim().isEmpty()) {
+            return membersList;
+        }
+
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+                     "FROM team_members tm " +
+                     "INNER JOIN users u ON tm.student_id = u.id " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE tm.team_id = ? AND tm.status = 'ACCEPTED'";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    // 1. Zorunlu alanlarla Student objesini oluşturuyoruz
+                    models.Student member = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    // 2. Geri kalan özellikleri Setter'lar ile ekliyoruz
+                    member.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                    member.setEloPoint(rs.getInt("elo_point"));
+                    member.setPenaltyPoints(rs.getInt("penalty_points"));
+                    member.setReliabilityScore(rs.getDouble("reliability_score"));
+                    member.setMatchesPlayed(rs.getInt("matches_played"));
+                    member.setWinRate(rs.getDouble("win_rate"));
+                    member.setPublicProfile(rs.getBoolean("is_public_profile"));
+                    member.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+                    
+                    // 3. Kazanılan maç sayısını (matches_won) oran üzerinden hesaplıyoruz
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    member.setMatchesWon(matchesWon);
+
+                    membersList.add(member);
+                }
+            }
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+            System.err.println("Takım üyeleri çekilirken hata oluştu. Team ID: " + teamId);
+        }
+        
+        return membersList;
+    }
 }
