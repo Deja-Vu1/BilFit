@@ -1,5 +1,9 @@
 package controllers;
 
+import java.io.File;
+
+import database.Database;
+import database.DbStatus;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
@@ -8,25 +12,21 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.shape.Circle;
-import javafx.scene.image.Image;
 import javafx.scene.paint.ImagePattern;
+import javafx.scene.shape.Circle;
 import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import java.io.File;
-
 import managers.SessionManager;
 import managers.StudentManager;
-import database.Database;
-import database.DbStatus;
-import models.Student;
 import models.SportType;
+import models.Student;
 
 public class ProfileController {
 
@@ -35,6 +35,8 @@ public class ProfileController {
    @FXML private Label matchesPlayedLabel;
    @FXML private Label winRateLabel;
    @FXML private Label eloPointLabel;
+   @FXML private Label reliabilityScoreLabel;
+   @FXML private Label penaltyScoreLabel;
    @FXML private HBox interestsBox;
    
    @FXML private StackPane profileImageContainer;
@@ -52,12 +54,11 @@ public class ProfileController {
        loadProfileData();
    }
 
- private void loadProfileData() {
+   private void loadProfileData() {
        new Thread(() -> {
            try {
                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
 
-               
                Image downloadedImg = null;
                if (currentUser != null && currentUser.getProfilePictureUrl() != null && !currentUser.getProfilePictureUrl().isEmpty()) {
                    String picUrl = currentUser.getProfilePictureUrl();
@@ -66,10 +67,8 @@ public class ProfileController {
                    downloadedImg = new Image(noCacheUrl, false);
                }
                
-               
                final Image finalImg = downloadedImg;
 
-               
                Platform.runLater(() -> {
                    if (currentUser != null) {
                        if (nameLabel != null) nameLabel.setText(currentUser.getFullName());
@@ -77,8 +76,10 @@ public class ProfileController {
                        if (eloPointLabel != null) eloPointLabel.setText(String.valueOf(currentUser.getEloPoint()));
                        if (matchesPlayedLabel != null) matchesPlayedLabel.setText(String.valueOf(currentUser.getMatchesPlayed()));
                        if (winRateLabel != null) winRateLabel.setText(String.format("%.0f%%", currentUser.getWinRate() * 100));
-
                        
+                       if (reliabilityScoreLabel != null) reliabilityScoreLabel.setText("Reliability Score: " + currentUser.getReliabilityScore());
+                       if (penaltyScoreLabel != null) penaltyScoreLabel.setText("Penalty Score: " + currentUser.getPenaltyPoints());
+
                        if (finalImg != null && !finalImg.isError()) {
                            profileImageCircle.setFill(new ImagePattern(finalImg));
                        } else {
@@ -106,6 +107,7 @@ public class ProfileController {
            }
        }).start();
    }
+
    @FXML
    public void handleProfilePictureUpload() {
        FileChooser fileChooser = new FileChooser();
@@ -127,10 +129,7 @@ public class ProfileController {
                    editIconOverlay.setVisible(false);
                    if (status == DbStatus.SUCCESS) {
                        loadProfileData(); 
-                       
-                       
                        StudentSidebarController.refreshProfilePicture(); 
-                       
                        showCustomAlert("Success", "Your profile picture looks great! It has been updated successfully.");
                    } else if (status == DbStatus.FILE_TOO_LARGE) {
                        showCustomAlert("File Too Large", "The selected image is too large. Please choose a file under 5 MB.");
@@ -142,7 +141,6 @@ public class ProfileController {
        }
    }
 
-   
    private void showCustomAlert(String title, String message) {
        Stage dialogStage = new Stage();
        dialogStage.initModality(Modality.APPLICATION_MODAL);

@@ -31,7 +31,7 @@
             </VBox>
          </StackPane>
          
-         <VBox spacing="10">
+         <VBox spacing="10" HBox.hgrow="ALWAYS">
             <Label fx:id="nameLabel" text="Yükleniyor..." textFill="#2b3674">
                <font>
                   <Font name="System Bold" size="22.0" />
@@ -42,8 +42,12 @@
                
                <HBox fx:id="interestsBox" alignment="CENTER_LEFT" spacing="10" />
                
-               <Label styleClass="btn-success" text="🏋 GYM RAT" />
-               <Label styleClass="tag-orange" text="🔥 100 Day Streak" />
+               <Region HBox.hgrow="ALWAYS" />
+               
+               <VBox alignment="CENTER_RIGHT" spacing="5">
+                  <Label fx:id="reliabilityScoreLabel" style="-fx-font-weight: bold; -fx-text-fill: #1E8E3E;" text="Reliability Score: -" />
+                  <Label fx:id="penaltyScoreLabel" style="-fx-font-weight: bold; -fx-text-fill: #D93025;" text="Penalty Score: -" />
+               </VBox>
             </HBox>
          </VBox>
       </HBox>
