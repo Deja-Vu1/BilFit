@@ -26,6 +26,36 @@ public class TournamentManager {
         this.notifManager = new NotificationManager(db);
     }
 
+    public DbStatus processTournamentApplication(Tournament tournament, Student currentUser, Student selectedFriend) {
+        if (tournament == null || currentUser == null || !tournament.isActive()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        if (tournament.getParticipatingTeams() != null && tournament.getParticipatingTeams().size() >= MAX_TEAMS) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        if (LocalDate.now().isAfter(tournament.getStartDate()) || LocalDate.now().isEqual(tournament.getStartDate())) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        if (selectedFriend == null) {
+            return db.registerSoloToTournament(tournament.getTournamentId(), currentUser.getBilkentEmail());
+        } else {
+            return db.sendTeamInvite(tournament.getTournamentId(), currentUser.getBilkentEmail(), selectedFriend.getBilkentEmail());
+        }
+    }
+
+    public DbStatus acceptTeamInvite(Team team, Student currentUser) {
+        if (team == null || currentUser == null) return DbStatus.QUERY_ERROR;
+        return db.acceptTeamInvite(team.getTeamId(), currentUser.getBilkentEmail());
+    }
+
+    public DbStatus rejectTeamInvite(Team team, Student currentUser) {
+        if (team == null || currentUser == null) return DbStatus.QUERY_ERROR;
+        return db.rejectTeamInvite(team.getTeamId(), currentUser.getBilkentEmail());
+    }
+
     public DbStatus createTournament(Tournament tournament) {
         if (tournament == null) return DbStatus.QUERY_ERROR;
         return db.insertTournament(
@@ -46,7 +76,7 @@ public class TournamentManager {
             return DbStatus.QUERY_ERROR;
         }
 
-        if (tournament.getParticipatingTeams().size() >= MAX_TEAMS) {
+        if (tournament.getParticipatingTeams() != null && tournament.getParticipatingTeams().size() >= MAX_TEAMS) {
             return DbStatus.QUERY_ERROR;
         }
 
@@ -60,14 +90,16 @@ public class TournamentManager {
             }
         }
 
-        for (Team t : tournament.getParticipatingTeams()) {
-            if (t.getTeamId().equals(team.getTeamId())) {
-                return DbStatus.QUERY_ERROR;
+        if (tournament.getParticipatingTeams() != null) {
+            for (Team t : tournament.getParticipatingTeams()) {
+                if (t.getTeamId().equals(team.getTeamId())) {
+                    return DbStatus.QUERY_ERROR;
+                }
             }
         }
 
         DbStatus status = db.insertTournamentParticipant(tournament.getTournamentId(), team.getTeamId());
-        if (status == DbStatus.SUCCESS) {
+        if (status == DbStatus.SUCCESS && tournament.getParticipatingTeams() != null) {
             tournament.getParticipatingTeams().add(team);
         }
         return status;
@@ -78,7 +110,7 @@ public class TournamentManager {
             return DbStatus.QUERY_ERROR;
         }
 
-        if (tournament.getParticipatingTeams().size() >= MAX_TEAMS) {
+        if (tournament.getParticipatingTeams() != null && tournament.getParticipatingTeams().size() >= MAX_TEAMS) {
             return DbStatus.QUERY_ERROR;
         }
 
@@ -86,10 +118,12 @@ public class TournamentManager {
             return DbStatus.QUERY_ERROR;
         }
 
-        for (Team t : tournament.getParticipatingTeams()) {
-            for(Student s : t.getMembers()) {
-                if(s.getBilkentEmail().equals(student.getBilkentEmail())) {
-                    return DbStatus.QUERY_ERROR;
+        if (tournament.getParticipatingTeams() != null) {
+            for (Team t : tournament.getParticipatingTeams()) {
+                for(Student s : t.getMembers()) {
+                    if(s.getBilkentEmail().equals(student.getBilkentEmail())) {
+                        return DbStatus.QUERY_ERROR;
+                    }
                 }
             }
         }
@@ -102,7 +136,7 @@ public class TournamentManager {
             db.insertTeamMember(soloTeam.getTeamId(), student.getBilkentEmail(), soloTeam.getAccessCode());
             
             DbStatus status = db.insertTournamentParticipant(tournament.getTournamentId(), soloTeam.getTeamId());
-            if (status == DbStatus.SUCCESS) {
+            if (status == DbStatus.SUCCESS && tournament.getParticipatingTeams() != null) {
                 tournament.getParticipatingTeams().add(soloTeam);
                 return DbStatus.SUCCESS;
             }
@@ -115,7 +149,7 @@ public class TournamentManager {
 
         List<Team> teams = tournament.getParticipatingTeams();
 
-        if (teams.size() < MIN_TEAMS || teams.size() > MAX_TEAMS) {
+        if (teams == null || teams.size() < MIN_TEAMS || teams.size() > MAX_TEAMS) {
             return DbStatus.QUERY_ERROR; 
         }
 
@@ -131,7 +165,9 @@ public class TournamentManager {
 
         Collections.shuffle(activeTeams);
         
-        tournament.getTournamentFixture().setCurrentStage("Round " + roundNumber);
+        if (tournament.getTournamentFixture() != null) {
+            tournament.getTournamentFixture().setCurrentStage("Round " + roundNumber);
+        }
 
         Team byeTeam = null;
         if (activeTeams.size() % 2 != 0) {
@@ -146,7 +182,7 @@ public class TournamentManager {
             
             DbStatus matchStatus = db.insertMatch(matchId, t1.getCaptain().getBilkentEmail(), t2.getCaptain().getBilkentEmail(), tournament.getSportType().name());
             
-            if (matchStatus == DbStatus.SUCCESS) {
+            if (matchStatus == DbStatus.SUCCESS && tournament.getTournamentFixture() != null) {
                 Match m = new Match(matchId, LocalDateTime.now().plusDays(1), tournament.getSportType(), t1, t2);
                 tournament.getTournamentFixture().getScheduledMatches().add(m);
                 
@@ -167,7 +203,7 @@ public class TournamentManager {
         }
 
         DbStatus status = db.deleteTournamentParticipant(tournament.getTournamentId(), team.getTeamId());
-        if(status == DbStatus.SUCCESS) {
+        if(status == DbStatus.SUCCESS && tournament.getParticipatingTeams() != null) {
             tournament.getParticipatingTeams().remove(team);
         }
         return status;
@@ -190,8 +226,10 @@ public class TournamentManager {
         DbStatus status = db.updateTournamentStatus(tournament.getTournamentId(), false);
         if (status == DbStatus.SUCCESS) {
             tournament.setActive(false);
-            for(Team t : tournament.getParticipatingTeams()) {
-                notifManager.sendToUser(t.getCaptain(), "Tournament Cancelled", "The tournament " + tournament.getTournamentName() + " has been cancelled.");
+            if (tournament.getParticipatingTeams() != null) {
+                for(Team t : tournament.getParticipatingTeams()) {
+                    notifManager.sendToUser(t.getCaptain(), "Tournament Cancelled", "The tournament " + tournament.getTournamentName() + " has been cancelled.");
+                }
             }
         }
         return status;
