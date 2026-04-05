@@ -3376,54 +3376,98 @@ public class Database {
             if (conn != null) try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
         }
     }
+    
     /**
-     * Bes a student to join a team using the team's access code.
-     * Validates the access code and checks for team capacity before adding the student to the team_members table.
-     * @param teamId The UUID of the team the student wants to join
+     * Allows a student to join a team using the team's access code.
+     * Validates the access code, checks for team capacity, and ensures the student 
+     * is not already in another team in the same tournament before adding them.
      * @param currentStudent The student who is trying to join the team
      * @param inputCode The access code provided by the student to join the team
-     * @return DbStatus indicating SUCCESS or error types.
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or error types.
      */
-    public DbStatus beTeamMember(String teamId, Student currentStudent, String inputCode) {
+    public DbStatus beTeamMember(models.Student currentStudent, String inputCode) {
         
-        String checkSql = "SELECT access_code, max_capacity, " +
-                          "(SELECT COUNT(*) FROM team_members WHERE team_id = ?) AS current_count " +
-                          "FROM teams WHERE team_id = ?";
-                          
-        String insertSql = "INSERT INTO team_members (team_id, student_id) " +
-                           "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?))";
+        if (currentStudent == null || inputCode == null || inputCode.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // 1. ADIM: Girilen koda ait takımı, kapasitesini ve mevcut üye sayısını bul
+        String findTeamSql = "SELECT t.team_id, t.tournament_id, t.max_capacity, " +
+                             "(SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id AND tm.status = 'ACCEPTED') AS current_count " +
+                             "FROM teams t WHERE t.access_code = ?";
+
+        // 2. ADIM: Öğrencinin aynı turnuvada başka bir takımda olup olmadığını kontrol et
+        String checkTournamentSql = "SELECT 1 FROM team_members tm " +
+                                    "INNER JOIN teams t ON tm.team_id = t.team_id " +
+                                    "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                                    "AND tm.status = 'ACCEPTED' AND t.tournament_id = ?";
+
+        // 3. ADIM: Öğrenciyi takıma doğrudan 'ACCEPTED' olarak ekle
+        String insertMemberSql = "INSERT INTO team_members (team_id, student_id, status) " +
+                                 "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?), 'ACCEPTED')";
 
         try {
-            java.util.UUID tId = java.util.UUID.fromString(teamId);
+            java.util.UUID teamId = null;
+            java.util.UUID tournamentId = null;
 
-            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
-                checkStmt.setObject(1, tId);
-                checkStmt.setObject(2, tId);
+            // --- KONTROL 1: Takımı Bul ve Kapasiteyi Denetle ---
+            try (java.sql.PreparedStatement findStmt = getConnection().prepareStatement(findTeamSql)) {
+                findStmt.setString(1, inputCode.trim().toUpperCase()); // Kodları her ihtimale karşı büyük harf ve boşluksuz arıyoruz
                 
-                try (ResultSet rs = checkStmt.executeQuery()) {
+                try (java.sql.ResultSet rs = findStmt.executeQuery()) {
                     if (rs.next()) {
-                        if (!rs.getString("access_code").equals(inputCode)) {
-                            return DbStatus.INVALID_CREDENTIALS; 
+                        int maxCap = rs.getInt("max_capacity");
+                        int currentCount = rs.getInt("current_count");
+                        
+                        if (currentCount >= maxCap) {
+                            System.err.println("Hata: Katılmaya çalıştığınız takımın kapasitesi dolu!");
+                            return DbStatus.QUERY_ERROR; // Kapasite hatası
                         }
-                        if (rs.getInt("current_count") >= rs.getInt("max_capacity")) {
-                            return DbStatus.QUERY_ERROR; 
-                        }
-                    } else { return DbStatus.DATA_NOT_FOUND; }
+                        
+                        teamId = (java.util.UUID) rs.getObject("team_id");
+                        tournamentId = (java.util.UUID) rs.getObject("tournament_id");
+                    } else {
+                        System.err.println("Hata: Geçersiz veya bulunamayan katılım kodu!");
+                        return DbStatus.DATA_NOT_FOUND; // Takım bulunamadı
+                    }
                 }
             }
 
-            try (PreparedStatement insertStmt = getConnection().prepareStatement(insertSql)) {
-                insertStmt.setObject(1, tId);
-                insertStmt.setString(2, currentStudent.getBilkentEmail());
-                insertStmt.executeUpdate();
-                return DbStatus.SUCCESS;
+            // --- KONTROL 2: Aynı Turnuvada Başka Takımda Mı? ---
+            try (java.sql.PreparedStatement checkStmt = getConnection().prepareStatement(checkTournamentSql)) {
+                checkStmt.setString(1, currentStudent.getBilkentEmail());
+                checkStmt.setObject(2, tournamentId);
+                
+                try (java.sql.ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        System.err.println("Hata: Öğrenci bu turnuvada zaten başka bir takıma kayıtlı!");
+                        return DbStatus.QUERY_ERROR; // Zaten turnuvada var
+                    }
+                }
             }
-        } catch (SQLException e) {
-            if ("23505".equals(e.getSQLState())) System.err.println("Öğrenci zaten takımda.");
+
+            // --- İŞLEM: Takıma Ekle ---
+            try (java.sql.PreparedStatement insertStmt = getConnection().prepareStatement(insertMemberSql)) {
+                insertStmt.setObject(1, teamId);
+                insertStmt.setString(2, currentStudent.getBilkentEmail());
+                
+                int insertedRows = insertStmt.executeUpdate();
+                return (insertedRows > 0) ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+            }
+
+        } catch (java.sql.SQLException e) {
+            // "23505" hatası PostgreSQL'de "Unique Violation" yani mükerrer kayıt demektir.
+            // Bu durumda öğrenci zaten o takımdadır (veya PENDING olarak daha önceden istek atılmıştır).
+            if ("23505".equals(e.getSQLState())) {
+                System.err.println("Uyarı: Öğrenci zaten bu takımda bulunuyor veya davetiye bekliyor!");
+            } else {
+                e.printStackTrace();
+            }
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) return DbStatus.CONNECTION_ERROR;
             return DbStatus.QUERY_ERROR;
         }
     }
-
+    
     /**
      * Removes a student from a team based on the team ID and student's email.
      * @param teamId The UUID of the team from which the student wants to be removed
