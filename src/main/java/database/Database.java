@@ -3092,6 +3092,7 @@ public class Database {
     /**
      * Uploads a profile picture to Supabase Storage and updates the user's profile picture URL in the database.
      * Validates the file format (PNG, JPG, JPEG) and enforces a maximum file size limit of 5 MB.
+     * Automatically deletes the old profile picture from Storage to save space.
      * @param email The Bilkent email of the user updating their profile picture
      * @param pictureFile The image file to be uploaded to the 'avatars' bucket
      * @return DbStatus indicating SUCCESS, FILE_TOO_LARGE, DATA_NOT_FOUND, or errors.
@@ -3109,37 +3110,35 @@ public class Database {
             System.err.println("Uyarı: Yüklenen dosya çok büyük! Maksimum 5 MB destekleniyor.");
             return DbStatus.FILE_TOO_LARGE; 
         }
-        // --------------------------------------
 
         String fileName = pictureFile.getName().toLowerCase();
         if (!fileName.endsWith(".png") && !fileName.endsWith(".jpg") && !fileName.endsWith(".jpeg")) {
-            // Geçersiz dosya formatı (Sadece PNG ve JPEG)
             return DbStatus.QUERY_ERROR; 
         }
 
         try {
+            // YENİ ADIM: İşleme başlamadan önce kullanıcının mevcut fotoğraf linkini veritabanından çek (Yedekte tut)
+            String oldProfilePicUrl = getCurrentProfilePicUrl(email);
+
             // 2. Supabase Storage İçin Benzersiz Dosya Adı Oluşturma
             String extension = fileName.substring(fileName.lastIndexOf("."));
             String storagePath = "profile_" + email.replace("@", "_").replace(".", "_") + "_" + System.currentTimeMillis() + extension;
 
-            // 3. Dosyayı Supabase Storage'a Yükleme (HttpURLConnection kullanılıyor)
+            // 3. Dosyayı Supabase Storage'a Yükleme
             String uploadUrl = SUPABASE_URL + "/storage/v1/object/avatars/" + storagePath;
             
             java.net.URL url = java.net.URI.create(uploadUrl).toURL();
             java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
             
-            // POST kullanıyoruz ve apikey ekliyoruz
             connection.setRequestMethod("POST"); 
             connection.setRequestProperty("Authorization", "Bearer " + SUPABASE_KEY);
             connection.setRequestProperty("apikey", SUPABASE_KEY); 
             
-            // Windows'ta null dönme ihtimaline karşı Content-Type'ı manuel güvenceye alıyoruz
             String contentType = Files.probeContentType(pictureFile.toPath());
             if (contentType == null) {
                 contentType = fileName.endsWith(".png") ? "image/png" : "image/jpeg";
             }
             connection.setRequestProperty("Content-Type", contentType);
-            
             connection.setDoOutput(true);
 
             try (java.io.InputStream fileInput = new FileInputStream(pictureFile);
@@ -3158,10 +3157,16 @@ public class Database {
                 String publicUrl = SUPABASE_URL + "/storage/v1/object/public/avatars/" + storagePath;
 
                 // 5. Veritabanındaki 'users' tablosunu yeni URL ile güncelle
-                return updateProfilePicUrlInDatabase(email, publicUrl);
+                DbStatus updateStatus = updateProfilePicUrlInDatabase(email, publicUrl);
+                
+                // YENİ ADIM: Eğer veritabanı başarıyla güncellendiyse ve eski bir fotoğraf varsa, eskiyi Storage'dan SİL!
+                if (updateStatus == DbStatus.SUCCESS && oldProfilePicUrl != null && !oldProfilePicUrl.trim().isEmpty()) {
+                    deleteFileFromStorage(oldProfilePicUrl);
+                }
+                
+                return updateStatus;
                 
             } else {
-                // Hata durumunda Supabase'in detaylı hata mesajını konsola yazdırır
                 java.io.InputStream errorStream = connection.getErrorStream();
                 if (errorStream != null) {
                     try (java.util.Scanner scanner = new java.util.Scanner(errorStream)) {
@@ -3179,8 +3184,9 @@ public class Database {
             return DbStatus.CONNECTION_ERROR;
         }
     }
+
     /**
-     * Yardımcı Metot: Veritabanındaki URL kolonunu günceller.
+     * Yardımcı Metot 1: Veritabanındaki URL kolonunu günceller.
      */
     private DbStatus updateProfilePicUrlInDatabase(String email, String publicUrl) {
         String sql = "UPDATE users SET profile_pic_url = ? WHERE bilkent_email = ?";
@@ -3197,4 +3203,55 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-}
+
+    /**
+     * Yardımcı Metot 2: Kullanıcının veritabanındaki mevcut profil fotoğrafı URL'sini çeker.
+     */
+    private String getCurrentProfilePicUrl(String email) {
+        String sql = "SELECT profile_pic_url FROM users WHERE bilkent_email = ?";
+        
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, email);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("profile_pic_url");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Mevcut fotoğraf URL'si çekilirken hata oluştu: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Yardımcı Metot 3: Supabase Storage API'sini kullanarak verilen URL'ye ait dosyayı fiziksel olarak siler.
+     */
+    private void deleteFileFromStorage(String oldUrl) {
+        // Geçersiz bir URL geldiyse (veya bizim bucket'tan değilse) işlemi iptal et
+        if (oldUrl == null || !oldUrl.contains("/avatars/")) return;
+
+        try {
+            // URL'nin sonundaki dosya adını çekiyoruz (Örn: "profile_berkin_..._162345.png")
+            String fileName = oldUrl.substring(oldUrl.lastIndexOf("/") + 1);
+            
+            // Supabase Delete API Endpoint'i
+            String deleteApiUrl = SUPABASE_URL + "/storage/v1/object/avatars/" + fileName;
+            
+            java.net.URL url = java.net.URI.create(deleteApiUrl).toURL();
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+            
+            connection.setRequestMethod("DELETE");
+            connection.setRequestProperty("Authorization", "Bearer " + SUPABASE_KEY);
+            connection.setRequestProperty("apikey", SUPABASE_KEY);
+            
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                System.err.println("Uyarı: Eski profil fotoğrafı Storage'dan silinemedi. HTTP Kodu: " + responseCode);
+            } else {
+                System.out.println("Eski profil fotoğrafı Storage'dan başarıyla temizlendi.");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Eski fotoğraf silinirken bir istisna oluştu: " + e.getMessage());
+        }
+    }}
