@@ -55,4 +55,9 @@ public class AdminMainController {
     public void loadSettings() {
         loadView("/views/dashboard/SettingsView.fxml");
     }
+    // AdminMainController.java dosyasındaki diğer load... metotlarının hemen altına ekle:
+    
+    public void loadFacilities() {
+        loadView("/views/dashboard/AdminFacilitiesView.fxml"); 
+    }
 }

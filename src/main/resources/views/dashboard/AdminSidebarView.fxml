@@ -62,7 +62,9 @@
                   <Button fx:id="btnAccount" alignment="BASELINE_LEFT" onAction="#loadAccount" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Account" />
                   <Button fx:id="btnHome" alignment="BASELINE_LEFT" onAction="#loadHome" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn, active" stylesheets="@bilfit-exact.css" text="    Home" />
                   <Button fx:id="btnReservation" alignment="BASELINE_LEFT" onAction="#loadReservations" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Reservation" />
-                  <Label prefHeight="45.0" prefWidth="210.0" />
+                  
+                  <Button fx:id="btnFacilities" alignment="BASELINE_LEFT" onAction="#loadFacilities" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Facilities" />
+                  
                   <Label prefHeight="45.0" prefWidth="210.0" />
                </children>
             </VBox>

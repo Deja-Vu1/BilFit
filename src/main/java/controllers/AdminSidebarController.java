@@ -16,16 +16,17 @@ public class AdminSidebarController {
     @FXML private Button btnHome;
     @FXML private Button btnAccount;
     @FXML private Button btnReservation;
+    @FXML private Button btnFacilities; // EKLENDİ
     @FXML private Button btnSettings;
     
     @FXML 
     public void initialize() {
-        // Başlangıçta ekstra bir şey yapmaya gerek yok, MainController bağlanınca Home aktif olacak
+        // Başlangıçta ekstra bir şey yapmaya gerek yok
     }
 
-    // Aktif butonu CSS ile vurgulamak için
     private void updateActiveButton(Button clickedButton) {
-        Button[] allButtons = {btnHome, btnAccount, btnReservation, btnSettings};
+        // LİSTEYE btnFacilities EKLENDİ
+        Button[] allButtons = {btnHome, btnAccount, btnReservation, btnFacilities, btnSettings};
         
         for (Button btn : allButtons) {
             if (btn != null) {
@@ -38,10 +39,9 @@ public class AdminSidebarController {
         }
     }
 
-    // AdminMainController tarafından çağrılır ve iki controller'ı birbirine bağlar
     public void setMainController(AdminMainController controller) {
         this.mainController = controller;
-        updateActiveButton(btnHome); // Varsayılan olarak Home butonunu aktif yap
+        updateActiveButton(btnHome); 
     }
 
     @FXML
@@ -62,6 +62,13 @@ public class AdminSidebarController {
         if (mainController != null) mainController.loadReservations();
     }
 
+    // YENİ EKLENEN FACILITIES YÖNLENDİRMESİ
+    @FXML 
+    private void loadFacilities() {
+        updateActiveButton(btnFacilities);
+        if (mainController != null) mainController.loadFacilities();
+    }
+
     @FXML 
     private void loadSettings() {
         updateActiveButton(btnSettings);
@@ -71,18 +78,13 @@ public class AdminSidebarController {
     @FXML 
     private void logout() {
         System.out.println("Admin çıkış yapıyor...");
-        
-        // ÇÖZÜM: SessionManager üzerinden oturumu kapatıyoruz ki eski veriler hafızada kalmasın!
         SessionManager.getInstance().logout();
         
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
             Parent root = loader.load();
-            
-            // Mevcut pencereyi (Stage) bul ve sahneyi değiştir
             Stage stage = (Stage) btnHome.getScene().getWindow(); 
             stage.getScene().setRoot(root);
-
         } catch (IOException e) {
             System.err.println("HATA: Çıkış yapılırken SelectionView sayfası yüklenemedi!");
             e.printStackTrace();
