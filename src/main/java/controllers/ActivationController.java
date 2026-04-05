@@ -43,16 +43,16 @@ public class ActivationController {
     public void submitCode(ActionEvent event) {
         if (isProcessing) return;
 
-        // Kodu boşluklardan temizleyelim
+        
         String code = activationCodeField.getText() != null ? activationCodeField.getText().trim() : "";
         
         if (code.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen 6 haneli aktivasyon kodunu giriniz.");
+            showAlert(Alert.AlertType.WARNING, "Missing Information", "Please enter the 6-digit activation code.");
             return;
         }
 
         if (emailToActivate == null || emailToActivate.trim().isEmpty()) {
-            showAlert(Alert.AlertType.ERROR, "Sistem Hatası", "İşlem yapılacak e-posta adresi bulunamadı.");
+            showAlert(Alert.AlertType.ERROR, "System Error", "The email address for this operation could not be found.");
             return;
         }
 
@@ -62,12 +62,12 @@ public class ActivationController {
         
         clickedButton.getParent().requestFocus();
         clickedButton.setDisable(true);
-        clickedButton.setText("Doğrulanıyor...");
+        clickedButton.setText("Verifying...");
 
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
-                // AUTH MANAGER BAĞLANTISI BURADA
+                
                 if (currentContext == ActivationContext.REGISTRATION) {
                     status = authManager.activateAccount(emailToActivate, code);
                 } else {
@@ -87,7 +87,7 @@ public class ActivationController {
                 switch (finalStatus) {
                     case SUCCESS:
                         if (currentContext == ActivationContext.REGISTRATION) {
-                            showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Hesabınız aktive edildi! Giriş yapabilirsiniz.");
+                            showAlert(Alert.AlertType.INFORMATION, "Success", "Your account has been activated! You can now log in.");
                             goToLogin(clickedButton);
                         } else {
                             askForNewPassword(clickedButton);
@@ -96,16 +96,16 @@ public class ActivationController {
                     case INVALID_CODE:
                     case INVALID_CREDENTIALS:
                     case DATA_NOT_FOUND:
-                        showAlert(Alert.AlertType.ERROR, "Hata", "Girdiğiniz kod hatalı veya süresi dolmuş.");
+                        showAlert(Alert.AlertType.ERROR, "Error", "The code you entered is invalid or has expired.");
                         break;
                     case CONNECTION_ERROR:
-                        showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
+                        showAlert(Alert.AlertType.ERROR, "Connection Error", "Could not connect to the database.");
                         break;
                     case QUERY_ERROR:
-                        showAlert(Alert.AlertType.ERROR, "Hata", "Girdiğiniz kod formatı geçersiz.");
+                        showAlert(Alert.AlertType.ERROR, "Error", "The code format you entered is invalid.");
                         break;
                     default:
-                        showAlert(Alert.AlertType.ERROR, "Hata", "İşlem sırasında bilinmeyen bir sorun oluştu.");
+                        showAlert(Alert.AlertType.ERROR, "Error", "An unknown error occurred during the operation.");
                         break;
                 }
             });
@@ -114,14 +114,14 @@ public class ActivationController {
 
     private void askForNewPassword(Node sourceNode) {
         Dialog<String> dialog = new Dialog<>();
-        dialog.setTitle("Yeni Şifre Belirleme");
-        dialog.setHeaderText("Kod doğrulandı. Lütfen yeni şifrenizi giriniz:");
+        dialog.setTitle("Set New Password");
+        dialog.setHeaderText("Code verified. Please enter your new password:");
 
-        ButtonType saveButtonType = new ButtonType("Şifreyi Güncelle", ButtonBar.ButtonData.OK_DONE);
+        ButtonType saveButtonType = new ButtonType("Update Password", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
 
         PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("En az 6 haneli yeni şifre");
+        passwordField.setPromptText("New password (at least 6 characters)");
         passwordField.setStyle("-fx-pref-width: 250px; -fx-pref-height: 35px;");
         dialog.getDialogPane().setContent(passwordField);
 
@@ -141,18 +141,18 @@ public class ActivationController {
         result.ifPresent(newPassword -> {
             // Şifre uzunluğu kuralı kontrolü
             if (newPassword == null || newPassword.trim().isEmpty()) {
-                showAlert(Alert.AlertType.WARNING, "Uyarı", "Şifre boş bırakılamaz!");
+                showAlert(Alert.AlertType.WARNING, "Warning", "Password cannot be empty!");
             } else if (newPassword.length() < 6) {
-                showAlert(Alert.AlertType.WARNING, "Zayıf Şifre", "Şifreniz en az 6 karakter olmalıdır.");
+                showAlert(Alert.AlertType.WARNING, "Weak Password", "Your password must be at least 6 characters long.");
             } else {
                 new Thread(() -> {
                     DbStatus updateStatus = db.updatePassword(emailToActivate, newPassword);
                     Platform.runLater(() -> {
                         if (updateStatus == DbStatus.SUCCESS) {
-                            showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Şifreniz başarıyla güncellendi! Giriş yapabilirsiniz.");
+                            showAlert(Alert.AlertType.INFORMATION, "Success", "Your password has been updated successfully! You can now log in.");
                             goToLogin(sourceNode);
                         } else {
-                            showAlert(Alert.AlertType.ERROR, "Hata", "Şifre güncellenirken bir sorun oluştu.");
+                            showAlert(Alert.AlertType.ERROR, "Error", "An error occurred while updating the password.");
                         }
                     });
                 }).start();
@@ -187,7 +187,7 @@ public class ActivationController {
         }
     }
 
-    // TASARIM KORUNDU
+    
     private void showAlert(Alert.AlertType alertType, String title, String message) {
         Alert alert = new Alert(alertType);
         alert.setTitle(title);

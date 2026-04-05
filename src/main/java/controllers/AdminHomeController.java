@@ -22,7 +22,7 @@ import javafx.stage.StageStyle;
 
 public class AdminHomeController {
 
-    // TURNUVA İÇİN EKLENEN LABEL'LAR
+    
     @FXML private Label tournament1Label;
     @FXML private Label tournament2Label;
 
@@ -37,26 +37,26 @@ public class AdminHomeController {
 
     @FXML
     public void initialize() {
-        // Sayfa açıldığında turnuvaları yükle
+       
         loadTournaments();
 
-        // Broadcast seçildiğinde email girilen kutuyu kapatıyoruz
+        
         broadcastCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
             emailsArea.setDisable(newVal);
             if (newVal) {
-                emailsArea.setPromptText("Sistemdeki tüm öğrencilere gönderilecek (Broadcast aktif)");
+                emailsArea.setPromptText("Will be sent to all students in the system (Broadcast active)");
                 emailsArea.clear();
             } else {
-                emailsArea.setPromptText("Örn: ali@ug.bilkent.edu.tr, veli@ug.bilkent.edu.tr (Virgülle ayırarak yazın)");
+                emailsArea.setPromptText("E.g., ali@ug.bilkent.edu.tr, veli@ug.bilkent.edu.tr (Separate emails with commas)");
             }
         });
     }
 
-    // TURNUVALARI YÜKLEYEN METOT
+    
     private void loadTournaments() {
         new Thread(() -> {
             try {
-                // Not: İleride Database'e "getAllTournaments" yazıldığında buradan çekilecek
+                
                 String t1 = "Football Tournament  | 25.02.2026 - 20.03.2026  |  Max 10 player  | Ge250-251";
                 String t2 = "Tennis Tournament  | 25.02.2026 - 20.03.2026  |  Max 4 player  | Ge250-251";
 
@@ -80,17 +80,17 @@ public class AdminHomeController {
         String emailsText = emailsArea.getText();
 
         if (title == null || title.trim().isEmpty() || message == null || message.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "Başlık ve mesaj alanları boş bırakılamaz.");
+            showCustomAlert("Warning", "Title and message fields cannot be left empty.");
             return;
         }
 
         if (!isBroadcast && (emailsText == null || emailsText.trim().isEmpty())) {
-            showCustomAlert("Uyarı", "Lütfen en az bir mail adresi girin veya 'Herkese Gönder (Broadcast)' seçeneğini işaretleyin.");
+            showCustomAlert("Warning", "Please enter at least one email address or check the 'Send to All Students (Broadcast)' option.");
             return;
         }
 
         isProcessing = true;
-        sendBtn.setText("Gönderiliyor...");
+        sendBtn.setText("Sending...");
         sendBtn.setDisable(true);
 
         new Thread(() -> {
@@ -129,22 +129,22 @@ public class AdminHomeController {
 
                 if (isBroadcast) {
                     if (finalSuccess > 0) {
-                        showCustomAlert("Başarılı", "Broadcast (Genel Duyuru) başarıyla tüm kullanıcılara gönderildi.");
+                        showCustomAlert("Success", "Broadcast (General Announcement) successfully sent to all users.");
                         titleField.clear();
                         messageArea.clear();
                     } else {
-                        showCustomAlert("Hata", "Broadcast gönderilirken veritabanı hatası oluştu.");
+                        showCustomAlert("Error", "An error occurred while sending the broadcast.");
                     }
                 } else {
                     if (finalFail == 0 && finalSuccess > 0) {
-                        showCustomAlert("Başarılı", "Bildirim " + finalSuccess + " kişiye başarıyla gönderildi!");
+                        showCustomAlert("Success", "Notification successfully sent to " + finalSuccess + " users!");
                         titleField.clear();
                         messageArea.clear();
                         emailsArea.clear();
                     } else if (finalSuccess > 0 && finalFail > 0) {
-                        showCustomAlert("Kısmi Başarı", finalSuccess + " kişiye başarıyla gönderildi ancak şu kişilere gönderilemedi (Kullanıcı bulunamadı):\n" + finalFailStr);
+                        showCustomAlert("Partial Success", finalSuccess + " users successfully received the notification, but the following users could not be reached (User not found):\n" + finalFailStr);
                     } else {
-                        showCustomAlert("Hata", "Hiçbir bildirim gönderilemedi. Girdiğiniz e-posta adreslerinin sistemde kayıtlı olduğundan emin olun.");
+                        showCustomAlert("Error", "No notifications were sent. Please ensure the email addresses you entered are registered in the system.");
                     }
                 }
             });
@@ -174,7 +174,7 @@ public class AdminHomeController {
         msgLabel.setAlignment(Pos.CENTER);
         msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #a3aed0; -fx-text-alignment: center;");
 
-        Button okBtn = new Button("Tamam");
+        Button okBtn = new Button("OK");
         okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
         okBtn.setOnAction(e -> dialogStage.close());
 

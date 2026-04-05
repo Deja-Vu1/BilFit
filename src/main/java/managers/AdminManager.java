@@ -50,7 +50,7 @@ public class AdminManager {
         if (status == DbStatus.SUCCESS) {
             student.setBanned(false);
             
-            // Banı açılan öğrenciye temiz sayfa açıyoruz (Ceza puanını veritabanında ve modelde 0 yap)
+           
             db.updateStudentPenalty(student.getBilkentEmail(), 0);
             student.setPenaltyPoints(0);
             
@@ -148,7 +148,7 @@ public class AdminManager {
         if (admin == null || file == null) return DbStatus.QUERY_ERROR;
         DbStatus status = db.updateProfilePicture(admin.getBilkentEmail(), file);
         if (status == DbStatus.SUCCESS) {
-            // Yükleme başarılıysa URL'i veritabanından tazeleyip Session'a yansıt
+           
             db.fillAdminDataByEmail(admin, admin.getBilkentEmail());
         }
         return status;

@@ -118,6 +118,10 @@ public class AdminProfileController {
                     editIconOverlay.setVisible(false);
                     if (status == DbStatus.SUCCESS) {
                         loadAdminProfileData(); 
+                        
+                        // YENİ EKLENDİ: SİDEBAR'I DA ANINDA YENİLE!
+                        AdminSidebarController.refreshProfilePicture();
+                        
                         showCustomAlert("Başarılı", "Yönetici profil fotoğrafınız başarıyla güncellendi!");
                     } else if (status == DbStatus.FILE_TOO_LARGE) {
                         showCustomAlert("Dosya Çok Büyük", "Seçtiğiniz fotoğrafın boyutu çok yüksek. Lütfen 5 MB altı bir dosya seçin.");

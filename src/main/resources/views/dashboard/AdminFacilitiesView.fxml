@@ -45,7 +45,9 @@
          <VBox.margin>
             <Insets top="20.0" />
          </VBox.margin>
-         <Button onAction="#handleBulkOpen" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand; -fx-border-color: #1E8E3E; -fx-border-radius: 12;" text="Tesisleri Aç" />
+         <Button onAction="#handleBulkDelete" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand;" text="Seçili Tesisleri Sil" />
+         
+         <Region HBox.hgrow="ALWAYS" /> <Button onAction="#handleBulkOpen" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand; -fx-border-color: #1E8E3E; -fx-border-radius: 12;" text="Tesisleri Aç" />
          <Button onAction="#handleBulkClose" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand; -fx-border-color: #D93025; -fx-border-radius: 12;" text="Tesisleri Kapat" />
       </HBox>
    </VBox>

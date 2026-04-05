@@ -18,7 +18,7 @@ public class AuthManager {
             return false;
         }
         String cleanEmail = email.trim().toLowerCase();
-        // Sadece Bilkent uzantılarını kabul et
+        
         return cleanEmail.endsWith("@ug.bilkent.edu.tr") || 
                cleanEmail.endsWith("@alumni.bilkent.edu.tr") || 
                cleanEmail.endsWith("@bilkent.edu.tr") || 
@@ -27,7 +27,7 @@ public class AuthManager {
     }
 
     public DbStatus registerStudent(String email, String password, String studentId, String fullName) {
-        // E-postayı kesinlikle küçük harfe çeviriyoruz ki SQL patlamasın
+        
         String cleanEmail = email != null ? email.trim().toLowerCase() : "";
         String cleanId = studentId != null ? studentId.trim() : "";
         String cleanName = fullName != null ? fullName.trim() : "";
@@ -36,7 +36,7 @@ public class AuthManager {
             return DbStatus.QUERY_ERROR;
         }
         
-        // Veritabanına tertemiz veriler gidiyor
+        
         return db.registerStudent(cleanName, cleanEmail, cleanId, password);
     }
 

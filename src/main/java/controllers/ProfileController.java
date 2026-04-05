@@ -57,19 +57,19 @@ public class ProfileController {
            try {
                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
 
-               // 1. ADIM: FOTOĞRAFI ARKA PLANDA TAMAMEN İNDİR! (Platform.runLater DIŞINDA)
+               
                Image downloadedImg = null;
                if (currentUser != null && currentUser.getProfilePictureUrl() != null && !currentUser.getProfilePictureUrl().isEmpty()) {
                    String picUrl = currentUser.getProfilePictureUrl();
                    String noCacheUrl = picUrl + (picUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
-                   // false parametresi: Resim tamamen inene kadar bu arka plan Thread'ini beklet (UI donmaz)
+                  
                    downloadedImg = new Image(noCacheUrl, false);
                }
                
-               // Lambda içine gönderebilmek için final yapıyoruz
+               
                final Image finalImg = downloadedImg;
 
-               // 2. ADIM: İNDİRME BİTTİKTEN SONRA ARAYÜZÜ GÜNCELLE
+               
                Platform.runLater(() -> {
                    if (currentUser != null) {
                        if (nameLabel != null) nameLabel.setText(currentUser.getFullName());
@@ -78,7 +78,7 @@ public class ProfileController {
                        if (matchesPlayedLabel != null) matchesPlayedLabel.setText(String.valueOf(currentUser.getMatchesPlayed()));
                        if (winRateLabel != null) winRateLabel.setText(String.format("%.0f%%", currentUser.getWinRate() * 100));
 
-                       // TAMAMEN İNDİRİLMİŞ RESMİ YUVARLAĞA KOY (HATA VERMEZ)
+                       
                        if (finalImg != null && !finalImg.isError()) {
                            profileImageCircle.setFill(new ImagePattern(finalImg));
                        } else {
@@ -94,7 +94,7 @@ public class ProfileController {
                                    interestsBox.getChildren().add(sportLabel);
                                }
                            } else {
-                               Label emptyLabel = new Label("İlgi Alanı Yok");
+                               Label emptyLabel = new Label("No Interest Areas");
                                emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-style: italic;");
                                interestsBox.getChildren().add(emptyLabel);
                            }
@@ -109,9 +109,9 @@ public class ProfileController {
    @FXML
    public void handleProfilePictureUpload() {
        FileChooser fileChooser = new FileChooser();
-       fileChooser.setTitle("Profil Fotoğrafı Seç");
+       fileChooser.setTitle("Select Profile Picture");
        fileChooser.getExtensionFilters().addAll(
-           new FileChooser.ExtensionFilter("Resim Dosyaları", "*.png", "*.jpg", "*.jpeg")
+           new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
        );
        
        File selectedFile = fileChooser.showOpenDialog(profileImageContainer.getScene().getWindow());
@@ -127,18 +127,22 @@ public class ProfileController {
                    editIconOverlay.setVisible(false);
                    if (status == DbStatus.SUCCESS) {
                        loadProfileData(); 
-                       showCustomAlert("Başarılı", "Profil fotoğrafınız harika görünüyor! Başarıyla güncellendi.");
+                       
+                       
+                       StudentSidebarController.refreshProfilePicture(); 
+                       
+                       showCustomAlert("Success", "Your profile picture looks great! It has been updated successfully.");
                    } else if (status == DbStatus.FILE_TOO_LARGE) {
-                       showCustomAlert("Dosya Çok Büyük", "Seçtiğiniz fotoğrafın boyutu çok yüksek. Lütfen 5 MB altı bir dosya seçin.");
+                       showCustomAlert("File Too Large", "The selected image is too large. Please choose a file under 5 MB.");
                    } else {
-                       showCustomAlert("Hata", "Fotoğraf yüklenirken sunucu kaynaklı bir hata oluştu.");
+                       showCustomAlert("Error", "An error occurred while uploading the image.");
                    }
                });
            }).start();
        }
    }
 
-   // ŞIK VE MODERN POP-UP TASARIMI
+   
    private void showCustomAlert(String title, String message) {
        Stage dialogStage = new Stage();
        dialogStage.initModality(Modality.APPLICATION_MODAL);
@@ -162,7 +166,7 @@ public class ProfileController {
        msgLabel.setAlignment(Pos.CENTER);
        msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #a3aed0; -fx-text-alignment: center;");
 
-       Button okBtn = new Button("Tamam");
+       Button okBtn = new Button("OK");
        okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
        okBtn.setOnAction(e -> dialogStage.close());
 
