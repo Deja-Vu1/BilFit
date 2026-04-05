@@ -3824,12 +3824,11 @@ public class Database {
     }
 
     /**
-     * Retrieves a list of teams that have sent a pending invite to the given student.
-     * Joins multiple tables to fetch teams where the student has a 'PENDING' membership
-     * status and includes the captain's information in the Team model.
-     * @param teamId Optional parameter to filter invites for a specific team (if null, retrieves all pending invites for the student)
-     * @param currentStudent The student for whom to fetch the incoming team invites
-     * @return A List of Team objects representing the teams that have sent pending invites to the student.
+     * Retrieves a list of teams that have sent pending join requests to a specific student.
+     * Joins multiple tables to fetch team details along with the captain's information for teams where the student has a 'PENDING' status.
+     * @param teamId Optional UUID of a specific team to filter the incoming requests (if null, fetches all incoming requests)
+     * @param currentStudent The student for whom to fetch the incoming requests (used to filter requests relevant to this student)
+     * @return A List of Team objects representing the teams that have sent join requests to the specified student.
      */
     public java.util.ArrayList<models.Team> getTeamIncomingRequests(String teamId, models.Student currentStudent) {
         java.util.ArrayList<models.Team> incomingTeams = new java.util.ArrayList<>();
@@ -3889,71 +3888,66 @@ public class Database {
         }
         return incomingTeams;
     }
-
     /**
-     * Retrieves a list of teams that the given student has sent pending invites to.
-     * Joins multiple tables to fetch teams where the student has a 'PENDING' membership
-     * status and includes the captain's information in the Team model.
-     * @param teamId Optional parameter to filter outgoing invites for a specific team (if null, retrieves all pending invites sent by the student)
-     * @param currentStudent The student for whom to fetch the outgoing team invites
-     * @return A List of Team objects representing the teams that the student has sent pending invites to.
+     * Retrieves a list of students who have received pending join requests from a specific team.
+     * Joins multiple tables to fetch students who have a 'PENDING' status for the given team ID and the current student's email.
+     * @param teamId The UUID of the team for which to fetch outgoing join requests
+     * @param currentStudent The student for whom to fetch the outgoing requests (used to filter requests relevant to this student)
+     * @return A List of Student objects representing the students who have received join requests from the specified team.
      */
-    public java.util.ArrayList<models.Team> getTeamOutgoingRequests(String teamId, models.Student currentStudent) {
-        java.util.ArrayList<models.Team> outgoingTeams = new java.util.ArrayList<>();
-        if (currentStudent == null) return outgoingTeams;
+    public java.util.ArrayList<models.Student> getTeamOutgoingRequests(String teamId, Student currentStudent) {
+        java.util.ArrayList<models.Student> requestReceivers = new java.util.ArrayList<>();
+        if (currentStudent == null) return requestReceivers;
 
-        // DISTINCT kullanıldı çünkü aynı takıma 3 istek attıysan, takım listede 3 kere görünmesin
         StringBuilder sql = new StringBuilder(
-            "SELECT DISTINCT t.team_id, t.team_name, t.access_code, t.max_capacity, t.ge250_requested, " +
-            "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.student_id AS cap_uni_id, c_u.profile_pic_url AS cap_pic, " +
-            "c_s.elo_point, c_s.win_rate " +
-            "FROM teams t " +
-            "INNER JOIN team_members tm ON t.team_id = tm.team_id " +
-            "INNER JOIN users c_u ON t.captain_id = c_u.id " +
-            "INNER JOIN students c_s ON c_u.id = c_s.user_id " +
-            "WHERE c_u.bilkent_email = ? AND tm.status = 'PENDING'"
+            "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
+            "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+            "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+            "FROM team_members tm " +
+            "INNER JOIN teams t ON tm.team_id = t.team_id " +
+            "INNER JOIN users u ON tm.student_id = u.id " +
+            "INNER JOIN students s ON u.id = s.user_id " +
+            "WHERE t.captain_id = (SELECT id FROM users WHERE bilkent_email = ?) AND tm.status = 'PENDING'"
         );
 
         if (teamId != null && !teamId.trim().isEmpty()) {
             sql.append(" AND tm.team_id = ?");
         }
 
-        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql.toString())) {
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql.toString())) {
             stmt.setString(1, currentStudent.getBilkentEmail());
             if (teamId != null && !teamId.trim().isEmpty()) {
                 stmt.setObject(2, java.util.UUID.fromString(teamId));
             }
 
-            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+            try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    // 1. Kaptanı oluşturuyoruz
-                    models.Student captain = new models.Student(
-                        rs.getString("cap_name"), 
-                        rs.getString("cap_email"), 
-                        rs.getString("cap_uni_id")
-                    );
-                    captain.setProfilePictureUrl(rs.getString("cap_pic"));
-                    captain.setEloPoint(rs.getInt("elo_point"));
-                    captain.setWinRate(rs.getDouble("win_rate"));
+                    models.Student receiver = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    
+                    receiver.setFullName(rs.getString("full_name"));
+                    receiver.setBilkentEmail(rs.getString("bilkent_email"));
+                    receiver.setStudentId(rs.getString("uni_id"));
+                    receiver.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                    receiver.setEloPoint(rs.getInt("elo_point"));
+                    receiver.setPenaltyPoints(rs.getInt("penalty_points"));
+                    receiver.setReliabilityScore(rs.getDouble("reliability_score"));
+                    receiver.setMatchesPlayed(rs.getInt("matches_played"));
+                    receiver.setWinRate(rs.getDouble("win_rate"));
+                    receiver.setPublicProfile(rs.getBoolean("is_public_profile"));
+                    receiver.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    receiver.setMatchesWon(matchesWon);
 
-                    // 2. Takımı oluşturuyoruz
-                    models.Team team = new models.Team(
-                        rs.getObject("team_id").toString(),
-                        rs.getString("team_name"),
-                        rs.getString("access_code"),
-                        rs.getInt("max_capacity"),
-                        rs.getBoolean("ge250_requested"),
-                        captain
-                    );
-
-                    outgoingTeams.add(team);
+                    requestReceivers.add(receiver);
                 }
             }
-        } catch (java.sql.SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
-        return outgoingTeams;
+        return requestReceivers;
     }
+
     /**
      * Retrieves a list of teams that the given student is currently a member of.
      * Joins multiple tables to fetch teams where the student has an 'ACCEPTED' membership status.
