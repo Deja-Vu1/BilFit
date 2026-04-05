@@ -16,7 +16,7 @@ public class AdminSidebarController {
     @FXML private Button btnHome;
     @FXML private Button btnAccount;
     @FXML private Button btnReservation;
-    @FXML private Button btnFacilities; // EKLENDİ
+    @FXML private Button btnFacilities;
     @FXML private Button btnSettings;
     
     @FXML 
@@ -25,7 +25,6 @@ public class AdminSidebarController {
     }
 
     private void updateActiveButton(Button clickedButton) {
-        // LİSTEYE btnFacilities EKLENDİ
         Button[] allButtons = {btnHome, btnAccount, btnReservation, btnFacilities, btnSettings};
         
         for (Button btn : allButtons) {
@@ -62,7 +61,6 @@ public class AdminSidebarController {
         if (mainController != null) mainController.loadReservations();
     }
 
-    // YENİ EKLENEN FACILITIES YÖNLENDİRMESİ
     @FXML 
     private void loadFacilities() {
         updateActiveButton(btnFacilities);

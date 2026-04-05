@@ -43,8 +43,10 @@ public class AdminMainController {
         // Artık Admin'in kendi özel paneli (Duyuru Merkezi) açılacak!
         loadView("/views/dashboard/AdminHomeView.fxml");
     }
+    
     public void loadAccount() {
-        loadView("/views/dashboard/ProfileView.fxml");
+        // DÜZELTME: Öğrenci profili yerine Admin'in özel profil sayfası yüklenecek
+        loadView("/views/dashboard/AdminProfileView.fxml");
     }
 
     public void loadReservations() {
@@ -55,7 +57,6 @@ public class AdminMainController {
     public void loadSettings() {
         loadView("/views/dashboard/SettingsView.fxml");
     }
-    // AdminMainController.java dosyasındaki diğer load... metotlarının hemen altına ekle:
     
     public void loadFacilities() {
         loadView("/views/dashboard/AdminFacilitiesView.fxml"); 
