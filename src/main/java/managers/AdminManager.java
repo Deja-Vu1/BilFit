@@ -42,13 +42,19 @@ public class AdminManager {
         return status;
     }
 
+    // YENİ GÜNCELLEME: Ban kalktığında ceza puanı 0'lanır!
     public DbStatus unbanStudent(Admin admin, Student student) {
         if (admin == null || student == null) return DbStatus.QUERY_ERROR;
 
         DbStatus status = db.updateStudentBanStatus(student.getBilkentEmail(), false);
         if (status == DbStatus.SUCCESS) {
             student.setBanned(false);
-            notifManager.sendToUser(student, "Account Unbanned", "Your account ban has been unbanned.");
+            
+            // Banı açılan öğrenciye temiz sayfa açıyoruz (Ceza puanını veritabanında ve modelde 0 yap)
+            db.updateStudentPenalty(student.getBilkentEmail(), 0);
+            student.setPenaltyPoints(0);
+            
+            notifManager.sendToUser(student, "Account Unbanned", "Your account ban has been lifted and your penalty points have been reset to 0.");
         }
         return status;
     }
@@ -121,7 +127,7 @@ public class AdminManager {
 
         DbStatus status = db.updateUserNickname(admin.getBilkentEmail(), newNickname);
         if (status == DbStatus.SUCCESS) {
-            admin.setFullName(newNickname);
+            admin.setFullName(newNickname); // YENİ: setNickname yerine setFullName olmalı, çünkü üst sınıf User
         }
         return status;
     }
