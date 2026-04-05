@@ -2868,7 +2868,7 @@ public class Database {
     
     /**
      * Fetches admin records from the 'users' and 'admins' tables
-     * and updates the provided Admin object with this data.
+     * and updates the provided Admin object with this data, including the profile picture.
      * @param admin The existing Admin object to be updated
      * @param email Admin's Bilkent email address to query the database
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
@@ -2880,8 +2880,8 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
 
-        // users ve admins tablolarını birleştiren sorgu
-        String sql = "SELECT u.full_name, u.bilkent_email, u.password_hash, " +
+        // users ve admins tablolarını birleştiren sorgu (u.profile_pic_url eklendi)
+        String sql = "SELECT u.full_name, u.bilkent_email, u.password_hash, u.profile_pic_url, " +
                      "a.actions_performed " +
                      "FROM users u " +
                      "INNER JOIN admins a ON u.id = a.admin_id " +
@@ -2898,6 +2898,9 @@ public class Database {
                     admin.setFullName(rs.getString("full_name"));
                     admin.setBilkentEmail(rs.getString("bilkent_email"));
                     admin.setPassword(rs.getString("password_hash"));
+                    
+                    // Miras alınan User modeline profil fotoğrafını set ediyoruz
+                    admin.setProfilePictureUrl(rs.getString("profile_pic_url"));
                     
                     // 2. Admin'e özel verileri set et
                     // Güncellenen modele uygun olarak setActionsPerformed kullanıldı
@@ -2918,7 +2921,6 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
     /**
      * Inserts a new facility into the database.
      * @param facilityName The name of the facility (e.g., "Main Sports Hall")

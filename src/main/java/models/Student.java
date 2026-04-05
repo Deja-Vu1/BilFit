@@ -9,7 +9,6 @@ public class Student extends User {
     
     private String studentId;
     private String nickname; // EKLENEN KISIM: Nickname değişkeni
-    private String profilePictureUrl; // Profil fotoğrafı URL'si (isteğe bağlı)
     private int eloPoint;
     private int penaltyPoints;
     private double reliabilityScore;
@@ -32,7 +31,6 @@ public class Student extends User {
     public Student(String fullName, String bilkentEmail, String studentId) {
         super(fullName, bilkentEmail);
         this.studentId = studentId;
-        this.profilePictureUrl = null; // Başlangıçta profil fotoğrafı yok
 
         // Başlangıçta nickname boş kalmasın diye tam adı atıyoruz. (İstersen boş da bırakabilirsin)
         this.nickname = fullName; 
@@ -88,8 +86,6 @@ public class Student extends User {
     public void setEloMatchingEnabled(boolean isEloMatchingEnabled) { this.isEloMatchingEnabled = isEloMatchingEnabled; }
     public boolean isBanned() { return isBanned; }
     public void setBanned(boolean isBanned) { this.isBanned = isBanned; }
-    public String getProfilePictureUrl() { return profilePictureUrl; }
-    public void setProfilePictureUrl(String profilePictureUrl) { this.profilePictureUrl = profilePictureUrl; }
     
     public boolean isCanAttend() { 
         return this.penaltyPoints < MAX_PENALTY_LIMIT && this.reliabilityScore >= MIN_RELIABILITY_SCORE && !this.isBanned; 
@@ -125,7 +121,6 @@ public class Student extends User {
                 ", isPublicProfile=" + isPublicProfile +
                 ", isEloMatchingEnabled=" + isEloMatchingEnabled +
                 ", isBanned=" + isBanned +
-                ", profilePictureUrl='" + profilePictureUrl + '\'' +
                 '}';
     }
 }
