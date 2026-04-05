@@ -2981,4 +2981,34 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Retrieves the total count of student and admin users.
+     * @return A List where index 0 is the number of students, and index 1 is the number of admins.
+     */
+    public java.util.List<Integer> getUsersCount() {
+        
+        java.util.List<Integer> counts = new java.util.ArrayList<>();
+        counts.add(0); // 0. index: student sayısı
+        counts.add(0); // 1. index: admin sayısı
+
+        String sql = "SELECT " +
+                     "COUNT(*) FILTER (WHERE role = 'student') AS student_count, " +
+                     "COUNT(*) FILTER (WHERE role = 'admin') AS admin_count " +
+                     "FROM users";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (rs.next()) {
+                counts.set(0, rs.getInt("student_count"));
+                counts.set(1, rs.getInt("admin_count"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return counts;
+    }
 }
