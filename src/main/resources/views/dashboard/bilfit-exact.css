@@ -253,3 +253,36 @@
 .dialog-pane .button:hover {
     -fx-background-color: #2B3674;
 }
+.combo-box {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #4318FF;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-font-size: 13px;
+    -fx-text-fill: #2b3674;
+    -fx-font-weight: bold;
+    -fx-padding: 0 10 0 10;
+}
+
+.combo-box .list-cell {
+    -fx-background-color: #FFFFFF;
+    -fx-text-fill: #2b3674;
+    -fx-font-weight: bold;
+}
+
+.combo-box .list-cell:hover {
+    -fx-background-color: #F4F7FE;
+    -fx-text-fill: #4318FF;
+}
+
+.btn-primary {
+    -fx-background-color: #4318FF;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10;
+    -fx-cursor: hand;
+}
+
+.btn-primary:hover {
+    -fx-background-color: #3311CC;
+}

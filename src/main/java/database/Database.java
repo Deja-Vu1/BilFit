@@ -2542,6 +2542,7 @@ public class Database {
     /**
      * Retrieves all Duellos associated with a specific student.
      * This includes duellos created by the student AND duellos the student has joined as an attendee.
+     * Also fetches the creator of each duello and adds them to the duello's attendees list.
      * @param currentStudent The student whose duellos are being fetched
      * @return An ArrayList of Duello objects ordered by date (newest first).
      */
@@ -2553,15 +2554,20 @@ public class Database {
             return userDuellos;
         }
 
+        // Sorguya kurucunun (creator_u ve creator_s) bilgileri eklendi
         String sql = "SELECT DISTINCT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
                      "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
                      "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
-                     "sp.name AS sport_name " +
+                     "sp.name AS sport_name, " +
+                     "creator_u.full_name, creator_u.bilkent_email, creator_u.student_id AS uni_id, " +
+                     "creator_s.elo_point, creator_s.penalty_points, creator_s.reliability_score, creator_s.matches_played, creator_s.win_rate " +
                      "FROM duellos d " +
                      "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
                      "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
                      "LEFT JOIN sports sp ON f.sport_id = sp.id " +
                      "LEFT JOIN reservation_attendees ra ON r.reservation_id = ra.reservation_id " +
+                     "INNER JOIN users creator_u ON r.reserved_by = creator_u.id " +
+                     "INNER JOIN students creator_s ON creator_u.id = creator_s.user_id " +
                      "WHERE r.reserved_by = (SELECT id FROM users WHERE bilkent_email = ?) " +
                      "   OR ra.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
                      "ORDER BY r.reservation_date DESC, r.time_slot DESC";
@@ -2574,96 +2580,6 @@ public class Database {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    
-                    String facilityId = rs.getObject("facility_id").toString();
-                    String facilityName = rs.getString("facility_name");
-                    String location = rs.getString("campus_location");
-                    int capacity = rs.getInt("capacity");
-                    boolean maintenance = rs.getBoolean("is_under_maintenance");
-                    
-                    models.SportType st = null;
-                    try {
-                        String sportName = rs.getString("sport_name");
-                        if (sportName != null) {
-                            st = models.SportType.valueOf(sportName.trim().toUpperCase().replace(" ", "_"));
-                        }
-                    } catch (IllegalArgumentException e) {
-                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
-                    }
-
-                    models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
-                    facility.setUnderMaintenance(maintenance);
-
-                    String reservationId = rs.getObject("reservation_id").toString();
-                    java.sql.Date sqlDate = rs.getDate("reservation_date");
-                    java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
-                    String timeSlot = rs.getString("time_slot");
-                    
-                    String accessCode = rs.getString("access_code");
-                    String reqSkill = rs.getString("required_skill_level");
-                    int slots = rs.getInt("empty_slots");
-                    boolean matched = rs.getBoolean("is_matched");
-                    boolean cancelled = rs.getBoolean("is_cancelled");
-                    boolean attended = rs.getBoolean("has_attended");
-
-                    models.Duello duello = new models.Duello(
-                            reservationId, 
-                            facility, 
-                            resDate, 
-                            timeSlot, 
-                            accessCode, 
-                            reqSkill, 
-                            slots
-                    );
-                    
-                    duello.setMatched(matched);
-                    duello.setCancelled(cancelled);
-                    duello.setHasAttended(attended);
-                    
-                    userDuellos.add(duello);
-                }
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return userDuellos;
-    }
-
-    /**
-     * Retrieves a specific Duello based on its unique access code.
-     * Also fetches the creator of the duello and adds them to the attendees list.
-     * @param code The 6-digit access code of the duello
-     * @return The matching Duello object, or null if not found
-     */
-    public models.Duello getDuelloByCode(String code) {
-        
-        if (code == null || code.trim().isEmpty()) {
-            return null;
-        }
-
-        // users ve students tabloları JOIN edilerek kurucu (creator) bilgileri sorguya eklendi
-        String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
-                     "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
-                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
-                     "sp.name AS sport_name, " +
-                     "u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
-                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
-                     "FROM duellos d " +
-                     "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
-                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
-                     "LEFT JOIN sports sp ON f.sport_id = sp.id " +
-                     "INNER JOIN users u ON r.reserved_by = u.id " +
-                     "INNER JOIN students s ON u.id = s.user_id " +
-                     "WHERE d.access_code = ?";
-
-        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
-            
-            stmt.setString(1, code);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
                     
                     // 1. Tesis (Facility) Objesini Oluşturma
                     String facilityId = rs.getObject("facility_id").toString();
@@ -2729,12 +2645,119 @@ public class Database {
                     int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
                     creator.setMatchesWon(matchesWon);
 
-                    // Eğer attendees listesi null ise (Reservation class'ında initialize edilmemişse) hata almamak için kontrol edelim
+                    // Listeyi güvenli bir şekilde başlat ve kurucuyu ekle
+                    if (duello.getAttendees() == null) {
+                        duello.setAttendees(new java.util.ArrayList<>());
+                    }
+                    duello.getAttendees().add(creator);
+                    
+                    userDuellos.add(duello);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return userDuellos;
+    }
+    /**
+     * Retrieves a specific Duello based on its unique access code.
+     * Also fetches the creator of the duello and adds them to the attendees list.
+     * @param code The 6-digit access code of the duello
+     * @return The matching Duello object, or null if not found
+     */
+    public models.Duello getDuelloByCode(String code) {
+        
+        if (code == null || code.trim().isEmpty()) {
+            return null;
+        }
+
+        String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
+                     "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
+                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
+                     "sp.name AS sport_name, " +
+                     "u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM duellos d " +
+                     "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
+                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                     "LEFT JOIN sports sp ON f.sport_id = sp.id " +
+                     "INNER JOIN users u ON r.reserved_by = u.id " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE d.access_code = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, code);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    String facilityId = rs.getObject("facility_id").toString();
+                    String facilityName = rs.getString("facility_name");
+                    String location = rs.getString("campus_location");
+                    int capacity = rs.getInt("capacity");
+                    boolean maintenance = rs.getBoolean("is_under_maintenance");
+                    
+                    models.SportType st = null;
+                    try {
+                        String sportName = rs.getString("sport_name");
+                        if (sportName != null) {
+                            st = models.SportType.valueOf(sportName.trim().toUpperCase().replace(" ", "_"));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
+                    }
+
+                    models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
+                    facility.setUnderMaintenance(maintenance);
+
+                    String reservationId = rs.getObject("reservation_id").toString();
+                    java.sql.Date sqlDate = rs.getDate("reservation_date");
+                    java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
+                    String timeSlot = rs.getString("time_slot");
+                    
+                    String accessCode = rs.getString("access_code");
+                    String reqSkill = rs.getString("required_skill_level");
+                    int slots = rs.getInt("empty_slots");
+                    boolean matched = rs.getBoolean("is_matched");
+                    boolean cancelled = rs.getBoolean("is_cancelled");
+                    boolean attended = rs.getBoolean("has_attended");
+
+                    models.Duello duello = new models.Duello(
+                            reservationId, 
+                            facility, 
+                            resDate, 
+                            timeSlot, 
+                            accessCode, 
+                            reqSkill, 
+                            slots
+                    );
+                    
+                    duello.setMatched(matched);
+                    duello.setCancelled(cancelled);
+                    duello.setHasAttended(attended);
+
+                    models.Student creator = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    creator.setEloPoint(rs.getInt("elo_point"));
+                    creator.setPenaltyPoints(rs.getInt("penalty_points"));
+                    creator.setReliabilityScore(rs.getDouble("reliability_score"));
+                    creator.setMatchesPlayed(rs.getInt("matches_played"));
+                    creator.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    creator.setMatchesWon(matchesWon);
+
                     if (duello.getAttendees() == null) {
                         duello.setAttendees(new java.util.ArrayList<>());
                     }
                     
-                    // Kurucuyu katılımcı listesine ekle
                     duello.getAttendees().add(creator);
                     
                     return duello; // Bulunan düelloyu döndür
