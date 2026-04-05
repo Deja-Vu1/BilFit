@@ -156,4 +156,13 @@ public class StudentManager {
         }
         return status;
     }
+    public DbStatus updateProfilePicture(Student student, java.io.File file) {
+        if (student == null || file == null) return DbStatus.QUERY_ERROR;
+        DbStatus status = db.updateProfilePicture(student.getBilkentEmail(), file);
+        if (status == DbStatus.SUCCESS) {
+            // Yükleme başarılıysa URL'i veritabanından tazeleyip Session'a yansıt
+            db.fillStudentDataByEmail(student, student.getBilkentEmail());
+        }
+        return status;
+    }
 }

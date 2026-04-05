@@ -144,4 +144,13 @@ public class AdminManager {
     public java.util.List<Integer> getUsersCount() {
         return db.getUsersCount();
     }
+    public DbStatus updateProfilePicture(Admin admin, java.io.File file) {
+        if (admin == null || file == null) return DbStatus.QUERY_ERROR;
+        DbStatus status = db.updateProfilePicture(admin.getBilkentEmail(), file);
+        if (status == DbStatus.SUCCESS) {
+            // Yükleme başarılıysa URL'i veritabanından tazeleyip Session'a yansıt
+            db.fillAdminDataByEmail(admin, admin.getBilkentEmail());
+        }
+        return status;
+    }
 }
