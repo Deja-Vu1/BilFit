@@ -3294,31 +3294,56 @@ public class Database {
     }
 
     /**
-     * Inserts a new team and automatically adds the creator student to the team_members table.
-     * @param creatorStudent The student who is creating the team (Captain)
-     * @param currentTournament The tournament the team is joining
-     * @param teamName The name of the new team
-     * @return DbStatus indicating SUCCESS or error types.
+     * Creates a new team for a given tournament with the specified team name and creator student.
+     * Validates that the creator student is not already an 'ACCEPTED' member of another team in the same tournament.
+     * If validation passes, it creates the team and adds the creator as the captain with 'ACCEPTED' status in a single transaction.
+     * @param creatorStudent The student who will be the captain of the new team
+     * @param currentTournament The tournament for which the team is being created
+     * @param teamName The desired name of the new team
+     * @return DbStatus indicating SUCCESS, ALREADY_IN_TOURNAMENT, or errors.
      */
-    public DbStatus insertTeam(Student creatorStudent, Tournament currentTournament, String teamName) {
+    public DbStatus insertTeam(models.Student creatorStudent, models.Tournament currentTournament, String teamName) {
         
         if (creatorStudent == null || currentTournament == null || teamName == null || teamName.trim().isEmpty()) {
             return DbStatus.QUERY_ERROR;
         }
 
+        // 1. AŞAMA: Kullanıcının bu turnuvada zaten 'ACCEPTED' olduğu bir takım var mı kontrolü
+        String checkSql = "SELECT 1 FROM team_members tm " +
+                          "INNER JOIN teams t ON tm.team_id = t.team_id " +
+                          "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                          "AND tm.status = 'ACCEPTED' " +
+                          "AND t.tournament_id = ?";
+
         String teamId = java.util.UUID.randomUUID().toString();
-        // Senin paylaştığın metodun kullanıldığı yer:
         String accessCode = generateRandomCode(6); 
         
         String insertTeamSql = "INSERT INTO teams (team_id, tournament_id, team_name, access_code, max_capacity, ge250_requested, captain_id) " +
                                "VALUES (?, ?, ?, ?, ?, ?, (SELECT id FROM users WHERE bilkent_email = ?))";
         
-        String insertMemberSql = "INSERT INTO team_members (team_id, student_id) " +
-                                 "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?))";
+        // 2. AŞAMA: Kaptanı 'ACCEPTED' olarak ekleyecek şekilde güncellenen SQL
+        String insertMemberSql = "INSERT INTO team_members (team_id, student_id, status) " +
+                                 "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?), 'ACCEPTED')";
 
         Connection conn = null;
         try {
             conn = getConnection();
+            
+            // --- KONTROL İŞLEMİ ---
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                checkStmt.setString(1, creatorStudent.getBilkentEmail());
+                checkStmt.setObject(2, java.util.UUID.fromString(currentTournament.getTournamentId()));
+                
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        System.err.println("Hata: Öğrenci zaten bu turnuvadaki bir takımda (ACCEPTED) bulunuyor, yeni takım kuramaz!");
+                        // Arayüzde özel uyarı vermek için DbStatus.ALREADY_IN_TOURNAMENT gibi bir şey dönebilirsin
+                        return DbStatus.QUERY_ERROR; 
+                    }
+                }
+            }
+            
+            // Kontrolü geçtiysek Transaction'ı başlatıyoruz
             conn.setAutoCommit(false); 
             
             // 1. Takımı oluştur
@@ -3333,7 +3358,7 @@ public class Database {
                 stmt1.executeUpdate();
             }
             
-            // 2. Kaptanı üye olarak ekle (student_id kolonu kullanıldı)
+            // 2. Kaptanı üye olarak (ACCEPTED) ekle
             try (PreparedStatement stmt2 = conn.prepareStatement(insertMemberSql)) {
                 stmt2.setObject(1, java.util.UUID.fromString(teamId));
                 stmt2.setString(2, creatorStudent.getBilkentEmail());
@@ -3351,7 +3376,6 @@ public class Database {
             if (conn != null) try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
         }
     }
-
     /**
      * Bes a student to join a team using the team's access code.
      * Validates the access code and checks for team capacity before adding the student to the team_members table.
