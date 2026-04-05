@@ -52,11 +52,24 @@ public class ProfileController {
        loadProfileData();
    }
 
-   private void loadProfileData() {
+ private void loadProfileData() {
        new Thread(() -> {
            try {
                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
 
+               // 1. ADIM: FOTOĞRAFI ARKA PLANDA TAMAMEN İNDİR! (Platform.runLater DIŞINDA)
+               Image downloadedImg = null;
+               if (currentUser != null && currentUser.getProfilePictureUrl() != null && !currentUser.getProfilePictureUrl().isEmpty()) {
+                   String picUrl = currentUser.getProfilePictureUrl();
+                   String noCacheUrl = picUrl + (picUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
+                   // false parametresi: Resim tamamen inene kadar bu arka plan Thread'ini beklet (UI donmaz)
+                   downloadedImg = new Image(noCacheUrl, false);
+               }
+               
+               // Lambda içine gönderebilmek için final yapıyoruz
+               final Image finalImg = downloadedImg;
+
+               // 2. ADIM: İNDİRME BİTTİKTEN SONRA ARAYÜZÜ GÜNCELLE
                Platform.runLater(() -> {
                    if (currentUser != null) {
                        if (nameLabel != null) nameLabel.setText(currentUser.getFullName());
@@ -65,13 +78,11 @@ public class ProfileController {
                        if (matchesPlayedLabel != null) matchesPlayedLabel.setText(String.valueOf(currentUser.getMatchesPlayed()));
                        if (winRateLabel != null) winRateLabel.setText(String.format("%.0f%%", currentUser.getWinRate() * 100));
 
-                       // FOTOĞRAFI YÜKLE (JavaFX Cache Kırıcı Eklendi)
-                       String picUrl = currentUser.getProfilePictureUrl();
-                       if (picUrl != null && !picUrl.trim().isEmpty()) {
-                           // URL sonuna rastgele zaman damgası ekleyerek JavaFX'i yeni resmi indirmeye zorluyoruz
-                           String noCacheUrl = picUrl + (picUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
-                           Image img = new Image(noCacheUrl, true);
-                           profileImageCircle.setFill(new ImagePattern(img));
+                       // TAMAMEN İNDİRİLMİŞ RESMİ YUVARLAĞA KOY (HATA VERMEZ)
+                       if (finalImg != null && !finalImg.isError()) {
+                           profileImageCircle.setFill(new ImagePattern(finalImg));
+                       } else {
+                           profileImageCircle.setFill(javafx.scene.paint.Color.web("#E2E8F0"));
                        }
 
                        if (interestsBox != null) {
@@ -95,7 +106,6 @@ public class ProfileController {
            }
        }).start();
    }
-
    @FXML
    public void handleProfilePictureUpload() {
        FileChooser fileChooser = new FileChooser();
