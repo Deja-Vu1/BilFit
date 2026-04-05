@@ -37,4 +37,15 @@ public class Team {
     public void setMembers(List<Student> members) { this.members = members; }
     public Student getCaptain() { return captain; }
     public void setCaptain(Student captain) { this.captain = captain; }
+
+    public String toString() {
+        return "Team{" +
+                "teamId='" + teamId + '\'' +
+                ", teamName='" + teamName + '\'' +
+                ", accessCode='" + accessCode + '\'' +
+                ", maxCapacity=" + maxCapacity +
+                ", ge250Requested=" + ge250Requested +
+                ", captain=" + captain.getFullName() +
+                '}';
+    }
 }
