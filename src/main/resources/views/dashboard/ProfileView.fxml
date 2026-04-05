@@ -28,9 +28,11 @@
                   <Font name="System Bold" size="22.0" />
                </font>
             </Label>
-            <HBox spacing="10">
+            <HBox alignment="CENTER_LEFT" spacing="10">
                <Label fx:id="studentIdLabel" styleClass="modern-input" text="ID: Yükleniyor..." />
-               <Label styleClass="modern-input" text="CS" />
+               
+               <HBox fx:id="interestsBox" alignment="CENTER_LEFT" spacing="10" />
+               
                <Label styleClass="btn-success" text="🏋 GYM RAT" />
                <Label styleClass="tag-orange" text="🔥 100 Day Streak" />
             </HBox>

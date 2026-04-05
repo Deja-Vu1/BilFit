@@ -7,6 +7,7 @@
 <?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
@@ -16,6 +17,43 @@
       <VBox spacing="30">
          <padding><Insets bottom="40" left="40" right="40" top="40" /></padding>
          
+         <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;" VBox.vgrow="NEVER">
+            <padding><Insets bottom="40" left="40" right="40" top="40" /></padding>
+            <effect>
+               <DropShadow blurType="GAUSSIAN" radius="19.5">
+                  <color><Color opacity="0.08" /></color>
+               </DropShadow>
+            </effect>
+            
+            <Label text="Penalty &amp; Ban Management" textFill="#2b3674">
+               <font><Font name="System Bold" size="24.0" /></font>
+            </Label>
+            <Label text="Öğrencilere ceza puanı ekleyin, cezalarını silin veya sistemden direkt uzaklaştırın." textFill="#a3aed0">
+               <VBox.margin><Insets bottom="25" top="5" /></VBox.margin>
+               <font><Font size="14.0" /></font>
+            </Label>
+            
+            <HBox alignment="CENTER_LEFT" spacing="20">
+               <VBox spacing="8">
+                  <Label text="Student Bilkent Email" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
+                  <TextField fx:id="studentEmailField" promptText="Örn: ali.veli@ug.bilkent.edu.tr" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 300;" />
+               </VBox>
+               <VBox spacing="8">
+                  <Label text="Penalty Points" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
+                  <TextField fx:id="penaltyPointsField" promptText="Miktar (Örn: 1)" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 150;" />
+               </VBox>
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="15">
+               <VBox.margin><Insets top="25" /></VBox.margin>
+               <Button fx:id="addPenaltyBtn" onAction="#handleAddPenalty" prefHeight="40" prefWidth="130" style="-fx-background-color: #FFF4E5; -fx-text-fill: #FF9120; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Ceza Puanı Ekle" />
+               <Button fx:id="reducePenaltyBtn" onAction="#handleReducePenalty" prefHeight="40" prefWidth="130" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Ceza Puanı Sil" />
+               <Region HBox.hgrow="ALWAYS" />
+               <Button fx:id="unbanStudentBtn" onAction="#handleUnbanStudent" prefHeight="40" prefWidth="130" style="-fx-background-color: #E2E8F0; -fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Ban Kaldır" />
+               <Button fx:id="banStudentBtn" onAction="#handleBanStudent" prefHeight="40" prefWidth="130" style="-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Sistemden Banla" />
+            </HBox>
+         </VBox>
+
          <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;" VBox.vgrow="ALWAYS">
             <padding><Insets bottom="40" left="40" right="40" top="40" /></padding>
             <effect>
@@ -27,7 +65,7 @@
             <Label text="Admin Settings" textFill="#2b3674">
                <font><Font name="System Bold" size="24.0" /></font>
             </Label>
-            <Label text="Change your administrator name and password." textFill="#a3aed0">
+            <Label text="Kendi yönetici isminizi ve şifrenizi değiştirin." textFill="#a3aed0">
                <VBox.margin><Insets bottom="35" top="5" /></VBox.margin>
                <font><Font size="14.0" /></font>
             </Label>
