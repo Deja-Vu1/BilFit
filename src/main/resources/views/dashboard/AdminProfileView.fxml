@@ -32,7 +32,7 @@
          </StackPane>
          
          <VBox spacing="10" alignment="CENTER_LEFT">
-            <Label fx:id="nameLabel" text="Yükleniyor..." textFill="#2b3674">
+            <Label fx:id="nameLabel" text="Loading..." textFill="#2b3674">
                <font>
                   <Font name="System Bold" size="22.0" />
                </font>

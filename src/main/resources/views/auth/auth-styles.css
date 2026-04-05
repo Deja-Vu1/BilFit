@@ -1,6 +1,6 @@
 /* auth-styles.css */
 
-/* Ekranın ortasındaki ana beyaz kart */
+/* Main white card in the center of the screen */
 .auth-card {
     -fx-background-color: white;
     -fx-border-color: #B0B0B0;
@@ -10,7 +10,7 @@
     -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 10, 0, 0, 5);
 }
 
-/* Metin Giriş Alanları (TextField & PasswordField) */
+/* Text Input Fields (TextField & PasswordField) */
 .input-field {
     -fx-background-color: #FFFFFF;
     -fx-border-color: #D0D0D0;
@@ -20,10 +20,10 @@
     -fx-font-size: 14px;
 }
 .input-field:focused {
-    -fx-border-color: #0000CC; /* Tıklanınca mavi kenarlık */
+    -fx-border-color: #0000CC; /* Blue border when clicked */
 }
 
-/* Kırmızı Öğrenci Butonları */
+/* Red Student Buttons */
 .student-button {
     -fx-background-color: #CC0000;
     -fx-text-fill: white;
@@ -35,7 +35,7 @@
 .student-button:hover { -fx-background-color: #E60000; }
 .student-button:pressed { -fx-translate-y: 2px; -fx-background-color: #990000; }
 
-/* Mavi Admin Butonları */
+/* Blue Admin Buttons */
 .admin-button {
     -fx-background-color: #0000CC;
     -fx-text-fill: white;
@@ -47,7 +47,7 @@
 .admin-button:hover { -fx-background-color: #0000FF; }
 .admin-button:pressed { -fx-translate-y: 2px; -fx-background-color: #000099; }
 
-/* Tıklanabilir Mavi Yazılar (Linkler) */
+/* Clickable Blue Texts (Links) */
 .link-label {
     -fx-text-fill: blue;
     -fx-cursor: hand;

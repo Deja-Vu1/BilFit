@@ -100,7 +100,7 @@
                   <Insets bottom="5.0" />
                </VBox.margin>
             </Label>
-            <TextField fx:id="titleField" prefHeight="40.0" promptText="Örn: Kapalı Spor Salonu Bakımı" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 10;">
+            <TextField fx:id="titleField" prefHeight="40.0" promptText="Ex: Indoor Sports Hall Maintenance" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 10;">
                <VBox.margin>
                   <Insets bottom="20.0" />
                </VBox.margin>
@@ -114,13 +114,13 @@
                   <Insets bottom="5.0" />
                </VBox.margin>
             </Label>
-            <TextArea fx:id="messageArea" prefHeight="100.0" promptText="Mesajınızı buraya yazın..." style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 5;" wrapText="true">
+            <TextArea fx:id="messageArea" prefHeight="100.0" promptText="Write your message here..." style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 5;" wrapText="true">
                <VBox.margin>
                   <Insets bottom="20.0" />
                </VBox.margin>
             </TextArea>
             
-            <CheckBox fx:id="broadcastCheckBox" mnemonicParsing="false" text="Herkese Gönder (Broadcast)" textFill="#2b3674">
+            <CheckBox fx:id="broadcastCheckBox" mnemonicParsing="false" text="Send to Everyone (Broadcast)" textFill="#2b3674">
                <font>
                   <Font name="System Bold" size="14.0" />
                </font>
@@ -137,7 +137,7 @@
                   <Insets bottom="5.0" />
                </VBox.margin>
             </Label>
-            <TextArea fx:id="emailsArea" prefHeight="80.0" promptText="Örn: ali@ug.bilkent.edu.tr, veli@ug.bilkent.edu.tr (Virgülle ayırarak yazın)" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 5;" wrapText="true">
+            <TextArea fx:id="emailsArea" prefHeight="80.0" promptText="Ex: ali@ug.bilkent.edu.tr, veli@ug.bilkent.edu.tr (Separate with commas)" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 5;" wrapText="true">
                <VBox.margin>
                   <Insets bottom="25.0" />
                </VBox.margin>

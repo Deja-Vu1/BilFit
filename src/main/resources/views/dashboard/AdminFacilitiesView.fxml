@@ -19,10 +19,10 @@
       <HBox alignment="CENTER_LEFT">
          <VBox>
             <Label styleClass="content-title" text="Facility Management" />
-            <Label styleClass="content-subtitle" text="Tesisleri toplu seçerek durumlarını güncelleyebilir veya yeni tesis ekleyebilirsiniz." />
+            <Label styleClass="content-subtitle" text="You can update facility statuses by selecting them in bulk or add new facilities." />
          </VBox>
          <Region HBox.hgrow="ALWAYS" />
-         <Button onAction="#handleAddFacility" prefHeight="40" prefWidth="160" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="+ Yeni Tesis Ekle" />
+         <Button onAction="#handleAddFacility" prefHeight="40" prefWidth="160" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="+ Add New Facility" />
       </HBox>
 
       <Separator prefWidth="200.0">
@@ -45,10 +45,10 @@
          <VBox.margin>
             <Insets top="20.0" />
          </VBox.margin>
-         <Button onAction="#handleBulkDelete" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand;" text="Seçili Tesisleri Sil" />
+         <Button onAction="#handleBulkDelete" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand;" text="Delete Selected Facilities" />
          
-         <Region HBox.hgrow="ALWAYS" /> <Button onAction="#handleBulkOpen" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand; -fx-border-color: #1E8E3E; -fx-border-radius: 12;" text="Tesisleri Aç" />
-         <Button onAction="#handleBulkClose" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand; -fx-border-color: #D93025; -fx-border-radius: 12;" text="Tesisleri Kapat" />
+         <Region HBox.hgrow="ALWAYS" /> <Button onAction="#handleBulkOpen" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand; -fx-border-color: #1E8E3E; -fx-border-radius: 12;" text="Open Facilities" />
+         <Button onAction="#handleBulkClose" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand; -fx-border-color: #D93025; -fx-border-radius: 12;" text="Close Facilities" />
       </HBox>
    </VBox>
 </VBox>
