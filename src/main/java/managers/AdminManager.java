@@ -141,4 +141,7 @@ public class AdminManager {
         }
         return status;
     }
+    public java.util.List<Integer> getUsersCount() {
+        return db.getUsersCount();
+    }
 }

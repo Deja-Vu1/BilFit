@@ -35,17 +35,31 @@
       </HBox>
    </VBox>
 
-   <HBox spacing="30.0" VBox.vgrow="ALWAYS">
+   <HBox spacing="20.0" VBox.vgrow="ALWAYS">
       <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-color: #E2E8F0; -fx-border-radius: 20;" HBox.hgrow="ALWAYS">
          <padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
          <HBox alignment="TOP_RIGHT">
-            <Label styleClass="btn-secondary" text="System" />
+            <Label styleClass="btn-secondary" text="Students" />
          </HBox>
          <Region VBox.vgrow="ALWAYS" />
          <Label fx:id="totalStudentsLabel" text="0" textFill="#4318FF">
-            <font><Font name="System Bold" size="48.0" /></font>
+            <font><Font name="System Bold" size="40.0" /></font>
          </Label>
          <Label text="Total Students" textFill="#2B3674">
+            <font><Font name="System Bold" size="14.0" /></font>
+         </Label>
+      </VBox>
+
+      <VBox style="-fx-background-color: #FFF4E5; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
+         <padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
+         <HBox alignment="TOP_RIGHT">
+            <Label style="-fx-background-color: #FFD6A5; -fx-text-fill: #E65C00; -fx-background-radius: 10; -fx-padding: 5 10 5 10; -fx-font-weight: bold; -fx-font-size: 12px;" text="Staff" />
+         </HBox>
+         <Region VBox.vgrow="ALWAYS" />
+         <Label fx:id="totalAdminsLabel" text="0" textFill="#FF9120">
+            <font><Font name="System Bold" size="40.0" /></font>
+         </Label>
+         <Label text="Total Admins" textFill="#FF9120">
             <font><Font name="System Bold" size="14.0" /></font>
          </Label>
       </VBox>
@@ -57,7 +71,7 @@
          </HBox>
          <Region VBox.vgrow="ALWAYS" />
          <Label fx:id="totalFacilitiesLabel" text="0" textFill="#D93025">
-            <font><Font name="System Bold" size="48.0" /></font>
+            <font><Font name="System Bold" size="40.0" /></font>
          </Label>
          <Label text="Total Facilities" textFill="#D93025">
             <font><Font name="System Bold" size="14.0" /></font>
@@ -71,7 +85,7 @@
          </HBox>
          <Region VBox.vgrow="ALWAYS" />
          <Label fx:id="adminActionsLabel" text="0" textFill="#1E8E3E">
-            <font><Font name="System Bold" size="48.0" /></font>
+            <font><Font name="System Bold" size="40.0" /></font>
          </Label>
          <Label text="Admin Actions" textFill="#1E8E3E">
             <font><Font name="System Bold" size="14.0" /></font>
