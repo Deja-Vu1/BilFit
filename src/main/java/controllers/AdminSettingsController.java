@@ -31,9 +31,17 @@ public class AdminSettingsController {
     @FXML private Button changePasswordBtn;
 
     @FXML private TextField studentEmailField;
+    
+    // PENALTY BİLEŞENLERİ
     @FXML private TextField penaltyPointsField;
     @FXML private Button addPenaltyBtn;
     @FXML private Button reducePenaltyBtn;
+
+    // RELIABILITY BİLEŞENLERİ
+    @FXML private TextField reliabilityPointsField;
+    @FXML private Button addReliabilityBtn;
+    @FXML private Button reduceReliabilityBtn;
+
     @FXML private Button unbanStudentBtn;
     @FXML private Button banStudentBtn;
 
@@ -50,14 +58,96 @@ public class AdminSettingsController {
         }
     }
 
+    // --- RELIABILITY (GÜVENİLİRLİK) İŞLEMLERİ (DOUBLE MANTIĞI) ---
+    @FXML
+    public void handleAddReliability(ActionEvent event) {
+        processReliabilityModification(true, addReliabilityBtn, "Add Reliability");
+    }
+
+    @FXML
+    public void handleReduceReliability(ActionEvent event) {
+        processReliabilityModification(false, reduceReliabilityBtn, "Reduce Reliability");
+    }
+
+    private void processReliabilityModification(boolean isAddition, Button clickedBtn, String originalBtnText) {
+        if (isProcessing) return;
+
+        String email = studentEmailField.getText();
+        String pointsStr = reliabilityPointsField.getText();
+
+        if (email == null || email.trim().isEmpty()) {
+            showCustomAlert("Warning", "Please enter the email of the student to be processed.");
+            return;
+        }
+
+        double pointsToModify = 0.0;
+        try {
+            // RELIABILITY SCORE double olduğu için double parse ediyoruz
+            pointsToModify = Double.parseDouble(pointsStr.trim());
+            if (pointsToModify <= 0) {
+                showCustomAlert("Error", "Reliability points must be a positive number.");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            showCustomAlert("Error", "Please enter a valid number (e.g. 5.5 or 10) in the 'Reliability Points' field.");
+            return;
+        }
+
+        isProcessing = true;
+        clickedBtn.setText("Processing...");
+
+        final double finalPointsToModify = pointsToModify;
+        
+        new Thread(() -> {
+            Database db = Database.getInstance();
+            Student targetStudent = new Student("", email.trim(), "");
+            DbStatus fillStatus = db.fillStudentDataByEmail(targetStudent, email.trim());
+            
+            if (fillStatus != DbStatus.SUCCESS) {
+                Platform.runLater(() -> {
+                    isProcessing = false;
+                    clickedBtn.setText(originalBtnText);
+                    showCustomAlert("Not Found", "No student with this email found in the system.");
+                });
+                return;
+            }
+
+            double currentPoints = targetStudent.getReliabilityScore(); 
+            double newPoints = isAddition ? (currentPoints + finalPointsToModify) : (currentPoints - finalPointsToModify);
+
+            // SINIR KONTROLÜ: Puan 0'ın altına inemez, 100'ün üstüne çıkamaz.
+            newPoints = Math.max(0.0, Math.min(100.0, newPoints));
+
+            Admin currentAdmin = (Admin) SessionManager.getInstance().getCurrentUser();
+            DbStatus status = adminManager.updateReliabilityPoints(currentAdmin, targetStudent, newPoints);
+
+            final double updatedPoints = newPoints;
+            Platform.runLater(() -> {
+                isProcessing = false;
+                clickedBtn.setText(originalBtnText);
+
+                if (status == DbStatus.SUCCESS) {
+                    studentEmailField.clear();
+                    reliabilityPointsField.clear();
+                    String action = isAddition ? " increased." : " decreased.";
+                    String formattedScore = String.format(java.util.Locale.US, "%.1f", updatedPoints);
+                    showCustomAlert("Successful", targetStudent.getFullName() + "'s reliability score has been" + action + "\n(Current Reliability: " + formattedScore + "/100)");
+                } else {
+                    showCustomAlert("Error", "A server-side error occurred during the operation.");
+                }
+            });
+        }).start();
+    }
+
+    // --- PENALTY İŞLEMLERİ (DEĞİŞTİRİLMEDİ) ---
     @FXML
     public void handleAddPenalty(ActionEvent event) {
-        processPenaltyModification(true, addPenaltyBtn, "Add Penalty Points");
+        processPenaltyModification(true, addPenaltyBtn, "Add Penalty");
     }
 
     @FXML
     public void handleReducePenalty(ActionEvent event) {
-        processPenaltyModification(false, reducePenaltyBtn, "Remove Penalty Points");
+        processPenaltyModification(false, reducePenaltyBtn, "Remove Penalty");
     }
 
     private void processPenaltyModification(boolean isAddition, Button clickedBtn, String originalBtnText) {
@@ -104,14 +194,13 @@ public class AdminSettingsController {
             int currentPoints = targetStudent.getPenaltyPoints();
             int projectedPoints = isAddition ? (currentPoints + finalPoints) : (currentPoints - finalPoints);
 
-            // 100 PUAN SINIRI KONTROLÜ
             if (isAddition && projectedPoints >= 100) {
                 Platform.runLater(() -> {
                     showCustomConfirmation(
                         "Critical Warning", 
                         "If this penalty is added, the student's total points will be " + projectedPoints + " and will exceed the 100 limit.\nThe student will be DIRECTLY BANNED FROM THE SYSTEM.\nAre you sure?",
-                        () -> executePenaltyAndBan(targetStudent, finalPoints, true, clickedBtn, originalBtnText, true), // EVET'e basarsa
-                        () -> { // İPTAL'e basarsa
+                        () -> executePenaltyAndBan(targetStudent, finalPoints, true, clickedBtn, originalBtnText, true), 
+                        () -> { 
                             isProcessing = false;
                             clickedBtn.setText(originalBtnText);
                         }
@@ -160,6 +249,7 @@ public class AdminSettingsController {
         }).start();
     }
 
+    // --- BAN VE UNBAN İŞLEMLERİ (DEĞİŞTİRİLMEDİ) ---
     @FXML
     public void handleUnbanStudent(ActionEvent event) {
         if (isProcessing) return;
@@ -193,7 +283,7 @@ public class AdminSettingsController {
 
             Platform.runLater(() -> {
                 isProcessing = false;
-                unbanStudentBtn.setText("Ban Kaldır");
+                unbanStudentBtn.setText("Unban");
 
                 if (status == DbStatus.SUCCESS) {
                     studentEmailField.clear();
@@ -239,7 +329,7 @@ public class AdminSettingsController {
 
             Platform.runLater(() -> {
                 isProcessing = false;
-                banStudentBtn.setText("Sistemden Banla");
+                banStudentBtn.setText("Ban from System");
 
                 if (status == DbStatus.SUCCESS) {
                     studentEmailField.clear();
@@ -252,6 +342,7 @@ public class AdminSettingsController {
         }).start();
     }
 
+    // --- KİŞİSEL AYARLAR İŞLEMLERİ (DEĞİŞTİRİLMEDİ) ---
     @FXML
     public void handleChangeName(ActionEvent event) {
         if (isProcessing) return;

@@ -25,32 +25,44 @@
                </DropShadow>
             </effect>
             
-            <Label text="Penalty &amp; Ban Management" textFill="#2b3674">
+            <Label text="User Management" textFill="#2b3674">
                <font><Font name="System Bold" size="24.0" /></font>
             </Label>
-            <Label text="Add penalty points to students, remove their penalties, or ban them directly from the system." textFill="#a3aed0">
+            <Label text="Manage user penalty points, reliability scores, and system access (bans)." textFill="#a3aed0">
                <VBox.margin><Insets bottom="25" top="5" /></VBox.margin>
                <font><Font size="14.0" /></font>
             </Label>
             
-            <HBox alignment="CENTER_LEFT" spacing="20">
-               <VBox spacing="8">
-                  <Label text="Student Bilkent Email" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
-                  <TextField fx:id="studentEmailField" promptText="Ex: ali.veli@ug.bilkent.edu.tr" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 300;" />
-               </VBox>
+            <VBox spacing="8">
+               <Label text="Student Bilkent Email" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
+               <TextField fx:id="studentEmailField" promptText="Ex: ali.veli@ug.bilkent.edu.tr" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 350; -fx-max-width: 350;" />
+            </VBox>
+
+            <HBox alignment="BOTTOM_LEFT" spacing="15">
+               <VBox.margin><Insets top="20" /></VBox.margin>
                <VBox spacing="8">
                   <Label text="Penalty Points" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
                   <TextField fx:id="penaltyPointsField" promptText="Amount (Ex: 1)" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 150;" />
                </VBox>
+               <Button fx:id="reducePenaltyBtn" onAction="#handleReducePenalty" prefHeight="40" prefWidth="145" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Remove Penalty" />
+               <Button fx:id="addPenaltyBtn" onAction="#handleAddPenalty" prefHeight="40" prefWidth="145" style="-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Add Penalty" />
+            </HBox>
+
+            <HBox alignment="BOTTOM_LEFT" spacing="15">
+               <VBox.margin><Insets top="20" /></VBox.margin>
+               <VBox spacing="8">
+                  <Label text="Reliability Points" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
+                  <TextField fx:id="reliabilityPointsField" promptText="Amount (Ex: 5.5)" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 150;" />
+               </VBox>
+               <Button fx:id="addReliabilityBtn" onAction="#handleAddReliability" prefHeight="40" prefWidth="145" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Add Reliability" />
+               <Button fx:id="reduceReliabilityBtn" onAction="#handleReduceReliability" prefHeight="40" prefWidth="145" style="-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Reduce Reliability" />
             </HBox>
 
             <HBox alignment="CENTER_LEFT" spacing="15">
                <VBox.margin><Insets top="25" /></VBox.margin>
-               <Button fx:id="addPenaltyBtn" onAction="#handleAddPenalty" prefHeight="40" prefWidth="130" style="-fx-background-color: #FFF4E5; -fx-text-fill: #FF9120; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Add Penalty" />
-               <Button fx:id="reducePenaltyBtn" onAction="#handleReducePenalty" prefHeight="40" prefWidth="130" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Remove Penalty" />
                <Region HBox.hgrow="ALWAYS" />
                <Button fx:id="unbanStudentBtn" onAction="#handleUnbanStudent" prefHeight="40" prefWidth="130" style="-fx-background-color: #E2E8F0; -fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Unban" />
-               <Button fx:id="banStudentBtn" onAction="#handleBanStudent" prefHeight="40" prefWidth="130" style="-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Ban from System" />
+               <Button fx:id="banStudentBtn" onAction="#handleBanStudent" prefHeight="40" prefWidth="130" style="-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Ban from System" />
             </HBox>
          </VBox>
 
