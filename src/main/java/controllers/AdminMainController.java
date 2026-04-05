@@ -53,12 +53,12 @@ public class AdminMainController {
         // Adminlerin tüm rezervasyonları gördüğü sayfa
         loadView("/views/dashboard/MyReservationsView.fxml"); 
     }
-
-    public void loadSettings() {
-        loadView("/views/dashboard/SettingsView.fxml");
-    }
     
     public void loadFacilities() {
         loadView("/views/dashboard/AdminFacilitiesView.fxml"); 
+    }
+    public void loadSettings() {
+        // DÜZELTME: Öğrenci ayarları yerine Admin'in özel ayarlar sayfası yüklenecek
+        loadView("/views/dashboard/AdminSettingsView.fxml");
     }
 }

@@ -121,7 +121,7 @@ public class AdminManager {
 
         DbStatus status = db.updateUserNickname(admin.getBilkentEmail(), newNickname);
         if (status == DbStatus.SUCCESS) {
-            admin.setNickname(newNickname);
+            admin.setFullName(newNickname);
         }
         return status;
     }
