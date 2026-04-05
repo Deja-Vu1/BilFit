@@ -994,6 +994,41 @@ public class Database {
     }
 
     /**
+     * Updates the reliability score for a student.
+     * Finds the user by their Bilkent email address and updates their reliability_score in the students table.
+     * @param email Student's Bilkent email address
+     * @param newReliabilityScore The new reliability score to be set
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateStudentReliability(String email, int newReliabilityScore) {
+        
+        if (email == null || email.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // users tablosundan email'i bulup, students tablosundaki user_id'ye göre eşleştirerek güncelliyoruz
+        String sql = "UPDATE students SET reliability_score = ? " +
+                     "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setInt(1, newReliabilityScore);
+            stmt.setString(2, email);
+            
+            int updatedRows = stmt.executeUpdate();
+            
+            return (updatedRows > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
      * Updates the ban status for a student.
      * If isBanned is true, sets banned_at to the current timestamp.
      * If isBanned is false, sets banned_at to NULL (lifts the ban).
