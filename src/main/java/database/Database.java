@@ -997,10 +997,10 @@ public class Database {
      * Updates the reliability score for a student.
      * Finds the user by their Bilkent email address and updates their reliability_score in the students table.
      * @param email Student's Bilkent email address
-     * @param newReliabilityScore The new reliability score to be set
+     * @param newReliabilityScore The new reliability score to be set (double value)
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
      */
-    public DbStatus updateStudentReliability(String email, int newReliabilityScore) {
+    public DbStatus updateStudentReliability(String email, double newReliabilityScore) {
         
         if (email == null || email.trim().isEmpty()) {
             return DbStatus.QUERY_ERROR;
@@ -1012,7 +1012,8 @@ public class Database {
 
         try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
             
-            stmt.setInt(1, newReliabilityScore);
+            // Değeri setDouble ile veritabanına gönderiyoruz
+            stmt.setDouble(1, newReliabilityScore);
             stmt.setString(2, email);
             
             int updatedRows = stmt.executeUpdate();
@@ -1027,7 +1028,6 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
     /**
      * Updates the ban status for a student.
      * If isBanned is true, sets banned_at to the current timestamp.
