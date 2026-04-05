@@ -59,6 +59,11 @@ public class ProfileController {
            try {
                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
 
+               // YENİ EKLENEN KRİTİK SATIR: Ekrana basmadan önce veritabanından en güncel verileri çek (Tazele)
+               if (currentUser != null) {
+                   Database.getInstance().fillStudentDataByEmail(currentUser, currentUser.getBilkentEmail());
+               }
+
                Image downloadedImg = null;
                if (currentUser != null && currentUser.getProfilePictureUrl() != null && !currentUser.getProfilePictureUrl().isEmpty()) {
                    String picUrl = currentUser.getProfilePictureUrl();
@@ -77,6 +82,7 @@ public class ProfileController {
                        if (matchesPlayedLabel != null) matchesPlayedLabel.setText(String.valueOf(currentUser.getMatchesPlayed()));
                        if (winRateLabel != null) winRateLabel.setText(String.format("%.0f%%", currentUser.getWinRate() * 100));
                        
+                       // Güncel puanlar doğrudan buraya yansıyacak
                        if (reliabilityScoreLabel != null) reliabilityScoreLabel.setText("Reliability Score: " + currentUser.getReliabilityScore());
                        if (penaltyScoreLabel != null) penaltyScoreLabel.setText("Penalty Score: " + currentUser.getPenaltyPoints());
 
