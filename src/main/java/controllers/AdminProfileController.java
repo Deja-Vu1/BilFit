@@ -61,11 +61,22 @@ public class AdminProfileController {
                 Admin currentAdmin = (Admin) sessionUser;
 
                 int facilitiesCount = db.getFacilities() != null ? db.getFacilities().size() : 0;
-                List<Integer> userCounts = adminManager.getUsersCount();
+                java.util.List<Integer> userCounts = adminManager.getUsersCount();
                 int studentsCount = (userCounts != null && userCounts.size() >= 2) ? userCounts.get(0) : 0;
                 int adminsCount = (userCounts != null && userCounts.size() >= 2) ? userCounts.get(1) : 0;
                 int actionsCount = currentAdmin.getActionsPerformed();
 
+                // 1. ADIM: FOTOĞRAFI ARKA PLANDA TAMAMEN İNDİR!
+                Image downloadedImg = null;
+                if (currentAdmin.getProfilePictureUrl() != null && !currentAdmin.getProfilePictureUrl().isEmpty()) {
+                    String picUrl = currentAdmin.getProfilePictureUrl();
+                    String noCacheUrl = picUrl + (picUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
+                    downloadedImg = new Image(noCacheUrl, false);
+                }
+                
+                final Image finalImg = downloadedImg;
+
+                // 2. ADIM: ARAYÜZÜ GÜNCELLE
                 Platform.runLater(() -> {
                     if (nameLabel != null) nameLabel.setText(currentAdmin.getFullName());
                     if (totalFacilitiesLabel != null) totalFacilitiesLabel.setText(String.valueOf(facilitiesCount));
@@ -73,12 +84,11 @@ public class AdminProfileController {
                     if (totalAdminsLabel != null) totalAdminsLabel.setText(String.valueOf(adminsCount));
                     if (adminActionsLabel != null) adminActionsLabel.setText(String.valueOf(actionsCount));
 
-                    // FOTOĞRAFI YÜKLE (JavaFX Cache Kırıcı Eklendi)
-                    String picUrl = currentAdmin.getProfilePictureUrl();
-                    if (picUrl != null && !picUrl.trim().isEmpty()) {
-                        String noCacheUrl = picUrl + (picUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
-                        Image img = new Image(noCacheUrl, true);
-                        profileImageCircle.setFill(new ImagePattern(img));
+                    // TAMAMEN İNDİRİLMİŞ RESMİ YUVARLAĞA KOY (HATA VERMEZ)
+                    if (finalImg != null && !finalImg.isError()) {
+                        profileImageCircle.setFill(new ImagePattern(finalImg));
+                    } else {
+                        profileImageCircle.setFill(javafx.scene.paint.Color.web("#E2E8F0"));
                     }
                 });
 
@@ -87,7 +97,6 @@ public class AdminProfileController {
             }
         }).start();
     }
-
     @FXML
     public void handleProfilePictureUpload() {
         FileChooser fileChooser = new FileChooser();
