@@ -3914,7 +3914,7 @@ public class Database {
             try (java.sql.ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     // 1. Önce Kaptan (Student) objesini oluşturuyoruz
-                    models.Student captain = new models.Student();
+                    models.Student captain = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
                     captain.setFullName(rs.getString("cap_name"));
                     captain.setBilkentEmail(rs.getString("cap_email"));
                     captain.setProfilePictureUrl(rs.getString("cap_pic"));
