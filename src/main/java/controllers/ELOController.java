@@ -103,7 +103,7 @@ public class ELOController {
                                 reservationsContainer.getChildren().add(createReservationRow(res));
                             }
                         } else {
-                            Label emptyLabel = new Label("Aktif normal rezervasyonunuz bulunmamaktadır.");
+                            Label emptyLabel = new Label("You have no active normal reservations.");
                             emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
                             reservationsContainer.getChildren().add(emptyLabel);
                         }
@@ -116,7 +116,7 @@ public class ELOController {
                                 myDuellosContainer.getChildren().add(createMyDuelloRow(d));
                             }
                         } else {
-                            Label emptyMyDuellosLabel = new Label("Henüz oluşturduğunuz veya katıldığınız bir düello yok.");
+                            Label emptyMyDuellosLabel = new Label("You have not created or joined any duello yet.");
                             emptyMyDuellosLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
                             myDuellosContainer.getChildren().add(emptyMyDuellosLabel);
                         }
@@ -127,7 +127,7 @@ public class ELOController {
                         if (!requestRows.isEmpty()) {
                             incomingRequestsContainer.getChildren().addAll(requestRows);
                         } else {
-                            Label emptyReqLabel = new Label("Şu an bekleyen gelen isteğiniz yok.");
+                            Label emptyReqLabel = new Label("You have no pending incoming requests at the moment.");
                             emptyReqLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
                             incomingRequestsContainer.getChildren().add(emptyReqLabel);
                         }
@@ -140,7 +140,7 @@ public class ELOController {
                                 duellosContainer.getChildren().add(createAvailableDuelloRow(d));
                             }
                         } else {
-                            Label emptyDuelloLabel = new Label("Şu anda seviyenize uygun açık bir düello bulunmamaktadır.");
+                            Label emptyDuelloLabel = new Label("There is currently no open duello suitable for your level.");
                             emptyDuelloLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
                             duellosContainer.getChildren().add(emptyDuelloLabel);
                         }
@@ -314,12 +314,12 @@ public class ELOController {
             Platform.runLater(() -> {
                 isProcessing = false;
                 if (status == DbStatus.SUCCESS) {
-                    showAlert(Alert.AlertType.INFORMATION, "Başarılı", "İsteği kabul ettiniz. Eşleşme tamamlandı!");
+                    showAlert(Alert.AlertType.INFORMATION, "Successful", "You accepted the request. Match completed!");
                     loadEloAndDuelloData();
                 } else {
                     btn.setDisable(false);
                     btn.setText(originalText);
-                    showAlert(Alert.AlertType.ERROR, "Hata", "İstek kabul edilemedi.");
+                    showAlert(Alert.AlertType.ERROR, "Error", "Request could not be accepted.");
                 }
             });
         }).start();
@@ -341,7 +341,7 @@ public class ELOController {
                 } else {
                     btn.setDisable(false);
                     btn.setText(originalText);
-                    showAlert(Alert.AlertType.ERROR, "Hata", "İstek reddedilemedi.");
+                    showAlert(Alert.AlertType.ERROR, "Error", "Request could not be rejected.");
                 }
             });
         }).start();
@@ -370,12 +370,12 @@ public class ELOController {
                 Platform.runLater(() -> {
                     isProcessing = false;
                     if (finalStatus == DbStatus.SUCCESS) {
-                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Rezervasyonunuz başarıyla bir Düello'ya dönüştürüldü!");
+                        showAlert(Alert.AlertType.INFORMATION, "Successful", "Your reservation has been successfully converted to a Duello!");
                         loadEloAndDuelloData();
                     } else {
                         clickedButton.setDisable(false);
                         clickedButton.setText(originalText);
-                        showAlert(Alert.AlertType.ERROR, "Hata", "Düello oluşturulamadı. Lütfen tekrar deneyin.");
+                        showAlert(Alert.AlertType.ERROR, "Error", "Duello could not be created. Please try again.");
                     }
                 });
             } catch (Exception e) {
@@ -410,12 +410,12 @@ public class ELOController {
                 Platform.runLater(() -> {
                     isProcessing = false;
                     if (finalStatus == DbStatus.SUCCESS) {
-                        showAlert(Alert.AlertType.INFORMATION, "İptal Edildi", "Düello başarıyla iptal edildi ve normal rezervasyona dönüştürüldü.");
+                        showAlert(Alert.AlertType.INFORMATION, "Cancelled", "Duello has been successfully cancelled and converted back to normal reservation.");
                         loadEloAndDuelloData();
                     } else {
                         clickedButton.setDisable(false);
                         clickedButton.setText(originalText);
-                        showAlert(Alert.AlertType.ERROR, "Hata", "Düello iptal edilemedi veya yetkiniz yok.");
+                        showAlert(Alert.AlertType.ERROR, "Error", "Duello could not be cancelled or you do not have permission.");
                     }
                 });
             } catch (Exception e) {
@@ -451,11 +451,11 @@ public class ELOController {
                     isProcessing = false;
                     if (finalStatus == DbStatus.SUCCESS) { 
                         clickedButton.setText("Requested");
-                        showAlert(Alert.AlertType.INFORMATION, "İstek Gönderildi", "Bu maça katılma isteğiniz başarıyla kurucuya iletildi.");
+                        showAlert(Alert.AlertType.INFORMATION, "Request Sent", "Your request to join this match has been successfully sent to the creator.");
                     } else {
                         clickedButton.setDisable(false);
                         clickedButton.setText(originalText);
-                        showAlert(Alert.AlertType.ERROR, "Hata", "İstek gönderilemedi.");
+                        showAlert(Alert.AlertType.ERROR, "Error", "Request could not be sent.");
                     }
                 });
             } catch (Exception e) {
@@ -471,15 +471,15 @@ public class ELOController {
     @FXML
     public void handleApplyWithCode(ActionEvent event) {
         TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Özel Düelloya Katıl");
-        dialog.setHeaderText("Düello Kodunu Giriniz");
-        dialog.setContentText("Kod:");
+        dialog.setTitle("Join Private Duello");
+        dialog.setHeaderText("Enter Duello Code");
+        dialog.setContentText("Code:");
         try { dialog.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm()); } catch (Exception e) {}
 
         Optional<String> result = dialog.showAndWait();
         result.ifPresent(code -> {
             if (code.trim().isEmpty()) {
-                showAlert(Alert.AlertType.WARNING, "Uyarı", "Kod alanı boş bırakılamaz.");
+                showAlert(Alert.AlertType.WARNING, "Warning", "Code field cannot be left empty.");
                 return;
             }
             new Thread(() -> {
@@ -493,12 +493,12 @@ public class ELOController {
                 final DbStatus finalStatus = status;
                 Platform.runLater(() -> {
                     if (finalStatus == DbStatus.SUCCESS) { 
-                         showAlert(Alert.AlertType.INFORMATION, "İşlem Başarılı", "Koda sahip düelloya başarıyla katıldınız!");
+                         showAlert(Alert.AlertType.INFORMATION, "Operation Successful", "You have successfully joined the duello with the code!");
                          loadEloAndDuelloData();
                     } else if (finalStatus == DbStatus.DATA_NOT_FOUND) {
-                         showAlert(Alert.AlertType.ERROR, "Hata", "Girdiğiniz koda ait açık bir düello bulunamadı.");
+                         showAlert(Alert.AlertType.ERROR, "Error", "No open duello found for the code you entered.");
                     } else {
-                         showAlert(Alert.AlertType.ERROR, "Hata", "Geçersiz kod, ELO uyumsuzluğu veya kendi açtığınız maça girmeye çalışıyorsunuz.");
+                         showAlert(Alert.AlertType.ERROR, "Error", "Invalid code, ELO mismatch, or you are trying to join your own match.");
                     }
                 });
             }).start();

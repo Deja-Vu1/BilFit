@@ -66,7 +66,7 @@ public class AdminProfileController {
                 int adminsCount = (userCounts != null && userCounts.size() >= 2) ? userCounts.get(1) : 0;
                 int actionsCount = currentAdmin.getActionsPerformed();
 
-                // 1. ADIM: FOTOĞRAFI ARKA PLANDA TAMAMEN İNDİR!
+                
                 Image downloadedImg = null;
                 if (currentAdmin.getProfilePictureUrl() != null && !currentAdmin.getProfilePictureUrl().isEmpty()) {
                     String picUrl = currentAdmin.getProfilePictureUrl();
@@ -76,7 +76,7 @@ public class AdminProfileController {
                 
                 final Image finalImg = downloadedImg;
 
-                // 2. ADIM: ARAYÜZÜ GÜNCELLE
+                
                 Platform.runLater(() -> {
                     if (nameLabel != null) nameLabel.setText(currentAdmin.getFullName());
                     if (totalFacilitiesLabel != null) totalFacilitiesLabel.setText(String.valueOf(facilitiesCount));
@@ -84,7 +84,7 @@ public class AdminProfileController {
                     if (totalAdminsLabel != null) totalAdminsLabel.setText(String.valueOf(adminsCount));
                     if (adminActionsLabel != null) adminActionsLabel.setText(String.valueOf(actionsCount));
 
-                    // TAMAMEN İNDİRİLMİŞ RESMİ YUVARLAĞA KOY (HATA VERMEZ)
+                    
                     if (finalImg != null && !finalImg.isError()) {
                         profileImageCircle.setFill(new ImagePattern(finalImg));
                     } else {
@@ -100,9 +100,9 @@ public class AdminProfileController {
     @FXML
     public void handleProfilePictureUpload() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Profil Fotoğrafı Seç");
+        fileChooser.setTitle("Select Profile Photo");
         fileChooser.getExtensionFilters().addAll(
-            new FileChooser.ExtensionFilter("Resim Dosyaları", "*.png", "*.jpg", "*.jpeg")
+            new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg")
         );
         
         File selectedFile = fileChooser.showOpenDialog(profileImageContainer.getScene().getWindow());
@@ -119,21 +119,21 @@ public class AdminProfileController {
                     if (status == DbStatus.SUCCESS) {
                         loadAdminProfileData(); 
                         
-                        // YENİ EKLENDİ: SİDEBAR'I DA ANINDA YENİLE!
+                        
                         AdminSidebarController.refreshProfilePicture();
                         
-                        showCustomAlert("Başarılı", "Yönetici profil fotoğrafınız başarıyla güncellendi!");
+                        showCustomAlert("Success", "Your profile picture has been updated successfully!");
                     } else if (status == DbStatus.FILE_TOO_LARGE) {
-                        showCustomAlert("Dosya Çok Büyük", "Seçtiğiniz fotoğrafın boyutu çok yüksek. Lütfen 5 MB altı bir dosya seçin.");
+                        showCustomAlert("File Too Large", "The selected image is too large. Please choose a file under 5 MB.");
                     } else {
-                        showCustomAlert("Hata", "Fotoğraf yüklenirken sunucu kaynaklı bir hata oluştu.");
+                        showCustomAlert("Error", "An error occurred while uploading the image.");
                     }
                 });
             }).start();
         }
     }
 
-    // ŞIK VE MODERN POP-UP TASARIMI
+    
     private void showCustomAlert(String title, String message) {
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
@@ -157,7 +157,7 @@ public class AdminProfileController {
         msgLabel.setAlignment(Pos.CENTER);
         msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #a3aed0; -fx-text-alignment: center;");
 
-        Button okBtn = new Button("Tamam");
+        Button okBtn = new Button("OK");
         okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
         okBtn.setOnAction(e -> dialogStage.close());
 

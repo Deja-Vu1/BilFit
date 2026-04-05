@@ -79,8 +79,7 @@ public class ReservationController {
                 if (facilityComboBox != null) {
                     facilityComboBox.getItems().clear();
                     for (Facility f : allFacilities) {
-                        // DÜZELTME 1: ComboBox'ta tesisin yanına Bakımda/Aktif durumunu yazıyoruz
-                        String statusLabel = f.isUnderMaintenance() ? " (Bakımda)" : " (Aktif)";
+                        String statusLabel = f.isUnderMaintenance() ? " (Under Maintenance)" : " (Active)";
                         facilityComboBox.getItems().add(f.getName() + statusLabel);
                     }
                     if (!allFacilities.isEmpty()) {
@@ -99,8 +98,7 @@ public class ReservationController {
             return;
         }
 
-        // DÜZELTME 2: Seçilen metinden (Bakımda) veya (Aktif) yazılarını temizleyip saf tesis adını buluyoruz
-        String selectedFacilityName = selectedVal.replace(" (Bakımda)", "").replace(" (Aktif)", "");
+        String selectedFacilityName = selectedVal.replace(" (Under Maintenance)", "").replace(" (Active)", "");
 
         final long updateId = ++currentGridUpdateId;
 
@@ -159,14 +157,14 @@ public class ReservationController {
                         if (isPast) {
                             slotBtn.getStyleClass().add("btn-danger");
                             slotBtn.setDisable(true);
-                            slotBtn.setTooltip(new Tooltip("Bu seansın süresi geçmiş."));
+                            slotBtn.setTooltip(new Tooltip("This session has expired."));
                         } else if (isAvailableFromDb) {
                             slotBtn.getStyleClass().add("btn-success"); 
                             slotBtn.setOnAction(e -> attemptReservation(timeSlot, slotBtn));
                         } else {
                             slotBtn.getStyleClass().add("btn-danger"); 
                             slotBtn.setDisable(true);
-                            slotBtn.setTooltip(new Tooltip("Bu seans dolu veya tesis bakımda."));
+                            slotBtn.setTooltip(new Tooltip("This session is full or the facility is under maintenance."));
                         }
 
                         timeSlotGrid.add(slotBtn, col, row);
@@ -193,13 +191,12 @@ public class ReservationController {
         }
 
         if (foundFacility == null) {
-            showAlert(Alert.AlertType.ERROR, "Hata", "Seçilen tesis sistemde bulunamadı.");
+            showAlert(Alert.AlertType.ERROR, "Error", "The selected facility was not found in the system.");
             return;
         }
 
-        // Eğer tesis bakımdaysa direkt engelle ve uyar
         if (foundFacility.isUnderMaintenance()) {
-            showAlert(Alert.AlertType.WARNING, "Uyarı", "Bu tesis şu anda bakımda olduğu için rezervasyon yapılamaz.");
+            showAlert(Alert.AlertType.WARNING, "Warning", "Reservations cannot be made for this facility as it is currently under maintenance.");
             return;
         }
 
@@ -207,7 +204,7 @@ public class ReservationController {
 
         isProcessing = true;
         String originalText = clickedButton.getText();
-        clickedButton.setText("İşleniyor");
+        clickedButton.setText("Processing");
         clickedButton.setDisable(true);
         
         new Thread(() -> {
@@ -220,11 +217,11 @@ public class ReservationController {
                     if (newRes != null) { 
                         refreshTimeSlots(); 
                         fetchFreshReservations(); 
-                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", targetFacility.getName() + " için " + timeSlot + " rezervasyonunuz oluşturuldu.");
+                        showAlert(Alert.AlertType.INFORMATION, "Successful", targetFacility.getName() + " reservation for " + timeSlot + " has been created.");
                     } else {
                         clickedButton.setText(originalText);
                         clickedButton.setDisable(false);
-                        showAlert(Alert.AlertType.ERROR, "İşlem Başarısız", "Rezervasyon oluşturulamadı. (Tesis dolu olabilir, ceza puanınız olabilir veya tarih sınırını aşmış olabilirsiniz.)");
+                        showAlert(Alert.AlertType.ERROR, "Operation Failed", "Reservation could not be created. (The facility may be full, you may have penalty points, or you may have exceeded the date limit.)");
                     }
                 });
             } catch (Exception e) {
@@ -279,10 +276,9 @@ public class ReservationController {
         if (res == null) return "";
         String facilityName = (res.getFacility() != null) ? res.getFacility().getName() : "Unknown Facility";
         
-        // DÜZELTME 3: Eğer tesis bakımdaysa [Active] yazısını [Tesis Bakımda] olarak değiştir
         String status;
         if (res.getFacility() != null && res.getFacility().isUnderMaintenance()) {
-            status = " [Bakımda / Geçersiz]";
+            status = " [Under Maintenance / Invalid]";
         } else if (res.isHasAttended()) {
             status = " [Attended]";
         } else {
@@ -300,7 +296,6 @@ public class ReservationController {
 
         Label infoLabel = new Label(formatReservationText(res));
         
-        // Eğer tesis bakımdaysa listelenen rezervasyonun rengini kırmızımtırak yaparak dikkat çekelim
         if (res.getFacility() != null && res.getFacility().isUnderMaintenance()) {
             infoLabel.setStyle("-fx-text-fill: #D93025; -fx-font-weight: bold; -fx-font-size: 14px;");
         } else {

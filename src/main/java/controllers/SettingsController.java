@@ -35,7 +35,6 @@ public class SettingsController {
     @FXML private TextField passwordField;
     @FXML private Button changePasswordBtn;
     
-    // YENİ EKLENEN NİCKNAME ELEMANLARI
     @FXML private TextField nicknameField;
     @FXML private Button changeNicknameBtn;
     
@@ -56,8 +55,7 @@ public class SettingsController {
             
             if (nicknameField != null) {
                 nicknameField.clear(); 
-                // getNickname yerine getFullName kullanıyoruz
-                nicknameField.setPromptText("Mevcut: " + currentUser.getFullName()); 
+                nicknameField.setPromptText("Current: " + currentUser.getFullName()); 
             }
             
             loadUserInterests(currentUser);
@@ -77,7 +75,7 @@ public class SettingsController {
                             interestsContainer.getChildren().add(createInterestButton(sport));
                         }
                     } else {
-                        Label emptyLabel = new Label("Kayıtlı ilgi alanınız bulunmamaktadır.");
+                        Label emptyLabel = new Label("You have no registered interests.");
                         emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
                         interestsContainer.getChildren().add(emptyLabel);
                     }
@@ -129,7 +127,7 @@ public class SettingsController {
                 Platform.runLater(() -> {
                     currentUser.setPublicProfile(!targetStatus);
                     updateToggleVisual(publicAccountToggle, !targetStatus);
-                    showCustomAlert("Hata", "Gizlilik ayarı değiştirilemedi. Sunucu hatası.");
+                    showCustomAlert("Error", "Privacy setting could not be changed. Server error.");
                 });
             }
         }).start();
@@ -154,7 +152,7 @@ public class SettingsController {
                 Platform.runLater(() -> {
                     currentUser.setEloMatchingEnabled(!targetStatus);
                     updateToggleVisual(eloToggle, !targetStatus);
-                    showCustomAlert("Hata", "ELO ayarı değiştirilemedi. Sunucu hatası.");
+                    showCustomAlert("Error", "ELO setting could not be changed. Server error.");
                 });
             }
         }).start();
@@ -168,13 +166,12 @@ public class SettingsController {
         String newPass = passwordField.getText();
 
         if (newPass == null || newPass.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "Şifre alanı boş olamaz.");
+            showCustomAlert("Warning", "Password field cannot be empty.");
             return;
         }
 
-        // 6 KARAKTER KURALI EKLENDİ!
         if (newPass.length() < 6) {
-            showCustomAlert("Zayıf Şifre", "Yeni şifreniz en az 6 karakter olmalıdır.");
+            showCustomAlert("Weak Password", "Your new password must be at least 6 characters long.");
             return;
         }
 
@@ -195,15 +192,14 @@ public class SettingsController {
                 
                 if (finalStatus == DbStatus.SUCCESS) {
                     passwordField.clear();
-                    showCustomAlert("Başarılı", "Şifreniz başarıyla değiştirildi.");
+                    showCustomAlert("Successful", "Your password has been successfully changed.");
                 } else {
-                    showCustomAlert("Hata", "Şifre güncellenemedi. Yeni şifre eskisinden farklı olmalıdır.");
+                    showCustomAlert("Error", "Password could not be updated. The new password must be different from the old one.");
                 }
             });
         }).start();
     }
 
-    // --- YENİ EKLENEN: NICKNAME DEĞİŞTİRME FONKSİYONU ---
  @FXML
     public void handleChangeNickname(ActionEvent event) {
         if (isProcessing) return;
@@ -212,7 +208,7 @@ public class SettingsController {
         String newNick = nicknameField.getText();
 
         if (newNick == null || newNick.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "İsim alanı boş bırakılamaz.");
+            showCustomAlert("Warning", "Name field cannot be left empty.");
             return;
         }
 
@@ -222,7 +218,6 @@ public class SettingsController {
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
-                // Veritabanına yolluyoruz
                 status = studentManager.updateNickname(currentUser, newNick);
             } catch (Exception e) {}
 
@@ -233,19 +228,17 @@ public class SettingsController {
                 changeNicknameBtn.setText("Change");
                 
                 if (finalStatus == DbStatus.SUCCESS) {
-                    // Başarılıysa kutuyu temizle ve silik ipucunu yeni isminle (getFullName) güncelle!
                     nicknameField.clear(); 
-                    nicknameField.setPromptText("Mevcut: " + currentUser.getFullName());
+                    nicknameField.setPromptText("Current: " + currentUser.getFullName());
                     
-                    showCustomAlert("Başarılı", "İsminiz başarıyla değiştirildi!");
+                    showCustomAlert("Successful", "Your name has been successfully changed!");
                 } else {
-                    showCustomAlert("Hata", "İsim güncellenirken sunucu kaynaklı bir sorun oluştu.");
+                    showCustomAlert("Error", "A server-side issue occurred while updating the name.");
                 }
             });
         }).start();
     }
 
-    // --- IŞIK HIZINDA SİLME (OPTIMISTIC UI) ---
     private void handleRemoveInterest(SportType sportType, Button clickedBtn) {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         
@@ -266,7 +259,7 @@ public class SettingsController {
                     if (interestsContainer != null) {
                         interestsContainer.getChildren().add(clickedBtn);
                     }
-                    showCustomAlert("Hata", "Veritabanından silinemedi.");
+                    showCustomAlert("Error", "Could not be deleted from the database.");
                 }
             });
         }).start();
@@ -292,7 +285,7 @@ public class SettingsController {
         shadow.setColor(Color.rgb(0, 0, 0, 0.15));
         layout.setEffect(shadow);
 
-        Label titleLabel = new Label("Yeni İlgi Alanı Ekle");
+        Label titleLabel = new Label("Add New Interest Area");
         titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2b3674;");
 
         ComboBox<String> sportCombo = new ComboBox<>();
@@ -307,11 +300,11 @@ public class SettingsController {
         HBox btnBox = new HBox(15);
         btnBox.setAlignment(Pos.CENTER);
 
-        Button cancelBtn = new Button("İptal");
+        Button cancelBtn = new Button("Cancel");
         cancelBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 90; -fx-pref-height: 35; -fx-cursor: hand;");
         cancelBtn.setOnAction(e -> dialogStage.close());
 
-        Button addBtn = new Button("Ekle");
+        Button addBtn = new Button("Add");
         addBtn.setStyle("-fx-background-color: #1E8E3E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 90; -fx-pref-height: 35; -fx-cursor: hand;");
         addBtn.setOnAction(e -> {
             String selectedSportString = sportCombo.getValue();
@@ -332,7 +325,6 @@ public class SettingsController {
         dialogStage.showAndWait();
     }
 
-    // --- IŞIK HIZINDA EKLEME (OPTIMISTIC UI) ---
     private void processAddInterest(SportType sportType) {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         if (currentUser == null) return;
@@ -346,7 +338,7 @@ public class SettingsController {
                 .anyMatch(text -> text.contains(sportType.name().replace("_", " ")));
             
             if (alreadyExists) {
-                showCustomAlert("Uyarı", "Bu ilgi alanı zaten ekli.");
+                showCustomAlert("Warning", "This interest area is already added.");
                 return;
             }
             
@@ -364,7 +356,7 @@ public class SettingsController {
                 Platform.runLater(() -> {
                     if (finalStatus != DbStatus.SUCCESS) {
                         interestsContainer.getChildren().remove(newBtn);
-                        showCustomAlert("Hata", "Bu ilgi alanı zaten ekli olabilir veya sunucu bağlantısı kurulamadı.");
+                        showCustomAlert("Error", "This interest area may already be added or server connection could not be established.");
                     }
                 });
             }).start();
@@ -394,7 +386,7 @@ public class SettingsController {
         msgLabel.setAlignment(Pos.CENTER);
         msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #a3aed0; -fx-text-alignment: center;");
 
-        Button okBtn = new Button("Tamam");
+        Button okBtn = new Button("OK");
         okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
         okBtn.setOnAction(e -> dialogStage.close());
 

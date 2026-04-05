@@ -25,7 +25,7 @@ public class AdminRegisterController {
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
     
-    // FXML'de eklediğin Admin Kod kutusu buraya bağlandı!
+    
     @FXML private PasswordField adminAccessCodeField;
 
     private boolean isProcessing = false;
@@ -36,24 +36,24 @@ public class AdminRegisterController {
     public void attemptAdminRegister(ActionEvent event) {
         if (isProcessing) return;
 
-        // VERİLERİ TEMİZLE: Boşlukları sil, küçük harfe zorla
+        
         String name = fullnameField.getText() != null ? fullnameField.getText().trim() : "";
         String email = emailField.getText() != null ? emailField.getText().trim().toLowerCase() : "";
         String password = passwordField.getText();
         String adminSecretCode = adminAccessCodeField != null && adminAccessCodeField.getText() != null ? adminAccessCodeField.getText().trim() : "";
       
         if (name.isEmpty() || email.isEmpty() || password == null || password.isEmpty() || adminSecretCode.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen tüm alanları (Admin Yetki Kodu dahil) doldurunuz.");
+            showAlert(Alert.AlertType.WARNING, "Missing Information", "Please fill in all fields (including Admin Authorization Code).");
             return;
         }
 
         if (!email.endsWith("@ug.bilkent.edu.tr") && !email.endsWith("@yahoo.com") && !email.endsWith("@bilkent.edu.tr")) {
-            showAlert(Alert.AlertType.WARNING, "Geçersiz E-posta", "Sisteme sadece Bilkent e-posta adresleri ile kayıt olunabilir.");
+            showAlert(Alert.AlertType.WARNING, "Invalid Email", "Only Bilkent email addresses can be used for registration.");
             return;
         }
 
         if (password.length() < 6) {
-            showAlert(Alert.AlertType.WARNING, "Zayıf Şifre", "Şifreniz en az 6 karakter uzunluğunda olmalıdır.");
+            showAlert(Alert.AlertType.WARNING, "Weak Password", "Your password must be at least 6 characters long.");
             return;
         }
 
@@ -67,7 +67,7 @@ public class AdminRegisterController {
 
         new Thread(() -> {
             try {
-                // AuthManager üzerinden Admin kaydı işlemi
+                
                 DbStatus registerStatus = authManager.registerAdmin(email, password, adminSecretCode, name);
 
                 Platform.runLater(() -> {
@@ -77,21 +77,21 @@ public class AdminRegisterController {
 
                     switch (registerStatus) {
                         case SUCCESS:
-                            // Kayıt başarılıysa Aktivasyon sayfasına gönder
+                            
                             AdminActivationController.emailToActivate = email;
                             goToAdminActivation(event);
                             break;
                         case EMAIL_ALREADY_EXISTS:
-                            showAlert(Alert.AlertType.ERROR, "Kayıt Başarısız", "Bu e-posta adresi ile zaten bir admin kaydı mevcut.");
+                            showAlert(Alert.AlertType.ERROR, "Registration Failed", "An admin account with this email address already exists.");
                             break;
                         case CONNECTION_ERROR:
-                            showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
+                            showAlert(Alert.AlertType.ERROR, "Connection Error", "Failed to connect to the database.");
                             break;
                         case QUERY_ERROR:
-                            showAlert(Alert.AlertType.ERROR, "Geçersiz İşlem", "Veriler veritabanı kurallarına uymuyor veya Admin Yetki Kodu hatalı.");
+                            showAlert(Alert.AlertType.ERROR, "Invalid Operation", "The data does not comply with database rules or the Admin Authorization Code is incorrect.");
                             break;
                         default:
-                            showAlert(Alert.AlertType.ERROR, "Sistem Hatası", "Admin kaydı sırasında beklenmeyen bir hata oluştu.");
+                            showAlert(Alert.AlertType.ERROR, "System Error", "An unexpected error occurred during admin registration.");
                             break;
                     }
                 });
@@ -107,7 +107,7 @@ public class AdminRegisterController {
         }).start();
     }
 
-    // Doğrudan Login'e değil, aradaki Aktivasyon adımına gönderir
+    
     private void goToAdminActivation(ActionEvent event) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminActivationView.fxml"));

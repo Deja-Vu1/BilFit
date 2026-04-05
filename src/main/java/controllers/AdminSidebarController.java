@@ -24,7 +24,6 @@ public class AdminSidebarController {
     @FXML private Button btnFacilities;
     @FXML private Button btnSettings;
     
-    // YENİ EKLENDİ
     @FXML private Circle profileImageCircle;
     
     @FXML 
@@ -38,7 +37,6 @@ public class AdminSidebarController {
         }
     }
 
-    // FOTOĞRAFI ARKA PLANDA ÇEKİP SİDEBARA KOYAN METOT
     private void loadSidebarProfilePicture() {
         new Thread(() -> {
             try {
@@ -96,7 +94,7 @@ public class AdminSidebarController {
 
     @FXML 
     private void logout() {
-        System.out.println("Admin çıkış yapıyor...");
+        System.out.println("Admin is logging out...");
         SessionManager.getInstance().logout();
         
         try {
@@ -105,7 +103,7 @@ public class AdminSidebarController {
             Stage stage = (Stage) btnHome.getScene().getWindow(); 
             stage.getScene().setRoot(root);
         } catch (IOException e) {
-            System.err.println("HATA: Çıkış yapılırken SelectionView sayfası yüklenemedi!");
+            System.err.println("ERROR: SelectionView page could not be loaded during logout!");
             e.printStackTrace();
         }
     }

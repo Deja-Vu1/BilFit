@@ -35,7 +35,6 @@ public class TournamentDetailsController {
     @FXML private Button applyTournamentButton;
     @FXML private ComboBox<Student> friendSelectionBox;
     
-    // YENİ EKLENEN FXML BİLEŞENLERİ
     @FXML private VBox teamsListContainer;
     @FXML private VBox teamsVBox;
     
@@ -48,7 +47,6 @@ public class TournamentDetailsController {
     private TournamentManager tournamentManager;
     private boolean USE_MOCK_DATA = true;
 
-    // BURADAKİ METOD KIRMIZI HATAYI ÇÖZECEK METODDUR
     public void setMockDataMode(boolean isMock) {
         this.USE_MOCK_DATA = isMock;
     }
@@ -58,13 +56,12 @@ public class TournamentDetailsController {
             if (!USE_MOCK_DATA) {
                 this.tournamentManager = new TournamentManager(Database.getInstance());
             } else {
-                System.out.println("====== DİKKAT: DETAILS EKRANI SAHTE VERİ (MOCK) KULLANIYOR ======");
+                System.out.println("====== ATTENTION: DETAILS SCREEN USING FAKE DATA (MOCK) ======");
             }
             this.tournament = tournament;
             updateHeader();
             setupFriendSelection();
             
-            // Veriyi çekip ekrana basacak asıl metod
             loadContent();
         } catch (Exception e) {
             e.printStackTrace();
@@ -96,7 +93,6 @@ public class TournamentDetailsController {
 
     private void loadContent() {
         new Thread(() -> {
-            // VERİLERİ HAZIRLAMA AŞAMASI
             if (USE_MOCK_DATA) {
                 setupMockData();
             } else {
@@ -108,18 +104,15 @@ public class TournamentDetailsController {
                 } catch (Exception e) {}
             }
 
-            // ARAYÜZÜ GÜNCELLEME AŞAMASI
             Platform.runLater(() -> {
                 boolean hasFixture = tournament.getTournamentFixture() != null && 
                                      !tournament.getTournamentFixture().getScheduledMatches().isEmpty();
 
                 if (hasFixture) {
-                    // Fikstür varsa Takım listesini gizle, Fikstürü göster
                     teamsListContainer.setVisible(false); teamsListContainer.setManaged(false);
                     fixtureContainer.setVisible(true); fixtureContainer.setManaged(true);
                     populateFixture();
                 } else {
-                    // Fikstür yoksa sadece katılan takımları alt alta göster
                     fixtureContainer.setVisible(false); fixtureContainer.setManaged(false);
                     teamsListContainer.setVisible(true); teamsListContainer.setManaged(true);
                     populateTeamsList();
@@ -163,20 +156,17 @@ public class TournamentDetailsController {
             Team t1 = match.getTeam1();
             Team t2 = match.getTeam2();
 
-            // EĞER RAKİP YOKSA BU TAKIM BYE GEÇMİŞTİR (Üst Tura Çıkmıştır)
             if (t2 == null) {
                 byeTeamLabel.setText("🏆 Automatically Advanced (BYE): " + t1.getTeamName());
                 byeTeamBox.setVisible(true);
                 byeTeamBox.setManaged(true);
-                continue; // Bu satırı maç listesine ekleme
+                continue;
             }
 
-            // MAÇ SATIRI TASARIMI
             HBox matchRow = new HBox();
             matchRow.setAlignment(Pos.CENTER_LEFT);
             matchRow.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-background-radius: 8; -fx-background-color: #FFFFFF;");
 
-            // SOL SÜTUN (TEAM 1)
             HBox t1Box = new HBox();
             t1Box.setAlignment(Pos.CENTER);
             t1Box.setPrefWidth(220);
@@ -186,12 +176,10 @@ public class TournamentDetailsController {
             t1Label.setTextFill(javafx.scene.paint.Color.web("#2b3674"));
             t1Box.getChildren().add(t1Label);
 
-            // VS ETİKETİ
             Label vsLabel = new Label(" VS ");
             vsLabel.setFont(Font.font("System", FontWeight.BOLD, 12));
             vsLabel.setTextFill(javafx.scene.paint.Color.web("#A0AEC0"));
 
-            // ORTA SÜTUN (TEAM 2)
             HBox t2Box = new HBox();
             t2Box.setAlignment(Pos.CENTER);
             t2Box.setPrefWidth(220);
@@ -201,7 +189,6 @@ public class TournamentDetailsController {
             t2Label.setTextFill(javafx.scene.paint.Color.web("#2b3674"));
             t2Box.getChildren().add(t2Label);
 
-            // SAĞ SÜTUN (STATUS)
             HBox statusBox = new HBox();
             statusBox.setAlignment(Pos.CENTER_RIGHT);
             HBox.setHgrow(statusBox, Priority.ALWAYS);
@@ -210,23 +197,19 @@ public class TournamentDetailsController {
             statusLabel.setFont(Font.font("System", FontWeight.BOLD, 13));
             statusBox.getChildren().add(statusLabel);
 
-            // SONUÇLARA GÖRE RENKLENDİRME MANTIĞI
             if (match.getWinner() != null) {
                 if (match.getWinner().getTeamId().equals(t1.getTeamId())) {
-                    // Team 1 Kazandı
-                    t1Box.setStyle("-fx-background-color: #D4EDDA; -fx-background-radius: 8 0 0 8;"); // Yeşil
-                    t2Box.setStyle("-fx-background-color: #F8D7DA;"); // Kırmızı
+                    t1Box.setStyle("-fx-background-color: #D4EDDA; -fx-background-radius: 8 0 0 8;");
+                    t2Box.setStyle("-fx-background-color: #F8D7DA;");
                     statusLabel.setText(t1.getTeamName() + " Won");
                     statusLabel.setStyle("-fx-text-fill: #28A745;");
                 } else {
-                    // Team 2 Kazandı
-                    t1Box.setStyle("-fx-background-color: #F8D7DA; -fx-background-radius: 8 0 0 8;"); // Kırmızı
-                    t2Box.setStyle("-fx-background-color: #D4EDDA;"); // Yeşil
+                    t1Box.setStyle("-fx-background-color: #F8D7DA; -fx-background-radius: 8 0 0 8;");
+                    t2Box.setStyle("-fx-background-color: #D4EDDA;");
                     statusLabel.setText(t2.getTeamName() + " Won");
                     statusLabel.setStyle("-fx-text-fill: #28A745;");
                 }
             } else {
-                // Maç Oynanmadı
                 t1Box.setStyle("-fx-background-color: #F8FAFC; -fx-background-radius: 8 0 0 8;");
                 t2Box.setStyle("-fx-background-color: #F8FAFC;");
                 statusLabel.setStyle("-fx-text-fill: #A0AEC0;");
@@ -238,7 +221,6 @@ public class TournamentDetailsController {
     }
 
     private void setupMockData() {
-        // Bu metod sadece sen arayüzü görsel olarak test edebil diye tasarlandı
         List<Team> mockTeams = new ArrayList<>();
         Team t1 = new Team("M1", "CS Strikers", "MOCK", 2, false, new Student("Ali", "ali@bilkent", "1"));
         Team t2 = new Team("M2", "EE Engineers", "MOCK", 2, false, new Student("Veli", "veli@bilkent", "2"));
@@ -249,24 +231,19 @@ public class TournamentDetailsController {
         mockTeams.add(t1); mockTeams.add(t2); mockTeams.add(t3); mockTeams.add(t4); mockTeams.add(t5);
         tournament.setParticipatingTeams(mockTeams);
 
-        // Sahte Fikstür Yaratımı (Yeşil/Kırmızı mantığını görebilmen için)
         models.Fixture fix = new models.Fixture(tournament.getTournamentId());
         
-        // 1. Maç: CS Strikers Kazandı (Yeşil/Kırmızı)
         Match m1 = new Match("1", java.time.LocalDateTime.now(), tournament.getSportType(), t1, t2);
         m1.setWinner(t1); 
         
-        // 2. Maç: Henüz oynanmadı (Gri/Pending)
         Match m2 = new Match("2", java.time.LocalDateTime.now(), tournament.getSportType(), t3, t4);
         
-        // 3. Maç: Rakip yok, üst tura çıktı (BYE)
         Match m3 = new Match("3", java.time.LocalDateTime.now(), tournament.getSportType(), t5, null);
         
         fix.getScheduledMatches().add(m1);
         fix.getScheduledMatches().add(m2);
         fix.getScheduledMatches().add(m3);
         
-        // Eğer sadece listeyi test etmek istersen aşağıdaki satırı yoruma alabilirsin
         tournament.setTournamentFixture(fix);
     }
 
@@ -322,17 +299,17 @@ public class TournamentDetailsController {
                     if (finalStatus == DbStatus.SUCCESS) {
                         if (friendSelectionBox.getValue() == null) {
                             if (!USE_MOCK_DATA) SessionManager.getInstance().setTournamentApplied(true);
-                            showAlert(Alert.AlertType.INFORMATION, "Başarılı", "MOCK: Bireysel olarak turnuvaya katıldınız.");
+                            showAlert(Alert.AlertType.INFORMATION, "Successful", "MOCK: You have joined the tournament individually.");
                         } else {
-                            showAlert(Alert.AlertType.INFORMATION, "Başarılı", "MOCK: Takım isteği arkadaşınıza başarıyla gönderildi.");
+                            showAlert(Alert.AlertType.INFORMATION, "Successful", "MOCK: Team request successfully sent to your friend.");
                         }
                         applyTournamentButton.setText("Joined / Requested");
-                        loadContent(); // Ekranı yenile
+                        loadContent();
                     } else {
                         applyTournamentButton.setText("Confirm Join");
                         applyTournamentButton.setDisable(false);
                         friendSelectionBox.setDisable(false);
-                        showAlert(Alert.AlertType.ERROR, "Başarısız", "İşlem gerçekleştirilemedi.");
+                        showAlert(Alert.AlertType.ERROR, "Failed", "Operation could not be performed.");
                     }
                 });
             }).start();

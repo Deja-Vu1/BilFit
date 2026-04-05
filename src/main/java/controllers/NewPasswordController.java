@@ -21,7 +21,7 @@ public class NewPasswordController {
             stage.getScene().setRoot(root);
 
         } catch (IOException e) {
-            System.err.println("ResetPasswordView yüklenirken hata oluştu!");
+            System.err.println("An error occurred while loading ResetPasswordView!");
             e.printStackTrace();
         }
     }
@@ -29,13 +29,7 @@ public class NewPasswordController {
     public void attemptLogin(ActionEvent event) {
         System.out.println("Attempting to reset password...");
         String password=passwordField.getText();
-        /* TODO: password'u database'de güncelle
-                if (mail.isEmpty()) {
-            System.out.println("Error: Activation code cannot be empty.");
-            return;
-        }
-            */
-           System.out.println("Şifre değiştirildi, StudentLoginView'e yönlendiriliyor...");
+           System.out.println("Password changed, redirecting to StudentLoginView...");
 
            directToHome(event);
     }
@@ -48,7 +42,7 @@ public class NewPasswordController {
             stage.getScene().setRoot(root);
 
         } catch (IOException e) {
-            System.err.println("StudentLoginView yüklenirken hata oluştu!");
+            System.err.println("An error occurred while loading StudentLoginView!");
             e.printStackTrace();
         }
         

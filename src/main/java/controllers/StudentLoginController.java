@@ -36,7 +36,7 @@ public class StudentLoginController {
        String passwordInput = passwordField.getText();
 
        if (emailInput == null || emailInput.isEmpty() || passwordInput == null || passwordInput.isEmpty()) {
-           showAlert(Alert.AlertType.WARNING, "Uyarı", "E-posta veya şifre alanları boş bırakılamaz.");
+           showAlert(Alert.AlertType.WARNING, "Warning", "Email or password fields cannot be left empty.");
            return;
        }
 
@@ -46,7 +46,7 @@ public class StudentLoginController {
       
        clickedButton.getParent().requestFocus();
        clickedButton.setDisable(true);
-       clickedButton.setText("Giriş Yapılıyor...");
+       clickedButton.setText("Logging in...");
 
        new Thread(() -> {
            try {
@@ -62,28 +62,27 @@ public class StudentLoginController {
                            deployHomepage(event);
                            break;
                        case ACCOUNT_NOT_ACTIVATED:
-                           showAlert(Alert.AlertType.INFORMATION, "Aktivasyon Gerekli", "Hesabınız henüz aktive edilmemiş. Lütfen e-postanızı kontrol edin.");
+                           showAlert(Alert.AlertType.INFORMATION, "Activation Required", "Your account has not been activated yet. Please check your email.");
                            break;
                        case INVALID_CREDENTIALS:
                        case DATA_NOT_FOUND:
-                           showAlert(Alert.AlertType.ERROR, "Giriş Başarısız", "Hatalı e-posta veya şifre girdiniz.");
+                           showAlert(Alert.AlertType.ERROR, "Login Failed", "You entered incorrect email or password.");
                            break;
                        case CONNECTION_ERROR:
-                           showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
+                           showAlert(Alert.AlertType.ERROR, "Connection Error", "Could not connect to the database.");
                            break;
                        default:
-                           showAlert(Alert.AlertType.ERROR, "Sistem Hatası", "Bilinmeyen bir hata oluştu.");
+                           showAlert(Alert.AlertType.ERROR, "System Error", "An unknown error occurred.");
                            break;
                    }
                });
            } catch (Exception ex) {
-               // EĞER DATABASE VEYA AUTHMANAGER ÇÖKERSE BURASI YAKALAYACAK
                ex.printStackTrace();
                Platform.runLater(() -> {
                    isProcessing = false;
                    clickedButton.setDisable(false);
                    clickedButton.setText(originalButtonText);
-                   showAlert(Alert.AlertType.ERROR, "Kritik Kod Hatası", "Giriş işlemi arka planda çöktü:\n" + ex.getMessage());
+                   showAlert(Alert.AlertType.ERROR, "Critical Code Error", "Login process crashed in the background:\n" + ex.getMessage());
                });
            }
        }).start();
@@ -91,11 +90,10 @@ public class StudentLoginController {
 
    public void deployHomepage(ActionEvent event) {
        try {
-           // KRİTİK NOKTA: Takım arkadaşının yaptığı yeni MainView dosyasını çağırıyoruz.
            java.net.URL url = getClass().getResource("/views/dashboard/StudentMainView.fxml");
            
            if (url == null) {
-               showAlert(Alert.AlertType.ERROR, "Dosya Bulunamadı", "StudentMainView.fxml dosyası klasörde yok veya ismi yanlış!");
+               showAlert(Alert.AlertType.ERROR, "File Not Found", "StudentMainView.fxml file is not in the folder or the name is wrong!");
                return;
            }
 
@@ -105,9 +103,8 @@ public class StudentLoginController {
            stage.getScene().setRoot(root);
            
        } catch (Exception e) {
-           // EĞER YENİ FXML DOSYALARINDA (MAIN VEYA SIDEBAR) BİR HATA VARSA BURASI YAKALAYACAK
            e.printStackTrace();
-           showAlert(Alert.AlertType.ERROR, "Arayüz Çöktü", "Ana sayfa yüklenirken hata oluştu:\n" + e.getMessage());
+           showAlert(Alert.AlertType.ERROR, "Interface Crashed", "An error occurred while loading the homepage:\n" + e.getMessage());
        }
    }
 

@@ -25,13 +25,11 @@ import models.Student;
 
 public class AdminSettingsController {
 
-    // KİŞİSEL AYARLAR
     @FXML private TextField nameField;
     @FXML private TextField passwordField;
     @FXML private Button changeNameBtn;
     @FXML private Button changePasswordBtn;
 
-    // CEZA VE BAN YÖNETİMİ
     @FXML private TextField studentEmailField;
     @FXML private TextField penaltyPointsField;
     @FXML private Button addPenaltyBtn;
@@ -47,24 +45,21 @@ public class AdminSettingsController {
         Admin currentAdmin = (Admin) SessionManager.getInstance().getCurrentUser();
         if (currentAdmin != null) {
             if (nameField != null) {
-                nameField.setPromptText("Mevcut: " + currentAdmin.getFullName());
+                nameField.setPromptText("Current: " + currentAdmin.getFullName());
             }
         }
     }
 
-    // --- CEZA EKLEME İŞLEMİ ---
     @FXML
     public void handleAddPenalty(ActionEvent event) {
-        processPenaltyModification(true, addPenaltyBtn, "Ceza Puanı Ekle");
+        processPenaltyModification(true, addPenaltyBtn, "Add Penalty Points");
     }
 
-    // --- CEZA SİLME İŞLEMİ ---
     @FXML
     public void handleReducePenalty(ActionEvent event) {
-        processPenaltyModification(false, reducePenaltyBtn, "Ceza Puanı Sil");
+        processPenaltyModification(false, reducePenaltyBtn, "Remove Penalty Points");
     }
 
-    // Ceza artırma ve azaltma motoru (100 Puan Kontrolü Eklendi)
     private void processPenaltyModification(boolean isAddition, Button clickedBtn, String originalBtnText) {
         if (isProcessing) return;
 
@@ -72,7 +67,7 @@ public class AdminSettingsController {
         String pointsStr = penaltyPointsField.getText();
 
         if (email == null || email.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "Lütfen işlem yapılacak öğrencinin e-postasını giriniz.");
+            showCustomAlert("Warning", "Please enter the email of the student to be processed.");
             return;
         }
 
@@ -80,16 +75,16 @@ public class AdminSettingsController {
         try {
             points = Integer.parseInt(pointsStr.trim());
             if (points <= 0) {
-                showCustomAlert("Hata", "Ceza puanı mutlaka pozitif bir tam sayı olmalıdır.");
+                showCustomAlert("Error", "Penalty points must be a positive integer.");
                 return;
             }
         } catch (NumberFormatException e) {
-            showCustomAlert("Hata", "Lütfen 'Ceza Puanı' alanına geçerli bir sayı giriniz.");
+            showCustomAlert("Error", "Please enter a valid number in the 'Penalty Points' field.");
             return;
         }
 
         isProcessing = true;
-        clickedBtn.setText("İşleniyor...");
+        clickedBtn.setText("Processing...");
 
         final int finalPoints = points;
         new Thread(() -> {
@@ -101,7 +96,7 @@ public class AdminSettingsController {
                 Platform.runLater(() -> {
                     isProcessing = false;
                     clickedBtn.setText(originalBtnText);
-                    showCustomAlert("Bulunamadı", "Sistemde böyle bir e-postaya sahip öğrenci bulunamadı.");
+                    showCustomAlert("Not Found", "No student with this email found in the system.");
                 });
                 return;
             }
@@ -113,8 +108,8 @@ public class AdminSettingsController {
             if (isAddition && projectedPoints >= 100) {
                 Platform.runLater(() -> {
                     showCustomConfirmation(
-                        "Kritik Uyarı", 
-                        "Bu ceza eklendiğinde öğrencinin toplam puanı " + projectedPoints + " olacak ve 100 sınırını geçecek.\nÖğrenci SİSTEMDEN DİREKT BANLANACAKTIR.\nEmin misiniz?",
+                        "Critical Warning", 
+                        "If this penalty is added, the student's total points will be " + projectedPoints + " and will exceed the 100 limit.\nThe student will be DIRECTLY BANNED FROM THE SYSTEM.\nAre you sure?",
                         () -> executePenaltyAndBan(targetStudent, finalPoints, true, clickedBtn, originalBtnText, true), // EVET'e basarsa
                         () -> { // İPTAL'e basarsa
                             isProcessing = false;
@@ -123,14 +118,12 @@ public class AdminSettingsController {
                     );
                 });
             } else {
-                // 100'ü geçmiyorsa normal işlemine devam et
                 executePenaltyAndBan(targetStudent, finalPoints, isAddition, clickedBtn, originalBtnText, false);
             }
 
         }).start();
     }
 
-    // Gerçek Veritabanı İşlemini Yapan Arka Plan Görevi
     private void executePenaltyAndBan(Student targetStudent, int finalPoints, boolean isAddition, Button clickedBtn, String originalBtnText, boolean autoBan) {
         new Thread(() -> {
             Admin currentAdmin = (Admin) SessionManager.getInstance().getCurrentUser();
@@ -142,7 +135,6 @@ public class AdminSettingsController {
                 status = adminManager.reducePenaltyPoint(currentAdmin, targetStudent, finalPoints);
             }
 
-            // EĞER 100'Ü GEÇTİĞİ İÇİN OTOMATİK BAN ONAYLANDIYSA VE CEZA EKLENDİYSE BANLA
             if (status == DbStatus.SUCCESS && autoBan) {
                 adminManager.banStudent(currentAdmin, targetStudent);
             }
@@ -156,19 +148,18 @@ public class AdminSettingsController {
                     penaltyPointsField.clear();
                     
                     if (autoBan) {
-                        showCustomAlert("Banlandı!", targetStudent.getFullName() + " adlı öğrencinin ceza puanı 100'ü geçtiği için SİSTEMDEN UZAKLAŞTIRILDI.");
+                        showCustomAlert("Banned!", targetStudent.getFullName() + "'s penalty points exceeded 100, so they were REMOVED FROM THE SYSTEM.");
                     } else {
-                        String action = isAddition ? " eklendi." : " silindi.";
-                        showCustomAlert("Başarılı", targetStudent.getFullName() + " adlı öğrencinin hanesinden " + finalPoints + " ceza puanı" + action + "\n(Güncel Ceza Puanı: " + targetStudent.getPenaltyPoints() + ")");
+                        String action = isAddition ? " added." : " removed.";
+                        showCustomAlert("Successful", targetStudent.getFullName() + "'s " + finalPoints + " penalty points" + action + "\n(Current Penalty Points: " + targetStudent.getPenaltyPoints() + ")");
                     }
                 } else {
-                    showCustomAlert("Hata", "İşlem sırasında sunucu kaynaklı bir hata oluştu.");
+                    showCustomAlert("Error", "A server-side error occurred during the operation.");
                 }
             });
         }).start();
     }
 
-    // --- BAN KALDIRMA İŞLEMİ ---
     @FXML
     public void handleUnbanStudent(ActionEvent event) {
         if (isProcessing) return;
@@ -176,12 +167,12 @@ public class AdminSettingsController {
         String email = studentEmailField.getText();
 
         if (email == null || email.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "Lütfen banı kaldırılacak öğrencinin e-postasını giriniz.");
+            showCustomAlert("Warning", "Please enter the email of the student whose ban is to be lifted.");
             return;
         }
 
         isProcessing = true;
-        unbanStudentBtn.setText("İşleniyor...");
+        unbanStudentBtn.setText("Processing...");
 
         new Thread(() -> {
             Database db = Database.getInstance();
@@ -191,8 +182,8 @@ public class AdminSettingsController {
             if (fillStatus != DbStatus.SUCCESS) {
                 Platform.runLater(() -> {
                     isProcessing = false;
-                    unbanStudentBtn.setText("Ban Kaldır");
-                    showCustomAlert("Bulunamadı", "Sistemde böyle bir e-postaya sahip öğrenci bulunamadı.");
+                    unbanStudentBtn.setText("Unban");
+                    showCustomAlert("Not Found", "No student with this email found in the system.");
                 });
                 return;
             }
@@ -207,15 +198,14 @@ public class AdminSettingsController {
                 if (status == DbStatus.SUCCESS) {
                     studentEmailField.clear();
                     penaltyPointsField.clear();
-                    showCustomAlert("Ban Kaldırıldı!", targetStudent.getFullName() + " adlı öğrencinin banı başarıyla kaldırıldı ve kendisine bilgilendirme gönderildi.");
+                    showCustomAlert("Ban Lifted!", targetStudent.getFullName() + "'s ban has been successfully lifted and they have been notified.");
                 } else {
-                    showCustomAlert("Hata", "Öğrencinin banı kaldırılırken bir hata oluştu.");
+                    showCustomAlert("Error", "An error occurred while lifting the student's ban.");
                 }
             });
         }).start();
     }
 
-    // --- DİREKT BANLAMA İŞLEMİ ---
     @FXML
     public void handleBanStudent(ActionEvent event) {
         if (isProcessing) return;
@@ -223,12 +213,12 @@ public class AdminSettingsController {
         String email = studentEmailField.getText();
 
         if (email == null || email.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "Lütfen banlanacak öğrencinin e-postasını giriniz.");
+            showCustomAlert("Warning", "Please enter the email of the student to be banned.");
             return;
         }
 
         isProcessing = true;
-        banStudentBtn.setText("İşleniyor...");
+        banStudentBtn.setText("Processing...");
 
         new Thread(() -> {
             Database db = Database.getInstance();
@@ -238,8 +228,8 @@ public class AdminSettingsController {
             if (fillStatus != DbStatus.SUCCESS) {
                 Platform.runLater(() -> {
                     isProcessing = false;
-                    banStudentBtn.setText("Sistemden Banla");
-                    showCustomAlert("Bulunamadı", "Sistemde böyle bir e-postaya sahip öğrenci bulunamadı.");
+                    banStudentBtn.setText("Ban from System");
+                    showCustomAlert("Not Found", "No student with this email found in the system.");
                 });
                 return;
             }
@@ -254,15 +244,14 @@ public class AdminSettingsController {
                 if (status == DbStatus.SUCCESS) {
                     studentEmailField.clear();
                     penaltyPointsField.clear();
-                    showCustomAlert("Banlandı!", targetStudent.getFullName() + " adlı öğrenci sistemden uzaklaştırıldı ve kendisine bilgilendirme gönderildi.");
+                    showCustomAlert("Banned!", targetStudent.getFullName() + " has been removed from the system and notified.");
                 } else {
-                    showCustomAlert("Hata", "Öğrenci banlanırken bir hata oluştu.");
+                    showCustomAlert("Error", "An error occurred while banning the student.");
                 }
             });
         }).start();
     }
 
-    // --- KİŞİSEL İSİM VE ŞİFRE DEĞİŞTİRME ---
     @FXML
     public void handleChangeName(ActionEvent event) {
         if (isProcessing) return;
@@ -271,12 +260,12 @@ public class AdminSettingsController {
         String newName = nameField.getText();
 
         if (newName == null || newName.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "İsim alanı boş bırakılamaz.");
+            showCustomAlert("Warning", "Name field cannot be left empty.");
             return;
         }
 
         isProcessing = true;
-        changeNameBtn.setText("...");
+        changeNameBtn.setText("Updating...");
 
         new Thread(() -> {
             DbStatus status = adminManager.updateNickname(currentAdmin, newName.trim());
@@ -287,10 +276,10 @@ public class AdminSettingsController {
 
                 if (status == DbStatus.SUCCESS) {
                     nameField.clear();
-                    nameField.setPromptText("Mevcut: " + currentAdmin.getFullName());
-                    showCustomAlert("Başarılı", "Yönetici isminiz başarıyla güncellendi!");
+                    nameField.setPromptText("Current: " + currentAdmin.getFullName());
+                    showCustomAlert("Successful", "Your admin name has been successfully updated!");
                 } else {
-                    showCustomAlert("Hata", "İsim güncellenirken sunucu kaynaklı bir sorun oluştu.");
+                    showCustomAlert("Error", "A server-side issue occurred while updating the name.");
                 }
             });
         }).start();
@@ -304,17 +293,17 @@ public class AdminSettingsController {
         String newPassword = passwordField.getText();
 
         if (newPassword == null || newPassword.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "Şifre alanı boş olamaz.");
+            showCustomAlert("Warning", "Password field cannot be empty.");
             return;
         }
 
         if (newPassword.trim().length() < 6) {
-            showCustomAlert("Zayıf Şifre", "Yeni şifreniz en az 6 karakter olmalıdır.");
+            showCustomAlert("Weak Password", "Your new password must be at least 6 characters long.");
             return;
         }
 
         isProcessing = true;
-        changePasswordBtn.setText("...");
+        changePasswordBtn.setText("Updating...");
 
         new Thread(() -> {
             DbStatus status = adminManager.updatePassword(currentAdmin, newPassword.trim());
@@ -325,17 +314,16 @@ public class AdminSettingsController {
 
                 if (status == DbStatus.SUCCESS) {
                     passwordField.clear();
-                    showCustomAlert("Başarılı", "Şifreniz başarıyla değiştirildi.");
+                    showCustomAlert("Successful", "Your password has been successfully changed.");
                 } else if (status == DbStatus.SAME_PASSWORD) {
-                    showCustomAlert("Hata", "Yeni şifre eskisinden farklı olmalıdır.");
+                    showCustomAlert("Error", "The new password must be different from the old one.");
                 } else {
-                    showCustomAlert("Hata", "Şifre güncellenirken sunucu kaynaklı bir sorun oluştu.");
+                    showCustomAlert("Error", "A server-side issue occurred while updating the password.");
                 }
             });
         }).start();
     }
 
-    // YENİ: İKİ BUTONLU ONAY KUTUSU (EVET / İPTAL)
     private void showCustomConfirmation(String title, String message, Runnable onConfirm, Runnable onCancel) {
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
@@ -352,7 +340,6 @@ public class AdminSettingsController {
         layout.setEffect(shadow);
 
         Label titleLabel = new Label(title);
-        // Uyarı olduğu için kırmızı renk
         titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #D93025;");
 
         Label msgLabel = new Label(message);
@@ -363,14 +350,14 @@ public class AdminSettingsController {
         HBox btnBox = new HBox(15);
         btnBox.setAlignment(Pos.CENTER);
 
-        Button cancelBtn = new Button("İptal Et");
+        Button cancelBtn = new Button("Cancel");
         cancelBtn.setStyle("-fx-background-color: #E2E8F0; -fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
         cancelBtn.setOnAction(e -> {
             dialogStage.close();
             if (onCancel != null) onCancel.run();
         });
 
-        Button confirmBtn = new Button("Evet, Banla");
+        Button confirmBtn = new Button("Yes, Ban");
         confirmBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
         confirmBtn.setOnAction(e -> {
             dialogStage.close();
@@ -387,7 +374,6 @@ public class AdminSettingsController {
         dialogStage.showAndWait();
     }
 
-    // Şık Uyarı Kutusu (Tek Butonlu Orijinal)
     private void showCustomAlert(String title, String message) {
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
@@ -411,7 +397,7 @@ public class AdminSettingsController {
         msgLabel.setAlignment(Pos.CENTER);
         msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #a3aed0; -fx-text-alignment: center;");
 
-        Button okBtn = new Button("Tamam");
+        Button okBtn = new Button("OK");
         okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
         okBtn.setOnAction(e -> dialogStage.close());
 

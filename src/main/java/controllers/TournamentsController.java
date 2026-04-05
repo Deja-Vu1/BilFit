@@ -231,7 +231,7 @@ public class TournamentsController {
 
     private void handleCancelTournament(Team t) {
         if (USE_MOCK_DATA) {
-            showAlert(Alert.AlertType.INFORMATION, "Mock", "Turnuvadan çıkıldı.");
+            showAlert(Alert.AlertType.INFORMATION, "Mock", "Exited tournament.");
             loadTeamManagementData();
             return;
         }
@@ -341,7 +341,7 @@ public class TournamentsController {
 
     private void handleTeamAction(Team t, String action) {
         if (USE_MOCK_DATA) {
-            showAlert(Alert.AlertType.INFORMATION, "Mock Data", "Aksiyon MOCK modunda alındı: " + action);
+            showAlert(Alert.AlertType.INFORMATION, "Mock Data", "Action taken in MOCK mode: " + action);
             return;
         }
 
@@ -398,7 +398,7 @@ public class TournamentsController {
                     myTournamentsCard.setVisible(true);
                     myTournamentsCard.setManaged(true);
                 }
-                showAlert(Alert.AlertType.INFORMATION, "Başarılı", "MOCK: Turnuvaya katildiniz.");
+                showAlert(Alert.AlertType.INFORMATION, "Successful", "MOCK: You have joined the tournament.");
                 loadUpcomingTournaments();
                 loadTeamManagementData();
                 return;
@@ -423,7 +423,7 @@ public class TournamentsController {
                     } else {
                         applyButton.setText("Apply");
                         applyButton.setDisable(false);
-                        showAlert(Alert.AlertType.ERROR, "Hata", "Turnuvaya katılım başarısız.");
+                        showAlert(Alert.AlertType.ERROR, "Error", "Tournament participation failed.");
                     }
                 });
             }).start();
@@ -436,9 +436,9 @@ public class TournamentsController {
     @FXML
     public void handleApplyWithCode(ActionEvent event) {
         TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Özel Turnuvaya Katıl");
-        dialog.setHeaderText("Erişim kodunu giriniz");
-        dialog.setContentText("Kod:");
+        dialog.setTitle("Join Private Tournament");
+        dialog.setHeaderText("Enter the access code");
+        dialog.setContentText("Code:");
 
         if (applyCodeButton != null && applyCodeButton.getScene() != null) {
             dialog.initOwner(applyCodeButton.getScene().getWindow());
@@ -447,7 +447,7 @@ public class TournamentsController {
         Optional<String> result = dialog.showAndWait();
         result.ifPresent(code -> {
             if (code.trim().isEmpty()) {
-                showAlert(Alert.AlertType.WARNING, "Uyarı", "Kod alani bos birakilamaz.");
+                showAlert(Alert.AlertType.WARNING, "Warning", "Code field cannot be left empty.");
                 return;
             }
             
@@ -460,7 +460,7 @@ public class TournamentsController {
                     applyCodeButton.setText("Joined");
                     applyCodeButton.setDisable(true);
                 }
-                showAlert(Alert.AlertType.INFORMATION, "Başarılı", "MOCK: Turnuvaya katildiniz.");
+                showAlert(Alert.AlertType.INFORMATION, "Successful", "MOCK: You have joined the tournament.");
                 return;
             }
 
@@ -486,9 +486,9 @@ public class TournamentsController {
                             applyCodeButton.setDisable(true);
                         }
                         loadTeamManagementData();
-                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Turnuvaya katildiniz.");
+                        showAlert(Alert.AlertType.INFORMATION, "Successful", "You have joined the tournament.");
                     } else {
-                        showAlert(Alert.AlertType.ERROR, "Başarısız", "Gecersiz islem.");
+                        showAlert(Alert.AlertType.ERROR, "Failed", "Invalid operation.");
                     }
                 });
             }).start();

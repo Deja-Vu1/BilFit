@@ -27,7 +27,6 @@ public class StudentSidebarController {
     @FXML private Button btnSettings;
     @FXML private Button btnFriends;
     
-    // YENİ EKLENDİ
     @FXML private Circle profileImageCircle;
 
     @FXML
@@ -41,7 +40,6 @@ public class StudentSidebarController {
         }
     }
 
-    // FOTOĞRAFI ARKA PLANDA ÇEKİP SİDEBARA KOYAN METOT
     private void loadSidebarProfilePicture() {
         new Thread(() -> {
             try {
@@ -52,7 +50,7 @@ public class StudentSidebarController {
                 if (currentUser.getProfilePictureUrl() != null && !currentUser.getProfilePictureUrl().isEmpty()) {
                     String picUrl = currentUser.getProfilePictureUrl();
                     String noCacheUrl = picUrl + (picUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
-                    downloadedImg = new Image(noCacheUrl, false); // Arka planda donmadan indir
+                    downloadedImg = new Image(noCacheUrl, false); // Download in background without freezing
                 }
 
                 final Image finalImg = downloadedImg;
@@ -102,7 +100,7 @@ public class StudentSidebarController {
 
     @FXML 
     private void logout() {
-        System.out.println("Oturum kapatılıyor ve Ana Ekrana dönülüyor...");
+        System.out.println("Logging out and returning to Main Screen...");
         try {
             SessionManager.getInstance().logout();
 
@@ -111,7 +109,7 @@ public class StudentSidebarController {
             Stage stage = (Stage) btnHome.getScene().getWindow(); 
             stage.getScene().setRoot(root);
         } catch (IOException e) {
-            System.err.println("Hata: SelectionView yüklenemedi.");
+            System.err.println("Error: SelectionView could not be loaded.");
             e.printStackTrace();
         }
     }
