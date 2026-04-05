@@ -87,7 +87,7 @@ public class TournamentDetailsController {
                 List<Team> dbTeams = tournamentManager.getTournamentTeams(tournament.getTournamentId());
                 if (dbTeams != null) tournament.setParticipatingTeams(dbTeams);
                 
-                // Manager üzerinden gerçek fikstürü çektiriyoruz
+
                 tournamentManager.fillTournamentFixtures(tournament);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -251,7 +251,7 @@ public class TournamentDetailsController {
                     if (finalStatus == DbStatus.SUCCESS) {
                         SessionManager.getInstance().setTournamentApplied(true);
                         
-                        // Eğer arkadaş seçildiyse ona takım daveti yollayabilirsin. (TeamID döndürülmediği için bu aşama haricen yapılabilir)
+
                         applyTournamentButton.setText("Joined / Requested");
                         loadContent();
                         showAlert(Alert.AlertType.INFORMATION, "Success", "You have joined the tournament.");
