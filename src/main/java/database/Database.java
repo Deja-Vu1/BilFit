@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import models.SportType;
 import models.Student;
+import models.Tournament;
 import models.Facility;
 import models.Reservation;
 import java.util.List;
@@ -3254,4 +3255,157 @@ public class Database {
         } catch (Exception e) {
             System.err.println("Eski fotoğraf silinirken bir istisna oluştu: " + e.getMessage());
         }
-    }}
+    }
+
+    /**
+     * Inserts a new team and automatically adds the creator student to the team_members table.
+     * @param creatorStudent The student who is creating the team (Captain)
+     * @param currentTournament The tournament the team is joining
+     * @param teamName The name of the new team
+     * @return DbStatus indicating SUCCESS or error types.
+     */
+    public DbStatus insertTeam(Student creatorStudent, Tournament currentTournament, String teamName) {
+        
+        if (creatorStudent == null || currentTournament == null || teamName == null || teamName.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String teamId = java.util.UUID.randomUUID().toString();
+        // Senin paylaştığın metodun kullanıldığı yer:
+        String accessCode = generateRandomCode(6); 
+        
+        String insertTeamSql = "INSERT INTO teams (team_id, tournament_id, team_name, access_code, max_capacity, ge250_requested, captain_id) " +
+                               "VALUES (?, ?, ?, ?, ?, ?, (SELECT id FROM users WHERE bilkent_email = ?))";
+        
+        String insertMemberSql = "INSERT INTO team_members (team_id, student_id) " +
+                                 "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?))";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); 
+            
+            // 1. Takımı oluştur
+            try (PreparedStatement stmt1 = conn.prepareStatement(insertTeamSql)) {
+                stmt1.setObject(1, java.util.UUID.fromString(teamId));
+                stmt1.setObject(2, java.util.UUID.fromString(currentTournament.getTournamentId()));
+                stmt1.setString(3, teamName);
+                stmt1.setString(4, accessCode);
+                stmt1.setInt(5, currentTournament.getMaxPlayersPerTeam());
+                stmt1.setBoolean(6, currentTournament.isHasGe250()); 
+                stmt1.setString(7, creatorStudent.getBilkentEmail());
+                stmt1.executeUpdate();
+            }
+            
+            // 2. Kaptanı üye olarak ekle (student_id kolonu kullanıldı)
+            try (PreparedStatement stmt2 = conn.prepareStatement(insertMemberSql)) {
+                stmt2.setObject(1, java.util.UUID.fromString(teamId));
+                stmt2.setString(2, creatorStudent.getBilkentEmail());
+                stmt2.executeUpdate();
+            }
+            
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
+        }
+    }
+
+    /**
+     * Bes a student to join a team using the team's access code.
+     * Validates the access code and checks for team capacity before adding the student to the team_members table.
+     * @param teamId The UUID of the team the student wants to join
+     * @param currentStudent The student who is trying to join the team
+     * @param inputCode The access code provided by the student to join the team
+     * @return DbStatus indicating SUCCESS or error types.
+     */
+    public DbStatus beTeamMember(String teamId, Student currentStudent, String inputCode) {
+        
+        String checkSql = "SELECT access_code, max_capacity, " +
+                          "(SELECT COUNT(*) FROM team_members WHERE team_id = ?) AS current_count " +
+                          "FROM teams WHERE team_id = ?";
+                          
+        String insertSql = "INSERT INTO team_members (team_id, student_id) " +
+                           "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?))";
+
+        try {
+            java.util.UUID tId = java.util.UUID.fromString(teamId);
+
+            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
+                checkStmt.setObject(1, tId);
+                checkStmt.setObject(2, tId);
+                
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        if (!rs.getString("access_code").equals(inputCode)) {
+                            return DbStatus.INVALID_CREDENTIALS; 
+                        }
+                        if (rs.getInt("current_count") >= rs.getInt("max_capacity")) {
+                            return DbStatus.QUERY_ERROR; 
+                        }
+                    } else { return DbStatus.DATA_NOT_FOUND; }
+                }
+            }
+
+            try (PreparedStatement insertStmt = getConnection().prepareStatement(insertSql)) {
+                insertStmt.setObject(1, tId);
+                insertStmt.setString(2, currentStudent.getBilkentEmail());
+                insertStmt.executeUpdate();
+                return DbStatus.SUCCESS;
+            }
+        } catch (SQLException e) {
+            if ("23505".equals(e.getSQLState())) System.err.println("Öğrenci zaten takımda.");
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Removes a student from a team based on the team ID and student's email.
+     * @param teamId The UUID of the team from which the student wants to be removed
+     * @param studentEmail The Bilkent email of the student to be removed from the team
+     * @return DbStatus indicating SUCCESS or error types.
+     */
+    public DbStatus deleteTeamMember(String teamId, String studentEmail) {
+        String sql = "DELETE FROM team_members WHERE team_id = ? " +
+                     "AND student_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+            stmt.setString(2, studentEmail);
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Deletes a team from the database. 
+     * Since 'ON DELETE CASCADE' is enabled, all members in 'team_members' 
+     * will be automatically removed by the database.
+     * @param teamId The UUID of the team to be deleted
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus deleteTeam(String teamId) {
+        if (teamId == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "DELETE FROM teams WHERE team_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+            
+            int deletedRows = stmt.executeUpdate();
+            return (deletedRows > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+}
