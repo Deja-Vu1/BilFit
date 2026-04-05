@@ -95,13 +95,19 @@ public class TournamentsController {
     }
 
     private void updateTabStyles(Button activeBtn) {
-        String inactiveStyle = "-fx-background-color: #E2E8F0; -fx-text-fill: #2b3674; -fx-background-radius: 8; -fx-font-weight: normal;";
-        String activeStyle = "-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8;";
+        if(btnIncoming != null) {
+            btnIncoming.getStyleClass().removeAll("tab-btn-active", "tab-btn-inactive");
+            btnIncoming.getStyleClass().add("tab-btn-inactive");
+        }
+        if(btnOutgoing != null) {
+            btnOutgoing.getStyleClass().removeAll("tab-btn-active", "tab-btn-inactive");
+            btnOutgoing.getStyleClass().add("tab-btn-inactive");
+        }
         
-        if(btnIncoming != null) btnIncoming.setStyle(inactiveStyle);
-        if(btnOutgoing != null) btnOutgoing.setStyle(inactiveStyle);
-        
-        if(activeBtn != null) activeBtn.setStyle(activeStyle);
+        if(activeBtn != null) {
+            activeBtn.getStyleClass().remove("tab-btn-inactive");
+            activeBtn.getStyleClass().add("tab-btn-active");
+        }
     }
 
     private void loadUpcomingTournaments() {
@@ -141,7 +147,7 @@ public class TournamentsController {
                 Platform.runLater(() -> {
                     populateIncomingTeamList(incomingRequestsContainer, incoming);
                     populateStudentRequestList(outgoingRequestsContainer, outgoing, "outgoing");
-                    populateMyTournamentsList(myTournamentsContainer, myTeams, currentUser); // currentUser eklendi
+                    populateMyTournamentsList(myTournamentsContainer, myTeams, currentUser);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -154,32 +160,32 @@ public class TournamentsController {
         container.getChildren().clear();
 
         if (teams == null || teams.isEmpty()) {
-            container.getChildren().add(new Label("No incoming requests."));
+            Label emptyLbl = new Label("No incoming requests.");
+            emptyLbl.setStyle("-fx-text-fill: #a0aec0; -fx-padding: 10;");
+            container.getChildren().add(emptyLbl);
             return;
         }
 
         for (Team t : teams) {
             HBox row = new HBox();
             row.setAlignment(Pos.CENTER_LEFT);
-            row.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-background-color: #FFFFFF;");
-            row.setPadding(new Insets(10));
+            row.getStyleClass().add("list-row");
 
             Label nameLabel = new Label("Team: " + t.getTeamName() + " (Captain: " + t.getCaptain().getFullName() + ")");
-            nameLabel.setFont(Font.font("System", FontWeight.BOLD, 12.0));
-            nameLabel.setTextFill(javafx.scene.paint.Color.web("#2b3674"));
+            nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #2b3674;");
 
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
 
             Button acceptBtn = new Button("Accept");
-            acceptBtn.setStyle("-fx-background-color: #05CD99; -fx-text-fill: white; -fx-background-radius: 5;");
+            acceptBtn.getStyleClass().add("btn-success");
             acceptBtn.setOnAction(e -> handleTeamRequestAction(t, "accept"));
 
             Button rejectBtn = new Button("Reject");
-            rejectBtn.setStyle("-fx-background-color: #EE5D50; -fx-text-fill: white; -fx-background-radius: 5;");
+            rejectBtn.getStyleClass().add("btn-danger");
             rejectBtn.setOnAction(e -> handleTeamRequestAction(t, "reject"));
             
-            HBox btnBox = new HBox(5, acceptBtn, rejectBtn);
+            HBox btnBox = new HBox(10, acceptBtn, rejectBtn);
             row.getChildren().addAll(nameLabel, spacer, btnBox);
 
             container.getChildren().add(row);
@@ -191,26 +197,26 @@ public class TournamentsController {
         container.getChildren().clear();
 
         if (students == null || students.isEmpty()) {
-            container.getChildren().add(new Label("No records found."));
+            Label emptyLbl = new Label("No outgoing requests.");
+            emptyLbl.setStyle("-fx-text-fill: #a0aec0; -fx-padding: 10;");
+            container.getChildren().add(emptyLbl);
             return;
         }
 
         for (Student s : students) {
             HBox row = new HBox();
             row.setAlignment(Pos.CENTER_LEFT);
-            row.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-background-color: #FFFFFF;");
-            row.setPadding(new Insets(10));
+            row.getStyleClass().add("list-row");
 
             Label nameLabel = new Label(s.getFullName() + " (" + s.getBilkentEmail() + ")");
-            nameLabel.setFont(Font.font("System", FontWeight.BOLD, 12.0));
-            nameLabel.setTextFill(javafx.scene.paint.Color.web("#2b3674"));
+            nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #2b3674;");
 
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
 
             if (type.equals("outgoing")) {
                 Label status = new Label("Pending");
-                status.setTextFill(javafx.scene.paint.Color.web("#FFB547"));
+                status.getStyleClass().add("tag-orange");
                 row.getChildren().addAll(nameLabel, spacer, status);
             }
 
@@ -222,7 +228,6 @@ public class TournamentsController {
         if (container == null) return;
         container.getChildren().clear();
 
-        // Eğer takım varsa myTournamentsCard'ı görünür yap
         if (teams != null && !teams.isEmpty() && myTournamentsCard != null) {
             myTournamentsCard.setVisible(true);
             myTournamentsCard.setManaged(true);
@@ -234,21 +239,18 @@ public class TournamentsController {
         }
 
         for (Team t : teams) {
-            // Kullanıcı bu takımın kaptanı mı kontrolü
             boolean isCaptain = t.getCaptain() != null && t.getCaptain().getBilkentEmail().equals(currentUser.getBilkentEmail());
 
             HBox row = new HBox();
             row.setAlignment(Pos.CENTER_LEFT);
-            row.setStyle("-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;");
-            row.setPadding(new Insets(10, 20, 10, 20));
+            row.getStyleClass().add("list-row");
 
             VBox infoBox = new VBox(5);
             Label nameLabel = new Label("Team: " + t.getTeamName() + (isCaptain ? " (Captain)" : ""));
-            nameLabel.setFont(Font.font("System", FontWeight.BOLD, 13.0));
-            nameLabel.setTextFill(javafx.scene.paint.Color.web("#2b3674"));
+            nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2b3674;");
             
-            Label subLabel = new Label("Status: Active | Max Players: " + t.getMaxCapacity());
-            subLabel.setStyle("-fx-text-fill: #a0aec0;");
+            Label subLabel = new Label("Status: Active | Max Players: " + t.getMaxCapacity() + " | Team Code: " + t.getAccessCode());
+            subLabel.setStyle("-fx-text-fill: #a0aec0; -fx-font-size: 12px;");
             infoBox.getChildren().addAll(nameLabel, subLabel);
 
             Region spacer = new Region();
@@ -260,6 +262,13 @@ public class TournamentsController {
             scheduleBtn.getStyleClass().add("btn-secondary");
             scheduleBtn.setOnAction(e -> openScheduleView(t));
 
+            Button viewEditBtn = new Button(isCaptain ? "Edit Team" : "View Team");
+            viewEditBtn.setPrefHeight(35.0);
+            viewEditBtn.setPrefWidth(90.0);
+            viewEditBtn.getStyleClass().add(isCaptain ? "btn-warning" : "btn-success");
+            HBox.setMargin(viewEditBtn, new Insets(0, 0, 0, 10));
+            viewEditBtn.setOnAction(e -> openTeamEditView(t));
+
             Button actionBtn = new Button(isCaptain ? "Cancel" : "Leave");
             actionBtn.setPrefHeight(35.0);
             actionBtn.setPrefWidth(90.0);
@@ -267,19 +276,7 @@ public class TournamentsController {
             HBox.setMargin(actionBtn, new Insets(0, 0, 0, 10));
             actionBtn.setOnAction(e -> handleCancelOrLeaveTournament(t, isCaptain, currentUser));
 
-            // Sadece kaptansa Edit butonunu satıra ekle
-            if (isCaptain) {
-                Button editTeamBtn = new Button("Edit Team");
-                editTeamBtn.setPrefHeight(35.0);
-                editTeamBtn.setPrefWidth(90.0);
-                editTeamBtn.setStyle("-fx-background-color: #FFB547; -fx-text-fill: white; -fx-background-radius: 8;");
-                HBox.setMargin(editTeamBtn, new Insets(0, 0, 0, 10));
-                editTeamBtn.setOnAction(e -> openTeamEditView(t));
-                
-                row.getChildren().addAll(infoBox, spacer, scheduleBtn, editTeamBtn, actionBtn);
-            } else {
-                row.getChildren().addAll(infoBox, spacer, scheduleBtn, actionBtn);
-            }
+            row.getChildren().addAll(infoBox, spacer, scheduleBtn, viewEditBtn, actionBtn);
 
             container.getChildren().add(row);
         }
@@ -312,7 +309,12 @@ public class TournamentsController {
 
     private void openScheduleView(Team t) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/TournamentScheduleView.fxml"));
+            java.net.URL fxmlLocation = getClass().getResource("/views/dashboard/TournamentScheduleView.fxml");
+            if (fxmlLocation == null) {
+                showAlert(Alert.AlertType.ERROR, "Yol Hatası", "TournamentScheduleView.fxml dosyası bulunamadı!");
+                return;
+            }
+            FXMLLoader loader = new FXMLLoader(fxmlLocation);
             Parent root = loader.load();
             
             Stage stage = new Stage();
@@ -322,24 +324,33 @@ public class TournamentsController {
             stage.show();
         } catch(Exception ex) {
             ex.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Kritik Hata", "Ekran yüklenirken hata oluştu: " + ex.toString());
         }
     }
 
     private void openTeamEditView(Team t) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/TeamEditView.fxml"));
+            java.net.URL fxmlLocation = getClass().getResource("/views/dashboard/TeamEditView.fxml");
+            if (fxmlLocation == null) {
+                showAlert(Alert.AlertType.ERROR, "Yol Hatası", "TeamEditView.fxml dosyası bulunamadı!");
+                return;
+            }
+
+            FXMLLoader loader = new FXMLLoader(fxmlLocation);
             Parent root = loader.load();
             
             TeamEditController controller = loader.getController();
             controller.setTeam(t);
 
             Stage stage = new Stage();
-            stage.setTitle("Edit Team");
+            stage.setTitle("Team Info");
             stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setScene(new Scene(root, 800, 600));
+            stage.setScene(new Scene(root, 900, 650));
             stage.show();
+            
         } catch(Exception ex) {
             ex.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Kritik Hata", "Ekran yüklenirken hata oluştu: " + ex.toString());
         }
     }
 
@@ -373,16 +384,14 @@ public class TournamentsController {
     private HBox createTournamentRow(Tournament tournament) {
         HBox row = new HBox();
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;");
-        row.setPadding(new Insets(10, 20, 10, 20));
+        row.getStyleClass().add("list-row");
 
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy");
         String dateStr = tournament.getStartDate().format(dtf) + " - " + tournament.getEndDate().format(dtf);
-        String infoText = tournament.getTournamentName() + "   |   " + dateStr + "   |   Max " + tournament.getMaxPlayersPerTeam() + " player";
+        String infoText = tournament.getTournamentName() + "   |   " + dateStr + "   |   Max " + tournament.getMaxPlayersPerTeam() + " players   |   Tournament Code: " + tournament.getAccessCode();
 
         Label infoLabel = new Label(infoText);
-        infoLabel.setTextFill(javafx.scene.paint.Color.web("#2b3674"));
-        infoLabel.setFont(Font.font("System", FontWeight.BOLD, 13.0));
+        infoLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 13px; -fx-text-fill: #2b3674;");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -390,38 +399,53 @@ public class TournamentsController {
         Button applyButton = new Button("Apply");
         applyButton.setPrefHeight(35.0);
         applyButton.setPrefWidth(100.0);
-        applyButton.getStyleClass().add("btn-secondary");
+        applyButton.getStyleClass().add("btn-primary");
 
         applyButton.setOnAction(e -> {
-            applyButton.setText("Joining...");
-            applyButton.setDisable(true);
+            Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+            
+            TextInputDialog nameDialog = new TextInputDialog(currentUser.getFullName() + " Team");
+            nameDialog.setTitle("Team Name Request");
+            nameDialog.setHeaderText("Create a new team for " + tournament.getTournamentName());
+            nameDialog.setContentText("Enter your team name:");
+            
+            Optional<String> nameResult = nameDialog.showAndWait();
+            
+            if (nameResult.isPresent() && !nameResult.get().trim().isEmpty()) {
+                String chosenTeamName = nameResult.get().trim();
+                
+                applyButton.setText("Joining...");
+                applyButton.setDisable(true);
 
-            new Thread(() -> {
-                DbStatus status = DbStatus.QUERY_ERROR;
-                try {
-                    Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-                    String generatedTeamName = currentUser.getFullName() + " Team";
-                    status = tournamentManager.createTeamAndJoinTournament(currentUser, tournament, generatedTeamName);
-                } catch(Exception ex) {}
-
-                final DbStatus finalStatus = status;
-                Platform.runLater(() -> {
-                    if(finalStatus == DbStatus.SUCCESS) {
-                        SessionManager.getInstance().setTournamentApplied(true);
-                        if (myTournamentsCard != null) {
-                            myTournamentsCard.setVisible(true);
-                            myTournamentsCard.setManaged(true);
-                        }
-                        loadUpcomingTournaments();
-                        loadTeamManagementData();
-                        showAlert(Alert.AlertType.INFORMATION, "Successful", "You have joined the tournament successfully.");
-                    } else {
-                        applyButton.setText("Apply");
-                        applyButton.setDisable(false);
-                        showAlert(Alert.AlertType.ERROR, "Error", "Tournament participation failed.");
+                new Thread(() -> {
+                    DbStatus status = DbStatus.QUERY_ERROR;
+                    try {
+                        status = tournamentManager.createTeamAndJoinTournament(currentUser, tournament, chosenTeamName);
+                    } catch(Exception ex) {
+                        ex.printStackTrace();
                     }
-                });
-            }).start();
+
+                    final DbStatus finalStatus = status;
+                    Platform.runLater(() -> {
+                        if(finalStatus == DbStatus.SUCCESS) {
+                            SessionManager.getInstance().setTournamentApplied(true);
+                            if (myTournamentsCard != null) {
+                                myTournamentsCard.setVisible(true);
+                                myTournamentsCard.setManaged(true);
+                            }
+                            loadUpcomingTournaments();
+                            loadTeamManagementData();
+                            showAlert(Alert.AlertType.INFORMATION, "Successful", "Team '" + chosenTeamName + "' created and joined!");
+                        } else {
+                            applyButton.setText("Apply");
+                            applyButton.setDisable(false);
+                            showAlert(Alert.AlertType.ERROR, "Error", "Tournament participation failed. You might already be in a team.");
+                        }
+                    });
+                }).start();
+            } else if (nameResult.isPresent()) {
+                showAlert(Alert.AlertType.WARNING, "Invalid Name", "Team name cannot be empty!");
+            }
         });
 
         row.getChildren().addAll(infoLabel, spacer, applyButton);
@@ -432,8 +456,8 @@ public class TournamentsController {
     public void handleApplyWithCode(ActionEvent event) {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Join Team via Code");
-        dialog.setHeaderText("Enter the Team ID and Access Code");
-        dialog.setContentText("Format (TeamID,Code):");
+        dialog.setHeaderText("Enter the 6-digit Team Access Code");
+        dialog.setContentText("Team Code:");
 
         if (applyCodeButton != null && applyCodeButton.getScene() != null) {
             dialog.initOwner(applyCodeButton.getScene().getWindow());
@@ -441,21 +465,20 @@ public class TournamentsController {
 
         Optional<String> result = dialog.showAndWait();
         result.ifPresent(input -> {
-            if (input.trim().isEmpty() || !input.contains(",")) {
-                showAlert(Alert.AlertType.WARNING, "Warning", "Please enter in TeamID,Code format.");
+            String tCode = input.trim();
+            if (tCode.isEmpty()) {
+                showAlert(Alert.AlertType.WARNING, "Warning", "Please enter the Team Code.");
                 return;
             }
-            
-            String[] parts = input.split(",");
-            String tId = parts[0].trim();
-            String tCode = parts[1].trim();
 
             new Thread(() -> {
                 DbStatus status = DbStatus.QUERY_ERROR;
                 try {
                     Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-                    status = tournamentManager.joinTeamWithCode(tId, currentUser, tCode);
-                } catch (Exception ex) {}
+                    status = tournamentManager.joinTeamWithCode(currentUser, tCode);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
 
                 final DbStatus finalStatus = status;
 
@@ -472,8 +495,10 @@ public class TournamentsController {
                         }
                         loadTeamManagementData();
                         showAlert(Alert.AlertType.INFORMATION, "Successful", "You have joined the team.");
+                    } else if (finalStatus == DbStatus.DATA_NOT_FOUND) {
+                        showAlert(Alert.AlertType.ERROR, "Failed", "Team not found with this code.");
                     } else {
-                        showAlert(Alert.AlertType.ERROR, "Failed", "Invalid Team ID or Code.");
+                        showAlert(Alert.AlertType.ERROR, "Failed", "Invalid Team Code or you are already in a team.");
                     }
                 });
             }).start();

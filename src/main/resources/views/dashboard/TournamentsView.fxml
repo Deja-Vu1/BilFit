@@ -7,55 +7,57 @@
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
-<VBox prefHeight="900.0" prefWidth="1200.0" spacing="20.0" style="-fx-background-color: #F4F7FE;" stylesheets="/bilfit-exact.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.TournamentsController">
-   <padding>
-      <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
-   </padding>
-   
-   <VBox styleClass="content-card" VBox.vgrow="ALWAYS">
-      <HBox alignment="CENTER_LEFT">
-         <Label styleClass="content-title" text="Upcoming Tournaments" />
-         <Region HBox.hgrow="ALWAYS" />
-         <Button fx:id="applyCodeButton" onAction="#handleApplyWithCode" prefHeight="35.0" prefWidth="140.0" styleClass="btn-success" text="Apply With Code" />
-      </HBox>
-      <Separator prefWidth="200.0">
-         <VBox.margin><Insets bottom="15.0" top="10.0" /></VBox.margin>
-      </Separator>
-      
-      <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #FFFFFF;" VBox.vgrow="ALWAYS">
-          <content>
-              <VBox fx:id="upcomingTournamentsContainer" spacing="15.0" />
-          </content>
-      </ScrollPane>
-   </VBox>
+<ScrollPane fitToWidth="true" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.TournamentsController">
+   <content>
+      <VBox spacing="25.0" style="-fx-background-color: #F4F7FE;">
+         <padding>
+            <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
+         </padding>
 
-   <VBox fx:id="myTournamentsCard" visible="false" managed="false" styleClass="content-card">
-      <Label styleClass="content-title" text="Your Tournaments" />
-      <Separator prefWidth="200.0">
-         <VBox.margin><Insets bottom="15.0" top="10.0" /></VBox.margin>
-      </Separator>
-      <VBox fx:id="myTournamentsContainer" spacing="10.0"/>
-   </VBox>
+         <VBox styleClass="content-card" spacing="15.0">
+            <HBox alignment="CENTER_LEFT">
+               <VBox spacing="5.0">
+                  <Label styleClass="content-title" text="Upcoming Tournaments" />
+                  <Label styleClass="content-subtitle" text="View and join active tournaments" />
+               </VBox>
+               <Region HBox.hgrow="ALWAYS" />
+               <Button fx:id="applyCodeButton" onAction="#handleApplyWithCode" prefHeight="40.0" styleClass="btn-primary" text="Apply With Code" />
+            </HBox>
+            <Separator />
+            <VBox fx:id="upcomingTournamentsContainer" spacing="10.0" />
+         </VBox>
 
-   <VBox styleClass="content-card" VBox.vgrow="ALWAYS" spacing="15.0">
-      <Label styleClass="content-title" text="Team Management" />
-      <Separator prefWidth="200.0"/>
-      
-      <HBox spacing="10.0" alignment="CENTER_LEFT">
-         <Button fx:id="btnIncoming" onAction="#showIncoming" prefHeight="35.0" text="Incoming Requests" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8;" />
-         <Button fx:id="btnOutgoing" onAction="#showOutgoing" prefHeight="35.0" text="Outgoing Requests" style="-fx-background-color: #E2E8F0; -fx-text-fill: #2b3674; -fx-background-radius: 8;" />
-      </HBox>
-      
-      <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #FFFFFF;" VBox.vgrow="ALWAYS">
-         <content>
-            <VBox>
+         <VBox fx:id="myTournamentsCard" styleClass="content-card" spacing="15.0" visible="false" managed="false">
+            <VBox spacing="5.0">
+               <Label styleClass="content-title" text="Your Tournaments" />
+               <Label styleClass="content-subtitle" text="Manage the tournaments you are participating in" />
+            </VBox>
+            <Separator />
+            <VBox fx:id="myTournamentsContainer" spacing="10.0" />
+         </VBox>
+
+         <VBox styleClass="content-card" spacing="15.0">
+            <HBox alignment="CENTER_LEFT" spacing="15.0">
+               <VBox spacing="5.0">
+                  <Label styleClass="content-title" text="Team Management" />
+                  <Label styleClass="content-subtitle" text="Handle incoming and outgoing team requests" />
+               </VBox>
+               <Region HBox.hgrow="ALWAYS" />
+               <HBox spacing="10.0">
+                  <Button fx:id="btnIncoming" onAction="#showIncoming" prefHeight="35.0" prefWidth="150.0" styleClass="tab-btn-active" text="Incoming Requests" />
+                  <Button fx:id="btnOutgoing" onAction="#showOutgoing" prefHeight="35.0" prefWidth="150.0" styleClass="tab-btn-inactive" text="Outgoing Requests" />
+               </HBox>
+            </HBox>
+            <Separator />
+            <StackPane alignment="TOP_LEFT">
                <VBox fx:id="incomingRequestsContainer" spacing="10.0" />
                <VBox fx:id="outgoingRequestsContainer" spacing="10.0" visible="false" managed="false" />
-            </VBox>
-         </content>
-      </ScrollPane>
-   </VBox>
-</VBox>
+            </StackPane>
+         </VBox>
+
+      </VBox>
+   </content>
+</ScrollPane>

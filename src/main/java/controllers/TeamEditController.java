@@ -1,5 +1,6 @@
 package controllers;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import database.Database;
@@ -9,8 +10,10 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
@@ -28,10 +31,14 @@ import models.Team;
 public class TeamEditController {
 
     @FXML private Label teamNameLabel;
-    @FXML private HBox addPlayerContainer;
+    @FXML private VBox addPlayerContainer;
     @FXML private TextField newPlayerEmailField;
     @FXML private Button addPlayerButton;
     @FXML private VBox membersContainer;
+    
+    // YENİ: Arkadaş listesi ve çoklu davet butonu için FXML bağlamaları
+    @FXML private VBox friendsCheckboxContainer;
+    @FXML private Button addSelectedFriendsButton;
 
     private Team team;
     private Student currentUser;
@@ -59,10 +66,11 @@ public class TeamEditController {
         
         teamNameLabel.setText(team.getTeamName() + " Members");
 
-        // Kaptan değilse oyuncu ekleme menüsünü gizle
+        // Kaptan değilse oyuncu ekleme/davet menüsünü tamamen gizle
         if (isCaptain) {
             addPlayerContainer.setVisible(true);
             addPlayerContainer.setManaged(true);
+            loadFriendsList(); // Kaptansa arkadaş listesini yükle
         } else {
             addPlayerContainer.setVisible(false);
             addPlayerContainer.setManaged(false);
@@ -72,10 +80,128 @@ public class TeamEditController {
         loadMembers();
     }
 
+    private void loadFriendsList() {
+        if (friendsCheckboxContainer == null) return;
+        
+        friendsCheckboxContainer.getChildren().clear();
+        friendsCheckboxContainer.getChildren().add(new Label("Loading friends..."));
+
+        new Thread(() -> {
+            try {
+                // Veritabanından kullanıcının arkadaşlarını çekip objeye dolduruyoruz
+                Database.getInstance().fillFriendsByEmail(currentUser);
+                List<Student> friends = currentUser.getFriends();
+
+                Platform.runLater(() -> {
+                    friendsCheckboxContainer.getChildren().clear();
+
+                    if (friends == null || friends.isEmpty()) {
+                        friendsCheckboxContainer.getChildren().add(new Label("No friends found."));
+                        return;
+                    }
+
+                    boolean hasAvailableFriends = false;
+
+                    for (Student friend : friends) {
+                        // Zaten takımda olan arkadaşı davet listesinde göstermiyoruz
+                        boolean alreadyInTeam = false;
+                        if (team.getMembers() != null) {
+                            for (Student member : team.getMembers()) {
+                                if (member.getBilkentEmail().equals(friend.getBilkentEmail())) {
+                                    alreadyInTeam = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (!alreadyInTeam) {
+                            hasAvailableFriends = true;
+                            CheckBox cb = new CheckBox(friend.getFullName() + " (" + friend.getBilkentEmail() + ")");
+                            cb.setUserData(friend); // Seçildiğinde objeye ulaşabilmek için kaydediyoruz
+                            cb.setStyle("-fx-text-fill: #2b3674; -fx-font-weight: bold; -fx-padding: 5;");
+                            friendsCheckboxContainer.getChildren().add(cb);
+                        }
+                    }
+
+                    if (!hasAvailableFriends) {
+                        friendsCheckboxContainer.getChildren().add(new Label("All friends are already in the team."));
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    friendsCheckboxContainer.getChildren().clear();
+                    friendsCheckboxContainer.getChildren().add(new Label("Error loading friends."));
+                });
+            }
+        }).start();
+    }
+
+    @FXML
+    public void handleAddSelectedFriends(ActionEvent event) {
+        if (friendsCheckboxContainer == null) return;
+
+        List<Student> selectedFriends = new ArrayList<>();
+
+        // Checkbox container'daki tüm bileşenleri tara ve seçili olanların içinden Student objesini al
+        for (Node node : friendsCheckboxContainer.getChildren()) {
+            if (node instanceof CheckBox) {
+                CheckBox cb = (CheckBox) node;
+                if (cb.isSelected() && cb.getUserData() != null) {
+                    selectedFriends.add((Student) cb.getUserData());
+                }
+            }
+        }
+
+        if (selectedFriends.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Warning", "Please select at least one friend to invite.");
+            return;
+        }
+
+        if (addSelectedFriendsButton != null) {
+            addSelectedFriendsButton.setText("Sending...");
+            addSelectedFriendsButton.setDisable(true);
+        }
+
+        new Thread(() -> {
+            boolean allSuccess = true;
+            boolean someSuccess = false;
+
+            for (Student friend : selectedFriends) {
+                DbStatus status = tournamentManager.sendTeamInvite(team.getTeamId(), friend);
+                if (status == DbStatus.SUCCESS) {
+                    someSuccess = true;
+                } else {
+                    allSuccess = false;
+                }
+            }
+
+            final boolean finalAllSuccess = allSuccess;
+            final boolean finalSomeSuccess = someSuccess;
+
+            Platform.runLater(() -> {
+                if (addSelectedFriendsButton != null) {
+                    addSelectedFriendsButton.setText("Add Selected Friends");
+                    addSelectedFriendsButton.setDisable(false);
+                }
+
+                if (finalAllSuccess) {
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "Invites sent successfully to all selected friends.");
+                    loadFriendsList(); // Checkboxları temizlemek/yenilemek için listeyi baştan çek
+                } else if (finalSomeSuccess) {
+                    showAlert(Alert.AlertType.WARNING, "Partial Success", "Some invites were sent. Others may already have pending invites.");
+                    loadFriendsList();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Could not send invites. Users might already be invited or in a team.");
+                }
+            });
+        }).start();
+    }
+
     private void loadMembers() {
         membersContainer.getChildren().clear();
         
-        // Ekrana yükleniyor uyarısı koyalım
         Label loadingLabel = new Label("Loading members...");
         membersContainer.getChildren().add(loadingLabel);
 
@@ -187,8 +313,9 @@ public class TeamEditController {
             Platform.runLater(() -> {
                 if (finalStatus == DbStatus.SUCCESS) {
                     showAlert(Alert.AlertType.INFORMATION, "Success", "Player kicked successfully.");
-                    // Listeyi baştan çekerek UI'ı tazele
+                    // Listeyi baştan çekerek UI'ı ve arkadaş listesini tazele
                     loadMembers(); 
+                    loadFriendsList();
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Error", "Could not kick player.");
                 }

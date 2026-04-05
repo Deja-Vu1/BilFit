@@ -10,24 +10,52 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox prefHeight="600.0" prefWidth="800.0" spacing="20.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.TeamEditController">
+<VBox prefHeight="650.0" prefWidth="900.0" spacing="20.0" style="-fx-background-color: #F4F7FE;" stylesheets="/bilfit-exact.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.TeamEditController">
    <padding>
       <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
    </padding>
 
    <HBox alignment="CENTER_LEFT">
-      <Label fx:id="teamNameLabel" styleClass="content-title" text="Team Members" />
-      <Region HBox.hgrow="ALWAYS" />
-      <HBox fx:id="addPlayerContainer" alignment="CENTER_RIGHT" spacing="10.0">
-         <TextField fx:id="newPlayerEmailField" prefWidth="200.0" promptText="Player Email" style="-fx-background-color: #FFFFFF; -fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-background-radius: 8;" />
-         <Button fx:id="addPlayerButton" onAction="#handleAddPlayer" prefHeight="35.0" styleClass="btn-success" text="Add Player" />
-      </HBox>
+      <Label fx:id="teamNameLabel" styleClass="content-title" text="Team Management" />
    </HBox>
    <Separator prefWidth="200.0" />
 
-   <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #F4F7FE;" VBox.vgrow="ALWAYS">
-      <content>
-         <VBox fx:id="membersContainer" spacing="10.0" />
-      </content>
-   </ScrollPane>
+   <HBox spacing="25.0" VBox.vgrow="ALWAYS">
+       
+       <VBox fx:id="addPlayerContainer" spacing="15.0" HBox.hgrow="ALWAYS" prefWidth="400.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 12; -fx-padding: 20;">
+           
+           <Label text="Invite by Email" style="-fx-font-weight: bold; -fx-text-fill: #2b3674; -fx-font-size: 15px;" />
+           <HBox spacing="10.0">
+               <TextField fx:id="newPlayerEmailField" HBox.hgrow="ALWAYS" promptText="Enter player email" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 8;" />
+               <Button fx:id="addPlayerButton" onAction="#handleAddPlayer" prefHeight="35.0" styleClass="btn-success" text="Invite" />
+           </HBox>
+           
+           <Separator>
+               <VBox.margin>
+                   <Insets top="5.0" bottom="5.0" />
+               </VBox.margin>
+           </Separator>
+           
+           <Label text="Invite Friends" style="-fx-font-weight: bold; -fx-text-fill: #2b3674; -fx-font-size: 15px;" />
+           <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #FFFFFF;" VBox.vgrow="ALWAYS">
+               <content>
+                   <VBox fx:id="friendsCheckboxContainer" spacing="10.0" />
+               </content>
+           </ScrollPane>
+           
+           <Button fx:id="addSelectedFriendsButton" onAction="#handleAddSelectedFriends" prefHeight="40.0" maxWidth="Infinity" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8; -fx-font-size: 14px;" text="Invite Selected Friends" />
+       </VBox>
+
+       <VBox spacing="15.0" HBox.hgrow="ALWAYS" prefWidth="400.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 12; -fx-padding: 20;">
+           <Label text="Current Members" style="-fx-font-weight: bold; -fx-text-fill: #2b3674; -fx-font-size: 15px;" />
+           <Separator />
+           
+           <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #FFFFFF;" VBox.vgrow="ALWAYS">
+              <content>
+                 <VBox fx:id="membersContainer" spacing="10.0" />
+              </content>
+           </ScrollPane>
+       </VBox>
+       
+   </HBox>
 </VBox>

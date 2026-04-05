@@ -67,17 +67,17 @@ public class TournamentManager {
         if (creator == null || tournament == null || teamName == null) return DbStatus.QUERY_ERROR;
         
         if (LocalDate.now().isAfter(tournament.getStartDate()) || LocalDate.now().isEqual(tournament.getStartDate())) {
-
             return DbStatus.QUERY_ERROR;
-            
         }
 
         return db.insertTeam(creator, tournament, teamName);
     }
 
-    public DbStatus joinTeamWithCode(String teamId, Student student, String code) {
-        if (teamId == null || student == null || code == null) return DbStatus.QUERY_ERROR;
-        return db.beTeamMember(teamId, student, code);
+    // İŞTE GÜNCELLENEN KISIM BURASI: Senin yeni Database metoduna %100 uyumlu hale getirildi!
+    public DbStatus joinTeamWithCode(Student student, String code) {
+        if (student == null || code == null) return DbStatus.QUERY_ERROR;
+        // Artık sadece Student ve Code nesnelerini senin yeni beTeamMember metoduna gönderiyor.
+        return db.beTeamMember(student, code);
     }
 
     public DbStatus leaveTeam(String teamId, Student student) {
