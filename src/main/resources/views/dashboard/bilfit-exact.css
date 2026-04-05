@@ -1,4 +1,4 @@
-/* --- TAB PANE TASARIMI --- */
+/* --- TAB PANE DESIGN --- */
 .tab-pane {
     -fx-background-color: transparent;
 }
@@ -37,20 +37,20 @@
     -fx-border-width: 0;
 }
 
-/* --- GENEL ARKAPLAN VE YAZITİPİ --- */
+/* --- GENERAL BACKGROUND AND TYPOGRAPHY --- */
 .root {
     -fx-background-color: #F4F7FE; /* Modern açık gri/mavi arkaplan */
     -fx-font-family: "Segoe UI", "Open Sans", Helvetica, sans-serif;
 }
 
-/* --- SOL MENÜ (SIDEBAR) --- */
+/* --- (SIDEBAR) --- */
 .sidebar {
     -fx-background-color: #FFFFFF;
     -fx-border-color: #E2E8F0;
     -fx-border-width: 0 1 0 0;
 }
 
-/* Menü Butonları */
+/* Menu Butons */
 .menu-btn {
     -fx-background-color: transparent;
     -fx-text-fill: #A3AED0; /* Pasif menü yazı rengi */
@@ -66,7 +66,7 @@
     -fx-text-fill: #2B3674;
 }
 
-/* Seçili Menü Butonu */
+/* Selected Menu Button */
 .menu-btn.active {
     -fx-background-color: #E6F4EA; /* Açık yeşil arkaplan */
     -fx-text-fill: #1E8E3E; /* Koyu yeşil yazı */
@@ -74,7 +74,7 @@
     -fx-border-radius: 10px;
 }
 
-/* --- İÇERİK ALANI KARTLARI --- */
+/* --- CONTENT AREA CARDS --- */
 .content-card {
     -fx-background-color: #FFFFFF;
     -fx-background-radius: 20px;
@@ -83,14 +83,14 @@
     -fx-effect: dropshadow(three-pass-box, rgba(112,144,176,0.15), 20, 0, 0, 5); /* Kart gölgesi */
 }
 
-/* Başlıklar */
+/* Headings */
 .content-title {
     -fx-font-size: 24px;
     -fx-font-weight: 800;
-    -fx-text-fill: #2B3674; /* Koyu modern başlık rengi */
+    -fx-text-fill: #2B3674; 
 }
 
-/* Alt Başlıklar */
+/* Subheadings */
 .content-subtitle {
     -fx-font-size: 14px;
     -fx-text-fill: #A3AED0;
@@ -153,7 +153,7 @@
     -fx-border-color: #4318FF;
 }
 
-/* --- BUTONLAR --- */
+/* --- BUTONS --- */
 .action-btn {
     -fx-background-color: #D93025; /* Kırmızı */
     -fx-text-fill: white;
@@ -208,7 +208,7 @@
     -fx-background-color: #CEEAD6;
 }
 
-/* Rozetler */
+/* Badges */
 .tag-orange {
     -fx-background-color: #FFF3E0;
     -fx-text-fill: #E65100;
@@ -216,7 +216,7 @@
     -fx-background-radius: 12;
     -fx-font-weight: bold;
 }
-/* --- POP-UP (ALERT) TASARIMI --- */
+/* --- POP-UP (ALERT) DESIGN --- */
 .dialog-pane {
     -fx-background-color: #FFFFFF;
     -fx-border-color: #E2E8F0;
@@ -226,13 +226,13 @@
     -fx-font-family: "Segoe UI", "Open Sans", Helvetica, sans-serif;
 }
 
-/* Üst kısımdaki ikon ve başlık alanı */
+/* Icon and title area at the top */
 .dialog-pane .header-panel {
     -fx-background-color: transparent; 
     -fx-pref-height: 0px; 
 }
 
-/* Mesaj yazısı */
+/* Message text */
 .dialog-pane .content {
     -fx-text-fill: #2B3674;
     -fx-font-size: 15px;
@@ -240,7 +240,7 @@
     -fx-padding: 30 20 20 20; 
 }
 
-/* Pop-up içindeki Tamam/Cancel butonları */
+/* OK/Cancel buttons inside the pop-up */
 .dialog-pane .button {
     -fx-background-color: #4318FF;
     -fx-text-fill: white;

@@ -32,13 +32,13 @@
          </StackPane>
          
          <VBox spacing="10" HBox.hgrow="ALWAYS">
-            <Label fx:id="nameLabel" text="Yükleniyor..." textFill="#2b3674">
+            <Label fx:id="nameLabel" text="Loading..." textFill="#2b3674">
                <font>
                   <Font name="System Bold" size="22.0" />
                </font>
             </Label>
             <HBox alignment="CENTER_LEFT" spacing="10">
-               <Label fx:id="studentIdLabel" styleClass="modern-input" text="ID: Yükleniyor..." />
+               <Label fx:id="studentIdLabel" styleClass="modern-input" text="ID: Loading..." />
                
                <HBox fx:id="interestsBox" alignment="CENTER_LEFT" spacing="10" />
                

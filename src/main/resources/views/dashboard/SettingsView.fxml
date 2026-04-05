@@ -42,14 +42,14 @@
             
             <HBox alignment="CENTER_LEFT" spacing="10">
                <Label text="Password" textFill="#2b3674" prefWidth="80"><font><Font name="System Bold" size="14.0" /></font></Label>
-               <TextField fx:id="passwordField" promptText="En az 6 karakter" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 200;" />
+               <TextField fx:id="passwordField" promptText="At least 6 characters" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 200;" />
                <Button fx:id="changePasswordBtn" onAction="#handleChangePassword" prefHeight="35" prefWidth="100" style="-fx-background-color: #E9EDF7; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Change" />
             </HBox>
 
             <HBox alignment="CENTER_LEFT" spacing="10">
                <VBox.margin><Insets top="15" /></VBox.margin>
                <Label text="Nickname" textFill="#2b3674" prefWidth="80"><font><Font name="System Bold" size="14.0" /></font></Label>
-               <TextField fx:id="nicknameField" promptText="Yeni rumuzunuz" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 200;" />
+               <TextField fx:id="nicknameField" promptText="Your new nickname" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 200;" />
                <Button fx:id="changeNicknameBtn" onAction="#handleChangeNickname" prefHeight="35" prefWidth="100" style="-fx-background-color: #E9EDF7; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Change" />
             </HBox>
          </VBox>
