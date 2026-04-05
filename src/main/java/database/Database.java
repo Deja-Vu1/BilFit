@@ -10,6 +10,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -3407,5 +3408,479 @@ public class Database {
             e.printStackTrace();
             return DbStatus.QUERY_ERROR;
         }
+    }
+
+
+    /**
+     * Inserts a new tournament into the database.
+     * Automatically generates a UUID and a 6-character access code.
+     * * @param tournamentName Name of the tournament
+     * @param sportName Name of the sport (e.g., "BASKETBALL")
+     * @param startDate Tournament start date
+     * @param endDate Tournament end date
+     * @param maxPlayersPerTeam Maximum capacity for each team
+     * @param hasGe250 Whether the tournament gives GE250 points
+     * @param campusLocation The campus location (e.g., "Main Campus" or "East Campus")
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus insertTournament(String tournamentName, String sportName, LocalDate startDate, LocalDate endDate, int maxPlayersPerTeam, boolean hasGe250, String campusLocation) {
+        
+        // campusLocation için null ve boşluk kontrolü eklendi
+        if (tournamentName == null || sportName == null || startDate == null || endDate == null || campusLocation == null || campusLocation.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String tournamentId = java.util.UUID.randomUUID().toString();
+        String accessCode = generateRandomCode(6); // Daha önce yazdığın metodu kullanır
+        String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
+
+        // sport_id değerini sports tablosundan çekerek ekliyoruz
+        String sql = "INSERT INTO tournaments (tournament_id, tournament_name, sport_id, start_date, end_date, " +
+                     "max_players_per_team, has_ge250, access_code, is_active, campus_location) " +
+                     "SELECT ?, ?, id, ?, ?, ?, ?, ?, ?, ? FROM sports WHERE UPPER(REPLACE(name, ' ', '_')) = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(tournamentId));
+            stmt.setString(2, tournamentName);
+            stmt.setTimestamp(3, java.sql.Timestamp.valueOf(startDate.atStartOfDay()));
+            stmt.setTimestamp(4, java.sql.Timestamp.valueOf(endDate.atStartOfDay()));
+            stmt.setInt(5, maxPlayersPerTeam);
+            
+            // Parametreden gelen değer kullanılıyor
+            stmt.setBoolean(6, hasGe250); 
+            
+            stmt.setString(7, accessCode);
+            stmt.setBoolean(8, true); // Yeni turnuva varsayılan olarak aktiftir
+            
+            // Parametreden gelen değer kullanılıyor
+            stmt.setString(9, campusLocation); 
+            
+            stmt.setString(10, formattedSportName);
+            
+            int insertedRows = stmt.executeUpdate();
+            return (insertedRows > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND; // Spor bulunamazsa
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) return DbStatus.CONNECTION_ERROR;
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the name and maximum players per team for a given tournament.
+     * @param tournamentId The UUID of the tournament to be updated
+     * @param newName The new name for the tournament
+     * @param newMaxPlayers The new maximum number of players allowed per team in the tournament
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateTournamentDetails(String tournamentId, String newName, int newMaxPlayers) {
+        
+        if (tournamentId == null || newName == null || newName.trim().isEmpty()) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE tournaments SET tournament_name = ?, max_players_per_team = ? WHERE tournament_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, newName);
+            stmt.setInt(2, newMaxPlayers);
+            stmt.setObject(3, java.util.UUID.fromString(tournamentId));
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Activates or deactivates a tournament by updating its 'is_active' status in the database.
+     * @param tournamentId The UUID of the tournament to be updated
+     * @param isActive The new active status for the tournament (true for active, false for inactive)
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateTournamentStatus(String tournamentId, boolean isActive) {
+        
+        if (tournamentId == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE tournaments SET is_active = ? WHERE tournament_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setBoolean(1, isActive);
+            stmt.setObject(2, java.util.UUID.fromString(tournamentId));
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the start and end dates of a tournament in the database.
+     * @param tournamentId The UUID of the tournament to be updated
+     * @param newStart The new start date for the tournament
+     * @param newEnd The new end date for the tournament
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateTournamentDates(String tournamentId, LocalDate newStart, LocalDate newEnd) {
+        
+        if (tournamentId == null || newStart == null || newEnd == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE tournaments SET start_date = ?, end_date = ? WHERE tournament_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setTimestamp(1, java.sql.Timestamp.valueOf(newStart.atStartOfDay()));
+            stmt.setTimestamp(2, java.sql.Timestamp.valueOf(newEnd.atStartOfDay()));
+            stmt.setObject(3, java.util.UUID.fromString(tournamentId));
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves a list of all active tournaments from the database, including their associated sport names.
+     * Joins the 'tournaments' table with the 'sports' table to fetch the sport name for each tournament.
+     * Converts database records into Tournament model objects and returns them in a list.
+     * @return A List of Tournament objects representing all active tournaments.
+     */
+    public java.util.List<models.Tournament> getAllActiveTournaments() {
+        
+        java.util.List<models.Tournament> activeTournaments = new java.util.ArrayList<>();
+        
+        String sql = "SELECT t.tournament_id, t.tournament_name, s.name AS sport_name, " +
+                     "t.start_date, t.end_date, t.max_players_per_team, t.has_ge250, " +
+                     "t.access_code, t.campus_location " +
+                     "FROM tournaments t " +
+                     "INNER JOIN sports s ON t.sport_id = s.id " +
+                     "WHERE t.is_active = true";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql);
+             java.sql.ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String tId = rs.getObject("tournament_id").toString();
+                String tName = rs.getString("tournament_name");
+                
+                // String spor adını Enum'a çeviriyoruz
+                String sportNameStr = rs.getString("sport_name");
+                models.SportType sType = null;
+                try {
+                    sType = models.SportType.valueOf(sportNameStr.trim().toUpperCase().replace(" ", "_"));
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Geçersiz spor türü: " + sportNameStr);
+                    continue; // Hatalı spor varsa bu turnuvayı atla
+                }
+
+                // timestamptz verisini LocalDate'e dönüştürüyoruz
+                LocalDate sDate = rs.getTimestamp("start_date").toLocalDateTime().toLocalDate();
+                LocalDate eDate = rs.getTimestamp("end_date").toLocalDateTime().toLocalDate();
+                
+                int maxPlayers = rs.getInt("max_players_per_team");
+                boolean ge250 = rs.getBoolean("has_ge250");
+                String code = rs.getString("access_code");
+                String location = rs.getString("campus_location");
+
+                // Constructor üzerinden Tournament objesini oluşturup listeye ekliyoruz
+                models.Tournament tournament = new models.Tournament(
+                    tId, tName, sType, sDate, eDate, maxPlayers, ge250, code, location
+                );
+                
+                activeTournaments.add(tournament);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return activeTournaments;
+    }
+
+    /**
+     * Sends a team invite to a student by inserting a pending invitation record into the 'team_members' table.
+     * The invitation is represented as a record with 'PENDING' status, which can later be accepted or rejected by the student.
+     * @param teamId The UUID of the team sending the invite
+     * @param receiverEmail The Bilkent email of the student receiving the invite
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus sendTeamInvite(String teamId, String receiverEmail) {
+        if (teamId == null || receiverEmail == null) return DbStatus.QUERY_ERROR;
+
+        // 1. AŞAMA: Kullanıcının aynı turnuvada zaten bir takımda olup olmadığını kontrol eden SQL
+        String checkSql = "SELECT 1 FROM team_members tm " +
+                          "INNER JOIN teams t ON tm.team_id = t.team_id " +
+                          "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                          "AND tm.status = 'ACCEPTED' " +
+                          "AND t.tournament_id = (SELECT tournament_id FROM teams WHERE team_id = ?)";
+
+        // 2. AŞAMA: İsteği PENDING olarak ekleyen SQL
+        String insertSql = "INSERT INTO team_members (team_id, student_id, status) " +
+                           "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?), 'PENDING')";
+
+        try {
+            java.util.UUID tId = java.util.UUID.fromString(teamId);
+
+            // Önce turnuva kontrolünü yapıyoruz
+            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
+                checkStmt.setString(1, receiverEmail);
+                checkStmt.setObject(2, tId);
+                
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        System.err.println("Reddedildi: Kullanıcı zaten bu turnuvadaki bir takımda yer alıyor.");
+                        // Arayüzde özel bir uyarı göstermek istersen DbStatus enum'ına 
+                        // ALREADY_IN_TOURNAMENT gibi yeni bir flag ekleyip onu döndürebilirsin.
+                        return DbStatus.QUERY_ERROR; 
+                    }
+                }
+            }
+
+            // Kontrol temiz çıkarsa (kullanıcı turnuvada değilse) daveti atıyoruz
+            try (PreparedStatement insertStmt = getConnection().prepareStatement(insertSql)) {
+                insertStmt.setObject(1, tId);
+                insertStmt.setString(2, receiverEmail);
+                
+                return (insertStmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            }
+
+        } catch (SQLException e) {
+            // Composite Primary Key (team_id, student_id) ihlali (Zaten bu takımda veya davet bekliyor)
+            if ("23505".equals(e.getSQLState())) {
+                System.err.println("Uyarı: Bu kullanıcıya bu takım için zaten davet atılmış veya kullanıcı zaten takımda!");
+                return DbStatus.ALREADY_IN_TOURNAMENT;
+            } else {
+                e.printStackTrace();
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+    /**
+     * Retrieves a list of tournaments that the given student is currently a member of.
+     * Joins multiple tables to fetch tournaments where the student has an 'ACCEPTED' membership status.
+     * Converts database records into Tournament model objects and returns them in a list.
+     * @param currentStudent The student for whom to fetch the tournaments
+     * @return A List of Tournament objects representing the tournaments the student is part of.
+     */
+    public java.util.ArrayList<models.Tournament> getUserTournaments(Student currentStudent) {
+        java.util.ArrayList<models.Tournament> tournaments = new java.util.ArrayList<>();
+        if (currentStudent == null) return tournaments;
+
+        String sql = "SELECT t.tournament_id, t.tournament_name, s.name AS sport_name, " +
+                     "t.start_date, t.end_date, t.max_players_per_team, t.has_ge250, " +
+                     "t.access_code, t.campus_location " +
+                     "FROM tournaments t " +
+                     "INNER JOIN sports s ON t.sport_id = s.id " +
+                     "INNER JOIN teams tm ON t.tournament_id = tm.tournament_id " +
+                     "INNER JOIN team_members tmem ON tm.team_id = tmem.team_id " +
+                     "INNER JOIN users u ON tmem.student_id = u.id " +
+                     "WHERE u.bilkent_email = ? AND tmem.status = 'ACCEPTED' AND t.is_active = true";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, currentStudent.getBilkentEmail());
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String sportNameStr = rs.getString("sport_name");
+                    models.SportType sType = null;
+                    try {
+                        sType = models.SportType.valueOf(sportNameStr.trim().toUpperCase().replace(" ", "_"));
+                    } catch (IllegalArgumentException e) {
+                        continue;
+                    }
+
+                    tournaments.add(new models.Tournament(
+                        rs.getObject("tournament_id").toString(),
+                        rs.getString("tournament_name"),
+                        sType,
+                        rs.getTimestamp("start_date").toLocalDateTime().toLocalDate(),
+                        rs.getTimestamp("end_date").toLocalDateTime().toLocalDate(),
+                        rs.getInt("max_players_per_team"),
+                        rs.getBoolean("has_ge250"),
+                        rs.getString("access_code"),
+                        rs.getString("campus_location")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return tournaments;
+    }
+
+    /**
+     * Allows a student to reject a team invite by deleting the corresponding pending record from the 'team_members' table.
+     * The method checks for the existence of a pending invitation for the given team and student before attempting deletion.
+     * @param teamId The UUID of the team whose invite is being rejected
+     * @param receiverEmail The Bilkent email of the student rejecting the invite
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus rejectTeamInvite(String teamId, String receiverEmail) {
+        if (teamId == null || receiverEmail == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "DELETE FROM team_members " +
+                     "WHERE team_id = ? AND student_id = (SELECT id FROM users WHERE bilkent_email = ?) AND status = 'PENDING'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+            stmt.setString(2, receiverEmail);
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Allows a student to accept a team invite by updating the corresponding record in the 'team_members' table from 'PENDING' to 'ACCEPTED'.
+     * The method checks for the existence of a pending invitation for the given team and student before attempting the update.
+     * @param teamId The UUID of the team whose invite is being accepted
+     * @param receiverEmail The Bilkent email of the student accepting the invite
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus acceptTeamInvite(String teamId, String receiverEmail) {
+        if (teamId == null || receiverEmail == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE team_members SET status = 'ACCEPTED' " +
+                     "WHERE team_id = ? AND student_id = (SELECT id FROM users WHERE bilkent_email = ?) AND status = 'PENDING'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+            stmt.setString(2, receiverEmail);
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves a list of students who have sent pending join requests to a specific team.
+     * Joins multiple tables to fetch students who have a 'PENDING' status for the given team ID and the current student's email.
+     * @param teamId The UUID of the team for which to fetch incoming join requests
+     * @param currentStudent The student for whom to fetch the incoming requests (used to filter requests relevant to this student)
+     * @return A List of Student objects representing the students who have sent join requests to the specified team.
+     */
+    public java.util.ArrayList<models.Student> getTeamIncomingRequests(String teamId, Student currentStudent) {
+        java.util.ArrayList<models.Student> requestSenders = new java.util.ArrayList<>();
+        if (currentStudent == null) return requestSenders;
+
+        StringBuilder sql = new StringBuilder(
+            "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
+            "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+            "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+            "FROM team_members tm " +
+            "INNER JOIN teams t ON tm.team_id = t.team_id " +
+            "INNER JOIN users u ON t.captain_id = u.id " +
+            "INNER JOIN students s ON u.id = s.user_id " +
+            "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) AND tm.status = 'PENDING'"
+        );
+
+        if (teamId != null && !teamId.trim().isEmpty()) {
+            sql.append(" AND tm.team_id = ?");
+        }
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql.toString())) {
+            stmt.setString(1, currentStudent.getBilkentEmail());
+            if (teamId != null && !teamId.trim().isEmpty()) {
+                stmt.setObject(2, java.util.UUID.fromString(teamId));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student sender = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    
+                    sender.setFullName(rs.getString("full_name"));
+                    sender.setBilkentEmail(rs.getString("bilkent_email"));
+                    sender.setStudentId(rs.getString("uni_id"));
+                    sender.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                    sender.setEloPoint(rs.getInt("elo_point"));
+                    sender.setPenaltyPoints(rs.getInt("penalty_points"));
+                    sender.setReliabilityScore(rs.getDouble("reliability_score"));
+                    sender.setMatchesPlayed(rs.getInt("matches_played"));
+                    sender.setWinRate(rs.getDouble("win_rate"));
+                    sender.setPublicProfile(rs.getBoolean("is_public_profile"));
+                    sender.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    sender.setMatchesWon(matchesWon);
+
+                    requestSenders.add(sender);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return requestSenders;
+    }
+
+    /**
+     * Retrieves a list of students who have received pending join requests from a specific team.
+     * Joins multiple tables to fetch students who have a 'PENDING' status for the given team ID and the current student's email.
+     * @param teamId The UUID of the team for which to fetch outgoing join requests
+     * @param currentStudent The student for whom to fetch the outgoing requests (used to filter requests relevant to this student)
+     * @return A List of Student objects representing the students who have received join requests from the specified team.
+     */
+    public java.util.ArrayList<models.Student> getTeamOutgoingRequests(String teamId, Student currentStudent) {
+        java.util.ArrayList<models.Student> requestReceivers = new java.util.ArrayList<>();
+        if (currentStudent == null) return requestReceivers;
+
+        StringBuilder sql = new StringBuilder(
+            "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
+            "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+            "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+            "FROM team_members tm " +
+            "INNER JOIN teams t ON tm.team_id = t.team_id " +
+            "INNER JOIN users u ON tm.student_id = u.id " +
+            "INNER JOIN students s ON u.id = s.user_id " +
+            "WHERE t.captain_id = (SELECT id FROM users WHERE bilkent_email = ?) AND tm.status = 'PENDING'"
+        );
+
+        if (teamId != null && !teamId.trim().isEmpty()) {
+            sql.append(" AND tm.team_id = ?");
+        }
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql.toString())) {
+            stmt.setString(1, currentStudent.getBilkentEmail());
+            if (teamId != null && !teamId.trim().isEmpty()) {
+                stmt.setObject(2, java.util.UUID.fromString(teamId));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student receiver = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    
+                    receiver.setFullName(rs.getString("full_name"));
+                    receiver.setBilkentEmail(rs.getString("bilkent_email"));
+                    receiver.setStudentId(rs.getString("uni_id"));
+                    receiver.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                    receiver.setEloPoint(rs.getInt("elo_point"));
+                    receiver.setPenaltyPoints(rs.getInt("penalty_points"));
+                    receiver.setReliabilityScore(rs.getDouble("reliability_score"));
+                    receiver.setMatchesPlayed(rs.getInt("matches_played"));
+                    receiver.setWinRate(rs.getDouble("win_rate"));
+                    receiver.setPublicProfile(rs.getBoolean("is_public_profile"));
+                    receiver.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    receiver.setMatchesWon(matchesWon);
+
+                    requestReceivers.add(receiver);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return requestReceivers;
     }
 }

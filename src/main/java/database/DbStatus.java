@@ -16,5 +16,6 @@ public enum DbStatus {
     UNAVAILABLE, // Requested facility is not available for the given time slot
     SAME_PASSWORD, // New password is the same as the old password during password change
     FILE_TOO_LARGE, // Uploaded file exceeds the allowed size limit
-    ACCOUNT_BANNED // Account has been banned due to policy violations or other reasons
+    ACCOUNT_BANNED, // Account has been banned due to policy violations or other reasons
+    ALREADY_IN_TOURNAMENT // User is already in the tournament or has a pending invitation for the tournament
 }
