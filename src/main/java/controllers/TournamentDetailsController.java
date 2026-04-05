@@ -1,7 +1,6 @@
 package controllers;
 
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
 
 import database.Database;
@@ -45,23 +44,14 @@ public class TournamentDetailsController {
 
     private Tournament tournament;
     private TournamentManager tournamentManager;
-    private boolean USE_MOCK_DATA = true;
-
-    public void setMockDataMode(boolean isMock) {
-        this.USE_MOCK_DATA = isMock;
-    }
 
     public void setTournament(Tournament tournament) {
         try {
-            if (!USE_MOCK_DATA) {
-                this.tournamentManager = new TournamentManager(Database.getInstance());
-            } else {
-                System.out.println("====== ATTENTION: DETAILS SCREEN USING FAKE DATA (MOCK) ======");
-            }
+            this.tournamentManager = new TournamentManager(Database.getInstance());
             this.tournament = tournament;
+            
             updateHeader();
             setupFriendSelection();
-            
             loadContent();
         } catch (Exception e) {
             e.printStackTrace();
@@ -93,15 +83,14 @@ public class TournamentDetailsController {
 
     private void loadContent() {
         new Thread(() -> {
-            if (USE_MOCK_DATA) {
-                setupMockData();
-            } else {
-                try {
-                    List<Team> dbTeams = Database.getInstance().getTournamentTeams(tournament.getTournamentId());
-                    if (dbTeams != null) tournament.setParticipatingTeams(dbTeams);
-                    
-                    Database.getInstance().fillTournamentFixtures(tournament);
-                } catch (Exception e) {}
+            try {
+                List<Team> dbTeams = tournamentManager.getTournamentTeams(tournament.getTournamentId());
+                if (dbTeams != null) tournament.setParticipatingTeams(dbTeams);
+                
+                // Manager üzerinden gerçek fikstürü çektiriyoruz
+                tournamentManager.fillTournamentFixtures(tournament);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
 
             Platform.runLater(() -> {
@@ -150,6 +139,7 @@ public class TournamentDetailsController {
         byeTeamBox.setVisible(false);
         byeTeamBox.setManaged(false);
 
+        if (tournament.getTournamentFixture() == null || tournament.getTournamentFixture().getScheduledMatches() == null) return;
         List<Match> matches = tournament.getTournamentFixture().getScheduledMatches();
 
         for (Match match : matches) {
@@ -220,33 +210,6 @@ public class TournamentDetailsController {
         }
     }
 
-    private void setupMockData() {
-        List<Team> mockTeams = new ArrayList<>();
-        Team t1 = new Team("M1", "CS Strikers", "MOCK", 2, false, new Student("Ali", "ali@bilkent", "1"));
-        Team t2 = new Team("M2", "EE Engineers", "MOCK", 2, false, new Student("Veli", "veli@bilkent", "2"));
-        Team t3 = new Team("M3", "Math Geniuses", "MOCK", 2, false, new Student("Ayse", "ayse@bilkent", "3"));
-        Team t4 = new Team("M4", "Physics Nerds", "MOCK", 2, false, new Student("Fatma", "fatma@bilkent", "4"));
-        Team t5 = new Team("M5", "Lucky Ones", "MOCK", 2, false, new Student("Can", "can@bilkent", "5"));
-
-        mockTeams.add(t1); mockTeams.add(t2); mockTeams.add(t3); mockTeams.add(t4); mockTeams.add(t5);
-        tournament.setParticipatingTeams(mockTeams);
-
-        models.Fixture fix = new models.Fixture(tournament.getTournamentId());
-        
-        Match m1 = new Match("1", java.time.LocalDateTime.now(), tournament.getSportType(), t1, t2);
-        m1.setWinner(t1); 
-        
-        Match m2 = new Match("2", java.time.LocalDateTime.now(), tournament.getSportType(), t3, t4);
-        
-        Match m3 = new Match("3", java.time.LocalDateTime.now(), tournament.getSportType(), t5, null);
-        
-        fix.getScheduledMatches().add(m1);
-        fix.getScheduledMatches().add(m2);
-        fix.getScheduledMatches().add(m3);
-        
-        tournament.setTournamentFixture(fix);
-    }
-
     @FXML
     public void handleApply(ActionEvent event) {
         if (!friendSelectionBox.isVisible()) {
@@ -255,23 +218,15 @@ public class TournamentDetailsController {
             applyTournamentButton.setText("Confirm Join");
             
             new Thread(() -> {
-                if (USE_MOCK_DATA) {
-                    List<Student> mockFriends = new ArrayList<>();
-                    mockFriends.add(new Student("Cem", "cem@bilkent", "3"));
-                    mockFriends.add(new Student("Berk", "berk@bilkent", "4"));
+                try {
+                    Student current = (Student) SessionManager.getInstance().getCurrentUser();
+                    Database.getInstance().fillFriendsByEmail(current);
                     Platform.runLater(() -> {
                         friendSelectionBox.getItems().clear();
-                        friendSelectionBox.getItems().addAll(mockFriends);
+                        friendSelectionBox.getItems().addAll(current.getFriends());
                     });
-                } else {
-                    try {
-                        Student current = (Student) SessionManager.getInstance().getCurrentUser();
-                        Database.getInstance().fillFriendsByEmail(current);
-                        Platform.runLater(() -> {
-                            friendSelectionBox.getItems().clear();
-                            friendSelectionBox.getItems().addAll(current.getFriends());
-                        });
-                    } catch(Exception e) {}
+                } catch(Exception e) {
+                    e.printStackTrace();
                 }
             }).start();
             
@@ -282,29 +237,24 @@ public class TournamentDetailsController {
 
             new Thread(() -> {
                 DbStatus status = DbStatus.QUERY_ERROR;
-                
-                if (USE_MOCK_DATA) {
-                    status = DbStatus.SUCCESS;
-                } else {
-                    try {
-                        Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-                        Student selectedFriend = friendSelectionBox.getValue();
-                        status = tournamentManager.processTournamentApplication(tournament, currentUser, selectedFriend);
-                    } catch (Exception ex) {}
+                try {
+                    Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+                    String generatedTeamName = currentUser.getFullName() + " Team";
+                    status = tournamentManager.createTeamAndJoinTournament(currentUser, tournament, generatedTeamName);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
                 }
 
                 final DbStatus finalStatus = status;
 
                 Platform.runLater(() -> {
                     if (finalStatus == DbStatus.SUCCESS) {
-                        if (friendSelectionBox.getValue() == null) {
-                            if (!USE_MOCK_DATA) SessionManager.getInstance().setTournamentApplied(true);
-                            showAlert(Alert.AlertType.INFORMATION, "Successful", "MOCK: You have joined the tournament individually.");
-                        } else {
-                            showAlert(Alert.AlertType.INFORMATION, "Successful", "MOCK: Team request successfully sent to your friend.");
-                        }
+                        SessionManager.getInstance().setTournamentApplied(true);
+                        
+                        // Eğer arkadaş seçildiyse ona takım daveti yollayabilirsin. (TeamID döndürülmediği için bu aşama haricen yapılabilir)
                         applyTournamentButton.setText("Joined / Requested");
                         loadContent();
+                        showAlert(Alert.AlertType.INFORMATION, "Success", "You have joined the tournament.");
                     } else {
                         applyTournamentButton.setText("Confirm Join");
                         applyTournamentButton.setDisable(false);
@@ -322,9 +272,5 @@ public class TournamentDetailsController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.initStyle(javafx.stage.StageStyle.UNDECORATED); 
-        try { 
-            alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm()); 
-        } catch (Exception e) {}
-        alert.showAndWait();
     }
 }

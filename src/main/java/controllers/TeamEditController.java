@@ -1,6 +1,5 @@
 package controllers;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import database.Database;
@@ -21,6 +20,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import managers.SessionManager;
+import managers.TeamManager;
 import managers.TournamentManager;
 import models.Student;
 import models.Team;
@@ -36,21 +36,21 @@ public class TeamEditController {
     private Team team;
     private Student currentUser;
     private boolean isCaptain;
-    private boolean USE_MOCK_DATA = true;
+    
     private TournamentManager tournamentManager;
+    private TeamManager teamManager;
 
     @FXML
     public void initialize() {
-        if (!USE_MOCK_DATA) {
-            tournamentManager = new TournamentManager(Database.getInstance());
-        }
+        Database db = Database.getInstance();
+        tournamentManager = new TournamentManager(db);
+        teamManager = new TeamManager(db);
+        
         try {
-            if (USE_MOCK_DATA) {
-                currentUser = new Student("Onur Arda Özçimen", "onur@ug.bilkent.edu.tr", "22200000");
-            } else {
-                currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-            }
-        } catch (Exception e) {}
+            currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void setTeam(Team team) {
@@ -59,6 +59,7 @@ public class TeamEditController {
         
         teamNameLabel.setText(team.getTeamName() + " Members");
 
+        // Kaptan değilse oyuncu ekleme menüsünü gizle
         if (isCaptain) {
             addPlayerContainer.setVisible(true);
             addPlayerContainer.setManaged(true);
@@ -67,47 +68,72 @@ public class TeamEditController {
             addPlayerContainer.setManaged(false);
         }
 
+        // Üyeleri dinamik olarak veritabanından çek ve yükle
         loadMembers();
     }
 
     private void loadMembers() {
         membersContainer.getChildren().clear();
+        
+        // Ekrana yükleniyor uyarısı koyalım
+        Label loadingLabel = new Label("Loading members...");
+        membersContainer.getChildren().add(loadingLabel);
 
-        List<Student> members = new ArrayList<>();
-        if (USE_MOCK_DATA) {
-            members.add(team.getCaptain());
-            if (!team.getCaptain().getBilkentEmail().equals("test@bilkent.edu.tr")) {
-                members.add(new Student("Ahmet Yılmaz", "test@bilkent.edu.tr", "22001122"));
+        new Thread(() -> {
+            try {
+                // 1. Veritabanından güncel takım üyelerini çek
+                List<Student> fetchedMembers = teamManager.getTeamMembers(team.getTeamId());
+                
+                // 2. Team objesinin içini güncel verilerle doldur
+                team.setMembers(fetchedMembers);
+
+                Platform.runLater(() -> {
+                    membersContainer.getChildren().clear();
+
+                    if (fetchedMembers == null || fetchedMembers.isEmpty()) {
+                        membersContainer.getChildren().add(new Label("No members found."));
+                        return;
+                    }
+
+                    // 3. UI'ı dinamik olarak oluştur
+                    for (Student member : fetchedMembers) {
+                        HBox row = new HBox();
+                        row.setAlignment(Pos.CENTER_LEFT);
+                        row.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-background-radius: 8; -fx-background-color: #FFFFFF;");
+                        row.setPadding(new Insets(10, 15, 10, 15));
+
+                        boolean isMemberCaptain = member.getBilkentEmail().equals(team.getCaptain().getBilkentEmail());
+                        String role = isMemberCaptain ? " (Captain)" : "";
+                        
+                        Label nameLabel = new Label(member.getFullName() + role);
+                        nameLabel.setFont(Font.font("System", FontWeight.BOLD, 14.0));
+                        nameLabel.setTextFill(javafx.scene.paint.Color.web("#2b3674"));
+
+                        Region spacer = new Region();
+                        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+                        row.getChildren().addAll(nameLabel, spacer);
+
+                        // Eğer giriş yapan kişi kaptansa ve listelenen kişi kendi değilse "Kick" butonunu koy
+                        if (this.isCaptain && !isMemberCaptain) {
+                            Button kickBtn = new Button("Kick");
+                            kickBtn.setStyle("-fx-background-color: #EE5D50; -fx-text-fill: white; -fx-background-radius: 5;");
+                            kickBtn.setOnAction(e -> handleKickPlayer(member));
+                            row.getChildren().add(kickBtn);
+                        }
+
+                        membersContainer.getChildren().add(row);
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    membersContainer.getChildren().clear();
+                    membersContainer.getChildren().add(new Label("Error loading members."));
+                });
             }
-        } else {
-            members = team.getMembers();
-        }
-
-        for (Student member : members) {
-            HBox row = new HBox();
-            row.setAlignment(Pos.CENTER_LEFT);
-            row.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-background-radius: 8; -fx-background-color: #FFFFFF;");
-            row.setPadding(new Insets(10, 15, 10, 15));
-
-            String role = member.getBilkentEmail().equals(team.getCaptain().getBilkentEmail()) ? " (Captain)" : "";
-            Label nameLabel = new Label(member.getFullName() + role);
-            nameLabel.setFont(Font.font("System", FontWeight.BOLD, 14.0));
-            nameLabel.setTextFill(javafx.scene.paint.Color.web("#2b3674"));
-
-            Region spacer = new Region();
-            HBox.setHgrow(spacer, Priority.ALWAYS);
-
-            row.getChildren().addAll(nameLabel, spacer);
-
-            if (isCaptain && !member.getBilkentEmail().equals(currentUser.getBilkentEmail())) {
-                Button kickBtn = new Button("Kick");
-                kickBtn.setStyle("-fx-background-color: #EE5D50; -fx-text-fill: white; -fx-background-radius: 5;");
-                kickBtn.setOnAction(e -> handleKickPlayer(member));
-                row.getChildren().add(kickBtn);
-            }
-
-            membersContainer.getChildren().add(row);
-        }
+        }).start();
     }
 
     @FXML
@@ -118,47 +144,50 @@ public class TeamEditController {
             return;
         }
 
-        if (USE_MOCK_DATA) {
-            showAlert(Alert.AlertType.INFORMATION, "Success", "MOCK: Invite sent to " + email);
-            newPlayerEmailField.clear();
-            return;
-        }
+        addPlayerButton.setText("Sending...");
+        addPlayerButton.setDisable(true);
 
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
-                status = Database.getInstance().sendTeamInvite("MOCK_TOUR_ID", currentUser.getBilkentEmail(), email);
-            } catch (Exception ex) {}
+                // Sadece email adresi ile geçici bir obje gönderiyoruz, DB email'den tanıyacak
+                Student dummyReceiver = new Student("", email, "");
+                status = tournamentManager.sendTeamInvite(team.getTeamId(), dummyReceiver);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
 
             final DbStatus finalStatus = status;
             Platform.runLater(() -> {
+                addPlayerButton.setText("Invite");
+                addPlayerButton.setDisable(false);
+                
                 if (finalStatus == DbStatus.SUCCESS) {
                     showAlert(Alert.AlertType.INFORMATION, "Success", "Invite sent successfully.");
                     newPlayerEmailField.clear();
+                } else if (finalStatus == DbStatus.ALREADY_IN_TOURNAMENT) {
+                    showAlert(Alert.AlertType.WARNING, "Warning", "User is already in a team or already invited.");
                 } else {
-                    showAlert(Alert.AlertType.ERROR, "Error", "Could not send invite.");
+                    showAlert(Alert.AlertType.ERROR, "Error", "Could not send invite. Check email address.");
                 }
             });
         }).start();
     }
 
     private void handleKickPlayer(Student member) {
-        if (USE_MOCK_DATA) {
-            showAlert(Alert.AlertType.INFORMATION, "Success", "MOCK: " + member.getFullName() + " kicked from team.");
-            loadMembers();
-            return;
-        }
-
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
-                status = Database.getInstance().rejectTeamInvite(team.getTeamId(), member.getBilkentEmail());
-            } catch (Exception ex) {}
+                status = teamManager.removeMemberFromTeam(team.getTeamId(), member);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
 
             final DbStatus finalStatus = status;
             Platform.runLater(() -> {
                 if (finalStatus == DbStatus.SUCCESS) {
                     showAlert(Alert.AlertType.INFORMATION, "Success", "Player kicked successfully.");
+                    // Listeyi baştan çekerek UI'ı tazele
                     loadMembers(); 
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Error", "Could not kick player.");
