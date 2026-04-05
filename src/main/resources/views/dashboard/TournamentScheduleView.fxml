@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox prefHeight="700.0" prefWidth="900.0" spacing="20.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.TournamentScheduleController">
+   <padding>
+      <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
+   </padding>
+
+   <Label fx:id="scheduleTitleLabel" styleClass="content-title" text="Tournament Schedule" />
+   <Separator prefWidth="200.0" />
+
+   <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #F4F7FE;" VBox.vgrow="ALWAYS">
+      <content>
+         <VBox spacing="20.0">
+            <HBox fx:id="byeTeamBox" alignment="CENTER" style="-fx-background-color: #FFF3CD; -fx-border-color: #FFEEBA; -fx-border-radius: 8; -fx-background-radius: 8;" visible="false" managed="false">
+               <padding><Insets bottom="10.0" left="15.0" right="15.0" top="10.0" /></padding>
+               <VBox.margin><Insets bottom="15.0" /></VBox.margin>
+               <Label fx:id="byeTeamLabel" style="-fx-font-weight: bold; -fx-text-fill: #856404;" text="Automatically Advanced (BYE): None" />
+            </HBox>
+            
+            <VBox fx:id="matchesVBox" spacing="12.0" />
+         </VBox>
+      </content>
+   </ScrollPane>
+</VBox>

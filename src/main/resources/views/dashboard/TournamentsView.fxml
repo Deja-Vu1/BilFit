@@ -47,7 +47,6 @@
       <HBox spacing="10.0" alignment="CENTER_LEFT">
          <Button fx:id="btnIncoming" onAction="#showIncoming" prefHeight="35.0" text="Incoming Requests" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 8;" />
          <Button fx:id="btnOutgoing" onAction="#showOutgoing" prefHeight="35.0" text="Outgoing Requests" style="-fx-background-color: #E2E8F0; -fx-text-fill: #2b3674; -fx-background-radius: 8;" />
-         <Button fx:id="btnMyTeams" onAction="#showMyTeams" prefHeight="35.0" text="My Teams" style="-fx-background-color: #E2E8F0; -fx-text-fill: #2b3674; -fx-background-radius: 8;" />
       </HBox>
       
       <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #FFFFFF;" VBox.vgrow="ALWAYS">
@@ -55,7 +54,6 @@
             <VBox>
                <VBox fx:id="incomingRequestsContainer" spacing="10.0" />
                <VBox fx:id="outgoingRequestsContainer" spacing="10.0" visible="false" managed="false" />
-               <VBox fx:id="myTeamsContainer" spacing="10.0" visible="false" managed="false" />
             </VBox>
          </content>
       </ScrollPane>

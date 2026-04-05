@@ -1,5 +1,12 @@
 package controllers;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+
 import database.Database;
 import database.DbStatus;
 import javafx.application.Platform;
@@ -22,20 +29,12 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-
 import managers.SessionManager;
 import managers.TournamentManager;
 import models.SportType;
 import models.Student;
 import models.Team;
 import models.Tournament;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
 
 public class TournamentsController {
 
@@ -44,30 +43,21 @@ public class TournamentsController {
     @FXML private VBox upcomingTournamentsContainer;
     @FXML private VBox myTournamentsContainer;
     
-    // TAB BUTTONS
     @FXML private Button btnIncoming;
     @FXML private Button btnOutgoing;
-    @FXML private Button btnMyTeams;
     
-    // CONTAINERS
     @FXML private VBox incomingRequestsContainer;
     @FXML private VBox outgoingRequestsContainer;
-    @FXML private VBox myTeamsContainer;
 
     private TournamentManager tournamentManager;
     private boolean isProcessing = false;
 
-    private boolean USE_MOCK_DATA = true; // MOCK VERİ AYARI
+    private boolean USE_MOCK_DATA = true;
 
     @FXML
     public void initialize() {
         try {
-            if (USE_MOCK_DATA) {
-                System.out.println("===============================================================");
-                System.out.println("====== DİKKAT: BU VERİLER SAHTEDİR (MOCK DATA) ======");
-                System.out.println("====== DB'YE YAZILMAZ VE DB'DEN OKUNMAZ!       ======");
-                System.out.println("===============================================================");
-            } else {
+            if (!USE_MOCK_DATA) {
                 tournamentManager = new TournamentManager(Database.getInstance());
             }
             
@@ -93,9 +83,7 @@ public class TournamentsController {
                 applyCodeButton.setDisable(true);
             }
 
-            // İlk başta sadece Incoming sekmesini göster
             showIncoming();
-
             loadUpcomingTournaments();
             loadTeamManagementData();
         } catch (Exception e) {
@@ -103,14 +91,11 @@ public class TournamentsController {
         }
     }
 
-    // --- TAB MANAGEMENT (SEKME YÖNETİMİ) ---
-
     @FXML
     public void showIncoming() {
         if(incomingRequestsContainer != null) {
             incomingRequestsContainer.setVisible(true); incomingRequestsContainer.setManaged(true);
             outgoingRequestsContainer.setVisible(false); outgoingRequestsContainer.setManaged(false);
-            myTeamsContainer.setVisible(false); myTeamsContainer.setManaged(false);
             updateTabStyles(btnIncoming);
         }
     }
@@ -120,18 +105,7 @@ public class TournamentsController {
         if(outgoingRequestsContainer != null) {
             incomingRequestsContainer.setVisible(false); incomingRequestsContainer.setManaged(false);
             outgoingRequestsContainer.setVisible(true); outgoingRequestsContainer.setManaged(true);
-            myTeamsContainer.setVisible(false); myTeamsContainer.setManaged(false);
             updateTabStyles(btnOutgoing);
-        }
-    }
-
-    @FXML
-    public void showMyTeams() {
-        if(myTeamsContainer != null) {
-            incomingRequestsContainer.setVisible(false); incomingRequestsContainer.setManaged(false);
-            outgoingRequestsContainer.setVisible(false); outgoingRequestsContainer.setManaged(false);
-            myTeamsContainer.setVisible(true); myTeamsContainer.setManaged(true);
-            updateTabStyles(btnMyTeams);
         }
     }
 
@@ -141,12 +115,9 @@ public class TournamentsController {
         
         if(btnIncoming != null) btnIncoming.setStyle(inactiveStyle);
         if(btnOutgoing != null) btnOutgoing.setStyle(inactiveStyle);
-        if(btnMyTeams != null) btnMyTeams.setStyle(inactiveStyle);
         
         if(activeBtn != null) activeBtn.setStyle(activeStyle);
     }
-
-    // --- DATA LOADING ---
 
     private void loadUpcomingTournaments() {
         if (upcomingTournamentsContainer != null) {
@@ -199,7 +170,6 @@ public class TournamentsController {
                 Platform.runLater(() -> {
                     populateTeamList(incomingRequestsContainer, incoming, "incoming");
                     populateTeamList(outgoingRequestsContainer, outgoing, "outgoing");
-                    populateTeamList(myTeamsContainer, myTeams, "myteam");
                     populateMyTournamentsList(myTournamentsContainer, myTeams);
                 });
 
@@ -223,7 +193,7 @@ public class TournamentsController {
             row.setPadding(new Insets(10, 20, 10, 20));
 
             VBox infoBox = new VBox(5);
-            Label nameLabel = new Label("Tournament Match | Team: " + t.getTeamName());
+            Label nameLabel = new Label("Team: " + t.getTeamName());
             nameLabel.setFont(Font.font("System", FontWeight.BOLD, 13.0));
             nameLabel.setTextFill(javafx.scene.paint.Color.web("#2b3674"));
             
@@ -236,17 +206,93 @@ public class TournamentsController {
 
             Button scheduleBtn = new Button("Schedule");
             scheduleBtn.setPrefHeight(35.0);
-            scheduleBtn.setPrefWidth(100.0);
+            scheduleBtn.setPrefWidth(90.0);
             scheduleBtn.getStyleClass().add("btn-secondary");
+            scheduleBtn.setOnAction(e -> openScheduleView(t));
+
+            Button editTeamBtn = new Button("Edit Team");
+            editTeamBtn.setPrefHeight(35.0);
+            editTeamBtn.setPrefWidth(90.0);
+            editTeamBtn.setStyle("-fx-background-color: #FFB547; -fx-text-fill: white; -fx-background-radius: 8;");
+            HBox.setMargin(editTeamBtn, new Insets(0, 0, 0, 10));
+            editTeamBtn.setOnAction(e -> openTeamEditView(t));
 
             Button cancelBtn = new Button("Cancel");
             cancelBtn.setPrefHeight(35.0);
-            cancelBtn.setPrefWidth(100.0);
+            cancelBtn.setPrefWidth(90.0);
             cancelBtn.getStyleClass().add("btn-danger");
             HBox.setMargin(cancelBtn, new Insets(0, 0, 0, 10));
+            cancelBtn.setOnAction(e -> handleCancelTournament(t));
 
-            row.getChildren().addAll(infoBox, spacer, scheduleBtn, cancelBtn);
+            row.getChildren().addAll(infoBox, spacer, scheduleBtn, editTeamBtn, cancelBtn);
             container.getChildren().add(row);
+        }
+    }
+
+    private void handleCancelTournament(Team t) {
+        if (USE_MOCK_DATA) {
+            showAlert(Alert.AlertType.INFORMATION, "Mock", "Turnuvadan çıkıldı.");
+            loadTeamManagementData();
+            return;
+        }
+        
+        new Thread(() -> {
+            try {
+                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+                
+                Tournament dummyTournament = new Tournament(
+                    t.getTeamId(), 
+                    "Dummy Tournament", 
+                    SportType.FOOTBALL, 
+                    LocalDate.now(), 
+                    LocalDate.now(), 
+                    2, 
+                    false, 
+                    "0000", 
+                    "Main Campus"
+                );
+                
+                DbStatus status = tournamentManager.withdrawTeam(dummyTournament, t, currentUser);
+                Platform.runLater(() -> {
+                    if(status == DbStatus.SUCCESS) {
+                        loadTeamManagementData();
+                    } else {
+                        showAlert(Alert.AlertType.ERROR, "Error", "Only captain can cancel or operation failed.");
+                    }
+                });
+            } catch(Exception ex) {
+                ex.printStackTrace();
+            }
+        }).start();
+    }
+
+    private void openScheduleView(Team t) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/TournamentScheduleView.fxml"));
+            Parent root = loader.load();
+            
+            Stage stage = new Stage();
+            stage.setTitle("Tournament Schedule");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setScene(new Scene(root, 900, 700));
+            stage.show();
+        } catch(Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void openTeamEditView(Team t) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/TeamEditView.fxml"));
+            Parent root = loader.load();
+            
+            Stage stage = new Stage();
+            stage.setTitle("Edit Team");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setScene(new Scene(root, 800, 600));
+            stage.show();
+        } catch(Exception ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -286,10 +332,6 @@ public class TournamentsController {
             } else if (type.equals("outgoing")) {
                 Label status = new Label("Pending");
                 status.setTextFill(javafx.scene.paint.Color.web("#FFB547"));
-                row.getChildren().addAll(nameLabel, spacer, status);
-            } else {
-                Label status = new Label("Active");
-                status.setTextFill(javafx.scene.paint.Color.web("#05CD99"));
                 row.getChildren().addAll(nameLabel, spacer, status);
             }
 
@@ -347,30 +389,48 @@ public class TournamentsController {
         applyButton.setPrefWidth(100.0);
         applyButton.getStyleClass().add("btn-secondary");
 
-        applyButton.setOnAction(e -> openTournamentDetails(tournament));
+        applyButton.setOnAction(e -> {
+            applyButton.setText("Joining...");
+            applyButton.setDisable(true);
+            
+            if (USE_MOCK_DATA) {
+                if (myTournamentsCard != null) {
+                    myTournamentsCard.setVisible(true);
+                    myTournamentsCard.setManaged(true);
+                }
+                showAlert(Alert.AlertType.INFORMATION, "Başarılı", "MOCK: Turnuvaya katildiniz.");
+                loadUpcomingTournaments();
+                loadTeamManagementData();
+                return;
+            }
+
+            new Thread(() -> {
+                DbStatus status = DbStatus.QUERY_ERROR;
+                try {
+                    Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+                    status = tournamentManager.processTournamentApplication(tournament, currentUser, null);
+                } catch(Exception ex) {}
+
+                final DbStatus finalStatus = status;
+                Platform.runLater(() -> {
+                    if(finalStatus == DbStatus.SUCCESS) {
+                        if (myTournamentsCard != null) {
+                            myTournamentsCard.setVisible(true);
+                            myTournamentsCard.setManaged(true);
+                        }
+                        loadUpcomingTournaments();
+                        loadTeamManagementData();
+                    } else {
+                        applyButton.setText("Apply");
+                        applyButton.setDisable(false);
+                        showAlert(Alert.AlertType.ERROR, "Hata", "Turnuvaya katılım başarısız.");
+                    }
+                });
+            }).start();
+        });
 
         row.getChildren().addAll(infoLabel, spacer, applyButton);
         return row;
-    }
-
-    private void openTournamentDetails(Tournament tournament) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/TournamentDetailsView.fxml"));
-            Parent root = loader.load();
-
-            TournamentDetailsController controller = loader.getController();
-            controller.setMockDataMode(USE_MOCK_DATA);
-            controller.setTournament(tournament);
-
-            Stage stage = new Stage();
-            stage.setTitle(tournament.getTournamentName() + " Details");
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setScene(new Scene(root, 900, 700));
-            stage.show();
-
-        } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Hata", "Sayfa acilamadi.");
-        }
     }
 
     @FXML
@@ -425,6 +485,7 @@ public class TournamentsController {
                             applyCodeButton.setText("Joined");
                             applyCodeButton.setDisable(true);
                         }
+                        loadTeamManagementData();
                         showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Turnuvaya katildiniz.");
                     } else {
                         showAlert(Alert.AlertType.ERROR, "Başarısız", "Gecersiz islem.");
