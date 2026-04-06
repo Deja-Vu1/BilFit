@@ -94,7 +94,7 @@ public class DuelloManager {
     }
 
     public DbStatus cancelDuello(Duello duello, Student creator) {
-        if (duello == null || creator == null || duello.isMatched()) return DbStatus.QUERY_ERROR;
+        if (duello == null || creator == null) return DbStatus.QUERY_ERROR;
         
         DbStatus status = db.deleteDuello(duello.getReservationId(), creator.getBilkentEmail());
         if(status == DbStatus.SUCCESS) {
@@ -104,18 +104,28 @@ public class DuelloManager {
         return status;
     }
 
+    public DbStatus leaveDuello(Duello duello, Student student) {
+        if (duello == null || student == null) return DbStatus.QUERY_ERROR;
+        
+        DbStatus status = db.removeDuelloParticipant(duello.getReservationId(), student.getBilkentEmail());
+        if (status == DbStatus.SUCCESS) {
+            duello.setMatched(false);
+            duello.setEmptySlots(duello.getEmptySlots() + 1);
+            duello.getAttendees().remove(student);
+        }
+        return status;
+    }
+
     public DbStatus joinDuelloWithCode(String code, Student student) {
         if (code == null || student == null || code.trim().isEmpty()) return DbStatus.QUERY_ERROR;
 
-        // 1. Koda ait GERÇEK düelloyu veritabanından çek
         Duello duello = db.getDuelloByCode(code);
         
-        if (duello == null) return DbStatus.DATA_NOT_FOUND; // Kod hatalıysa veya düello silinmişse
-        if (duello.getAttendees().contains(student)) return DbStatus.QUERY_ERROR; // Öğrenci zaten düellonun içindeyse
+        if (duello == null) return DbStatus.DATA_NOT_FOUND;
+        if (duello.getAttendees().contains(student)) return DbStatus.QUERY_ERROR;
 
         if (!student.isCanAttend() || student.isBanned()) return DbStatus.QUERY_ERROR;
 
-        // Gerçek kurucuyu DB'den çektiğimiz için artık burası güvenle çalışır
         Student creator = duello.getAttendees().get(0);
         if (!creator.isCanAttend() || creator.isBanned()) return DbStatus.QUERY_ERROR;
 
@@ -147,6 +157,11 @@ public class DuelloManager {
     public ArrayList<Duello> getUserDuellos(Student currentStudent) {
         if (currentStudent == null) return new ArrayList<>();
         return db.getUserDuellos(currentStudent);
+    }
+
+    public ArrayList<Student> getPendingRequestsForDuello(String reservationId) {
+        if (reservationId == null || reservationId.trim().isEmpty()) return new ArrayList<>();
+        return db.getPendingRequestsForDuello(reservationId);
     }
 
     public DbStatus updateMatchWinner(String matchId, Boolean isCreatorWin) {

@@ -41,7 +41,7 @@ public class ResetPasswordController {
 
 
        if (emailInput == null || emailInput.trim().isEmpty()) {
-           showAlert(Alert.AlertType.WARNING, "Uyarı", "Lütfen Bilkent e-posta adresinizi girin.");
+           showAlert(Alert.AlertType.WARNING, "Warning", "Please enter your Bilkent email address.");
            return;
        }
 
@@ -52,7 +52,7 @@ public class ResetPasswordController {
       
        clickedButton.getParent().requestFocus();
        clickedButton.setDisable(true);
-       clickedButton.setText("Kod Gönderiliyor...");
+       clickedButton.setText("Sending Code...");
 
 
        new Thread(() -> {
@@ -67,17 +67,16 @@ public class ResetPasswordController {
 
                switch (status) {
                    case SUCCESS:
-                       // POPUP KALDIRILDI! Başarılıysa doğrudan aktivasyon ekranına geçiyoruz.
                        goToActivationScreen(event, emailInput);
                        break;
                    case DATA_NOT_FOUND:
-                       showAlert(Alert.AlertType.ERROR, "Hata", "Bu e-posta adresine kayıtlı bir hesap bulunamadı.");
+                       showAlert(Alert.AlertType.ERROR, "Error", "No account found registered to this email address.");
                        break;
                    case CONNECTION_ERROR:
-                       showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
+                       showAlert(Alert.AlertType.ERROR, "Connection Error", "Could not connect to the database.");
                        break;
                    default:
-                       showAlert(Alert.AlertType.ERROR, "Sistem Hatası", "Bilinmeyen bir hata oluştu.");
+                       showAlert(Alert.AlertType.ERROR, "System Error", "An unknown error occurred.");
                        break;
                }
            });
@@ -87,7 +86,6 @@ public class ResetPasswordController {
 
    private void goToActivationScreen(ActionEvent event, String email) {
        try {
-           // ActivationController'a bunun bir ŞİFRE SIFIRLAMA işlemi olduğunu söylüyoruz
            ActivationController.emailToActivate = email;
            ActivationController.currentContext = ActivationController.ActivationContext.PASSWORD_RESET;
 

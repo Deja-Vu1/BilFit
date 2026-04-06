@@ -21,7 +21,7 @@ public class AdminResetPasswordInputController {
             stage.getScene().setRoot(root);
 
         } catch (IOException e) {
-            System.err.println("StudentLoginView yüklenirken hata oluştu!");
+            System.err.println("An error occurred while loading the view!");
             e.printStackTrace();
         }
     }
@@ -35,7 +35,7 @@ public class AdminResetPasswordInputController {
             stage.getScene().setRoot(root);
 
         } catch (IOException e) {
-            System.err.println("StudentLoginView yüklenirken hata oluştu!");
+            System.err.println("An error occurred while loading the view!");
             e.printStackTrace();
         }
     }

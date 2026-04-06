@@ -11,10 +11,12 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Modality;
@@ -32,10 +34,13 @@ public class SettingsController {
     @FXML private Button eloToggle;
     @FXML private TextField passwordField;
     @FXML private Button changePasswordBtn;
-    @FXML private FlowPane interestsContainer; // FXML'den bu Container'ı alıyoruz
+    
+    @FXML private TextField nicknameField;
+    @FXML private Button changeNicknameBtn;
+    
+    @FXML private FlowPane interestsContainer; 
 
     private StudentManager studentManager = new StudentManager(Database.getInstance());
-    private AuthManager authManager = new AuthManager(Database.getInstance());
     private boolean isProcessing = false;
 
     private final String COLOR_ON = "-fx-background-color: #1E8E3E; -fx-background-radius: 20;";
@@ -48,26 +53,29 @@ public class SettingsController {
             updateToggleVisual(publicAccountToggle, currentUser.isPublicProfile());
             updateToggleVisual(eloToggle, currentUser.isEloMatchingEnabled());
             
-            // Kullanıcının ilgi alanlarını DB'den çekip ekrana diziyoruz
+            if (nicknameField != null) {
+                nicknameField.clear(); 
+                nicknameField.setPromptText("Current: " + currentUser.getFullName()); 
+            }
+            
             loadUserInterests(currentUser);
         }
     }
 
     private void loadUserInterests(Student currentUser) {
         new Thread(() -> {
-            // DB'den taze interest listesini çekiyoruz
             List<SportType> dbInterests = studentManager.getUserInterests(currentUser);
             
             Platform.runLater(() -> {
                 if (interestsContainer != null) {
-                    interestsContainer.getChildren().clear(); // Eski/sabit verileri temizle
+                    interestsContainer.getChildren().clear(); 
                     
                     if (dbInterests != null && !dbInterests.isEmpty()) {
                         for (SportType sport : dbInterests) {
                             interestsContainer.getChildren().add(createInterestButton(sport));
                         }
                     } else {
-                        Label emptyLabel = new Label("Kayıtlı ilgi alanınız bulunmamaktadır.");
+                        Label emptyLabel = new Label("You have no registered interests.");
                         emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
                         interestsContainer.getChildren().add(emptyLabel);
                     }
@@ -81,19 +89,13 @@ public class SettingsController {
         
         Button btn = new Button("🗑 " + displayName);
         
-        // Varsayılan (Default) Tasarım ve Tıklama İmleci (hand cursor) eklendi
         String defaultStyle = "-fx-background-color: #F4F7FE; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-cursor: hand;";
-        
-        // Üzerine Gelince (Hover) Görünecek Kırmızı Tasarım
         String hoverStyle = "-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-border-color: #D93025; -fx-border-radius: 10; -fx-cursor: hand;";
 
         btn.setStyle(defaultStyle);
         btn.setPrefHeight(40.0);
 
-        // Mouse butonun üstüne geldiğinde stili kırmızı yap
         btn.setOnMouseEntered(e -> btn.setStyle(hoverStyle));
-        
-        // Mouse butonun üzerinden çekildiğinde stili eski haline döndür
         btn.setOnMouseExited(e -> btn.setStyle(defaultStyle));
         
         btn.setOnAction(e -> handleRemoveInterest(sportType, btn));
@@ -125,7 +127,7 @@ public class SettingsController {
                 Platform.runLater(() -> {
                     currentUser.setPublicProfile(!targetStatus);
                     updateToggleVisual(publicAccountToggle, !targetStatus);
-                    showCustomAlert("Hata", "Gizlilik ayarı değiştirilemedi. Sunucu hatası.");
+                    showCustomAlert("Error", "Privacy setting could not be changed. Server error.");
                 });
             }
         }).start();
@@ -150,7 +152,7 @@ public class SettingsController {
                 Platform.runLater(() -> {
                     currentUser.setEloMatchingEnabled(!targetStatus);
                     updateToggleVisual(eloToggle, !targetStatus);
-                    showCustomAlert("Hata", "ELO ayarı değiştirilemedi. Sunucu hatası.");
+                    showCustomAlert("Error", "ELO setting could not be changed. Server error.");
                 });
             }
         }).start();
@@ -164,7 +166,12 @@ public class SettingsController {
         String newPass = passwordField.getText();
 
         if (newPass == null || newPass.trim().isEmpty()) {
-            showCustomAlert("Uyarı", "Şifre alanı boş olamaz.");
+            showCustomAlert("Warning", "Password field cannot be empty.");
+            return;
+        }
+
+        if (newPass.length() < 6) {
+            showCustomAlert("Weak Password", "Your new password must be at least 6 characters long.");
             return;
         }
 
@@ -185,18 +192,60 @@ public class SettingsController {
                 
                 if (finalStatus == DbStatus.SUCCESS) {
                     passwordField.clear();
-                    showCustomAlert("Başarılı", "Şifreniz başarıyla değiştirildi.");
+                    showCustomAlert("Successful", "Your password has been successfully changed.");
                 } else {
-                    showCustomAlert("Hata", "Şifre güncellenemedi. Lütfen tekrar deneyin.");
+                    showCustomAlert("Error", "Password could not be updated. The new password must be different from the old one.");
                 }
             });
         }).start();
     }
 
-    // Artık ActionEvent beklemiyor, doğrudan obje ve buton alıyor (Çünkü dinamik yaratıldı)
+ @FXML
+    public void handleChangeNickname(ActionEvent event) {
+        if (isProcessing) return;
+        
+        Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+        String newNick = nicknameField.getText();
+
+        if (newNick == null || newNick.trim().isEmpty()) {
+            showCustomAlert("Warning", "Name field cannot be left empty.");
+            return;
+        }
+
+        isProcessing = true;
+        changeNicknameBtn.setText("...");
+
+        new Thread(() -> {
+            DbStatus status = DbStatus.QUERY_ERROR;
+            try {
+                status = studentManager.updateNickname(currentUser, newNick);
+            } catch (Exception e) {}
+
+            final DbStatus finalStatus = status;
+
+            Platform.runLater(() -> {
+                isProcessing = false;
+                changeNicknameBtn.setText("Change");
+                
+                if (finalStatus == DbStatus.SUCCESS) {
+                    nicknameField.clear(); 
+                    nicknameField.setPromptText("Current: " + currentUser.getFullName());
+                    
+                    showCustomAlert("Successful", "Your name has been successfully changed!");
+                } else {
+                    showCustomAlert("Error", "A server-side issue occurred while updating the name.");
+                }
+            });
+        }).start();
+    }
+
     private void handleRemoveInterest(SportType sportType, Button clickedBtn) {
         Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
         
+        if (interestsContainer != null) {
+            interestsContainer.getChildren().remove(clickedBtn);
+        }
+
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
@@ -206,14 +255,11 @@ public class SettingsController {
             final DbStatus finalStatus = status;
             
             Platform.runLater(() -> {
-                if (finalStatus == DbStatus.SUCCESS) {
-                    // DB'den silindiyse, ekrandaki butonu tamamen yok et
+                if (finalStatus != DbStatus.SUCCESS) {
                     if (interestsContainer != null) {
-                        interestsContainer.getChildren().remove(clickedBtn);
+                        interestsContainer.getChildren().add(clickedBtn);
                     }
-                    showCustomAlert("Silindi", sportType.name().replace("_", " ") + " ilgi alanlarınızdan çıkarıldı.");
-                } else {
-                    showCustomAlert("Hata", "Veritabanından silinemedi.");
+                    showCustomAlert("Error", "Could not be deleted from the database.");
                 }
             });
         }).start();
@@ -221,7 +267,100 @@ public class SettingsController {
 
     @FXML
     public void handleAddInterest(ActionEvent event) {
-         showCustomAlert("Eklenecek", "Add Interest için pop-up tasarımı gelince Manager'a bağlanacak.");
+        showAddInterestDialog();
+    }
+
+    private void showAddInterestDialog() {
+        Stage dialogStage = new Stage();
+        dialogStage.initModality(Modality.APPLICATION_MODAL);
+        dialogStage.initStyle(StageStyle.TRANSPARENT);
+
+        VBox layout = new VBox(20);
+        layout.setAlignment(Pos.CENTER);
+        layout.setPadding(new Insets(30));
+        layout.setStyle("-fx-background-color: #FFFFFF; -fx-background-radius: 20; -fx-border-radius: 20; -fx-border-color: #E2E8F0; -fx-border-width: 1;");
+        
+        DropShadow shadow = new DropShadow();
+        shadow.setRadius(20);
+        shadow.setColor(Color.rgb(0, 0, 0, 0.15));
+        layout.setEffect(shadow);
+
+        Label titleLabel = new Label("Add New Interest Area");
+        titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2b3674;");
+
+        ComboBox<String> sportCombo = new ComboBox<>();
+        sportCombo.setStyle("-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-pref-width: 200; -fx-pref-height: 40;");
+        for (SportType sport : SportType.values()) {
+            sportCombo.getItems().add(sport.name().replace("_", " "));
+        }
+        if (!sportCombo.getItems().isEmpty()) {
+            sportCombo.getSelectionModel().selectFirst();
+        }
+
+        HBox btnBox = new HBox(15);
+        btnBox.setAlignment(Pos.CENTER);
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 90; -fx-pref-height: 35; -fx-cursor: hand;");
+        cancelBtn.setOnAction(e -> dialogStage.close());
+
+        Button addBtn = new Button("Add");
+        addBtn.setStyle("-fx-background-color: #1E8E3E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 90; -fx-pref-height: 35; -fx-cursor: hand;");
+        addBtn.setOnAction(e -> {
+            String selectedSportString = sportCombo.getValue();
+            if (selectedSportString != null) {
+                SportType selectedType = SportType.valueOf(selectedSportString.replace(" ", "_"));
+                processAddInterest(selectedType); 
+                dialogStage.close();
+            }
+        });
+
+        btnBox.getChildren().addAll(cancelBtn, addBtn);
+        layout.getChildren().addAll(titleLabel, sportCombo, btnBox);
+
+        Scene scene = new Scene(layout);
+        scene.setFill(Color.TRANSPARENT); 
+        dialogStage.setScene(scene);
+        dialogStage.centerOnScreen();
+        dialogStage.showAndWait();
+    }
+
+    private void processAddInterest(SportType sportType) {
+        Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
+        if (currentUser == null) return;
+        
+        if (interestsContainer != null) {
+            interestsContainer.getChildren().removeIf(node -> node instanceof Label);
+            
+            boolean alreadyExists = interestsContainer.getChildren().stream()
+                .filter(node -> node instanceof Button)
+                .map(node -> ((Button) node).getText())
+                .anyMatch(text -> text.contains(sportType.name().replace("_", " ")));
+            
+            if (alreadyExists) {
+                showCustomAlert("Warning", "This interest area is already added.");
+                return;
+            }
+            
+            Button newBtn = createInterestButton(sportType);
+            interestsContainer.getChildren().add(newBtn);
+
+            new Thread(() -> {
+                DbStatus status = DbStatus.QUERY_ERROR;
+                try {
+                    status = studentManager.addInterest(currentUser, sportType);
+                } catch (Exception e) {}
+                
+                final DbStatus finalStatus = status;
+                
+                Platform.runLater(() -> {
+                    if (finalStatus != DbStatus.SUCCESS) {
+                        interestsContainer.getChildren().remove(newBtn);
+                        showCustomAlert("Error", "This interest area may already be added or server connection could not be established.");
+                    }
+                });
+            }).start();
+        }
     }
 
     private void showCustomAlert(String title, String message) {
@@ -247,8 +386,8 @@ public class SettingsController {
         msgLabel.setAlignment(Pos.CENTER);
         msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #a3aed0; -fx-text-alignment: center;");
 
-        Button okBtn = new Button("Tamam");
-        okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40;");
+        Button okBtn = new Button("OK");
+        okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
         okBtn.setOnAction(e -> dialogStage.close());
 
         layout.getChildren().addAll(titleLabel, msgLabel, okBtn);

@@ -27,11 +27,10 @@ public class StudentMainController {
             contentArea.getChildren().setAll(view);
         } catch (Exception e) {
             e.printStackTrace();
-            // EĞER SAYFA YÜKLENEMEZSE VEYA ÇÖKERSE ARTIK EKRANDA GÖRECEĞİZ
             Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Sayfa Yükleme Hatası");
-            alert.setHeaderText("Arayüz dosyası yüklenemedi!");
-            alert.setContentText("Hatalı dosya: " + path + "\nNeden: " + e.getMessage());
+            alert.setTitle("Page Loading Error");
+            alert.setHeaderText("Interface file could not be loaded!");
+            alert.setContentText("Faulty file: " + path + "\nReason: " + e.getMessage());
             alert.showAndWait();
         }
     }

@@ -25,10 +25,10 @@ public class AdminLoginController {
     @FXML private TextField emailField;
     @FXML private PasswordField passwordField;
 
-    // Çift tıklamayı ve odak kaymasını önlemek için kilit
+    
     private boolean isProcessing = false;
 
-    // Veritabanı ve Manager bağlantıları
+    
     private Database db = Database.getInstance();
     private AuthManager authManager = new AuthManager(db);
 
@@ -36,12 +36,12 @@ public class AdminLoginController {
     public void attemptAdminLogin(ActionEvent event) {
         if (isProcessing) return;
 
-        // VERİLERİ TEMİZLE: Boşlukları sil ve küçük harfe zorla (SQL hatasını önler)
+        
         String email = emailField.getText() != null ? emailField.getText().trim().toLowerCase() : "";
         String password = passwordField.getText();
       
         if (email.isEmpty() || password == null || password.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen e-posta ve şifre alanlarını doldurunuz.");
+            showAlert(Alert.AlertType.WARNING, "Missing Information", "Please fill in the email and password fields.");
             return;
         }
 
@@ -50,15 +50,15 @@ public class AdminLoginController {
         Button clickedButton = (Button) event.getSource();
         String originalText = clickedButton.getText();
       
-        // ODAK HİLESİ: Username kutusunun seçilmesini engelle
+        
         clickedButton.getParent().requestFocus();
         clickedButton.setDisable(true);
-        clickedButton.setText("Giriş Yapılıyor...");
+        clickedButton.setText("Logging in...");
 
-        // Ekran donmasın diye arka planda çalıştırıyoruz
+        
         new Thread(() -> {
             try {
-                // AuthManager üzerinden Admin girişi
+                
                 DbStatus loginStatus = authManager.loginAdmin(email, password);
 
                 Platform.runLater(() -> {
@@ -68,18 +68,18 @@ public class AdminLoginController {
 
                     switch (loginStatus) {
                         case SUCCESS:
-                            System.out.println("Admin girişi başarılı!");
+                            System.out.println("Admin login successful!");
                             deployAdminDashboard(event);
                             break;
                         case INVALID_CREDENTIALS:
                         case DATA_NOT_FOUND:
-                            showAlert(Alert.AlertType.ERROR, "Giriş Başarısız", "Hatalı admin e-postası veya şifre girdiniz.");
+                            showAlert(Alert.AlertType.ERROR, "Login Failed", "Invalid admin email or password.");
                             break;
                         case CONNECTION_ERROR:
-                            showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
+                            showAlert(Alert.AlertType.ERROR, "Connection Error", "Failed to connect to the database.");
                             break;
                         default:
-                            showAlert(Alert.AlertType.ERROR, "Sistem Hatası", "Giriş sırasında bir hata oluştu.");
+                            showAlert(Alert.AlertType.ERROR, "System Error", "An error occurred during login.");
                             break;
                     }
                 });
@@ -89,26 +89,26 @@ public class AdminLoginController {
                     isProcessing = false;
                     clickedButton.setDisable(false);
                     clickedButton.setText(originalText);
-                    showAlert(Alert.AlertType.ERROR, "Kritik Hata", "Beklenmeyen bir sistem hatası oluştu.");
+                    showAlert(Alert.AlertType.ERROR, "Critical Error", "An unexpected system error occurred.");
                 });
             }
         }).start();
     }
 
-    // Başarılı girişte Admin Paneline yönlendirme
+    
     private void deployAdminDashboard(ActionEvent event) {
-        System.out.println("AdminDashboardView'a yönlendiriliyor...");
+        System.out.println("Redirecting to AdminDashboardView...");
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/AdminMainView.fxml")); // Admin main view olarak varsayıldı
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/dashboard/AdminMainView.fxml")); 
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             
-            // Eğer AdminMainView'ı sidebar'lı bir yapı yaptıysanız doğrudan root olarak set edebiliriz
+            
             stage.getScene().setRoot(root);
             
-            // Not: İstersen yukarıdaki setRoot yerine senin orijinal Scene yaratma kodunu da kullanabilirsin
+            
         } catch (IOException e) {
-            System.err.println("AdminMainView yüklenirken hata oluştu!");
+            System.err.println("Error occurred while loading AdminMainView!");
             e.printStackTrace();
         }
     }
@@ -121,20 +121,21 @@ public class AdminLoginController {
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
         } catch (IOException e) {
+            System.err.println("Error occurred while loading AdminRegisterView!");
             e.printStackTrace();
         }
     }
 
-    // FXML'DE OLUP JAVA'DA EKSİK OLAN METOT EKLENDİ!
+    
     @FXML
     public void goToAdminResetPassword(MouseEvent event) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminResetPasswordView.fxml")); // Veya AdminResetPasswordInputView.fxml
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminResetPasswordView.fxml")); 
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
         } catch (IOException e) {
-            System.err.println("Şifre sıfırlama sayfası yüklenemedi.");
+            System.err.println("Error occurred while loading AdminResetPasswordView!");
             e.printStackTrace();
         }
     }
@@ -147,11 +148,12 @@ public class AdminLoginController {
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
             stage.getScene().setRoot(root);
         } catch (IOException e) {
+            System.err.println("Error occurred while loading SelectionView!");
             e.printStackTrace();
         }
     }
 
-    // POP-UP TASARIM KORUMASI (Try-Catch kalkanlı)
+    
     private void showAlert(Alert.AlertType alertType, String title, String message) {
         Alert alert = new Alert(alertType);
         alert.setTitle(title);

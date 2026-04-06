@@ -20,15 +20,8 @@ public class RegisterActivationController {
         String code = activationCodeField.getText();
         
         System.out.println("Verifying Activation Code: " + code);
-        
-        /* TODO: Kodu doğrula
-                if (code.isEmpty()) {
-            System.out.println("Error: Activation code cannot be empty.");
-            return;
-        }
-            */
            
-           System.out.println("Kod doğrulandı, NewPasswordView'e yönlendiriliyor...");
+           System.out.println("Code verified, redirecting to NewPasswordView...");
            directHome(event);
     }
 
@@ -43,7 +36,7 @@ public class RegisterActivationController {
             stage.getScene().setRoot(root);
 
         } catch (IOException e) {
-            System.err.println("SelectionView yüklenirken hata oluştu!");
+            System.err.println("An error occurred while loading SelectionView!");
             e.printStackTrace();
         }
     }
@@ -56,7 +49,7 @@ public class RegisterActivationController {
             stage.getScene().setRoot(root);
 
         } catch (IOException e) {
-            System.err.println("StudentLoginView yüklenirken hata oluştu!");
+            System.err.println("An error occurred while loading StudentLoginView!");
             e.printStackTrace();
         }
         

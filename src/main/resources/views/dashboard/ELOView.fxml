@@ -33,7 +33,7 @@
 
    <VBox styleClass="content-card">
       <HBox alignment="CENTER_LEFT">
-         <Label styleClass="content-title" text="My Duellos" />
+         <Label styleClass="content-title" text="My Duellos &amp; Requests" />
          <Region HBox.hgrow="ALWAYS" />
          <Label style="-fx-font-size: 24;" text="⚔️" />
       </HBox>
@@ -43,21 +43,42 @@
          </VBox.margin>
       </Separator>
       
-      <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" prefHeight="130.0" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED">
-          <VBox fx:id="myDuellosContainer" spacing="15.0">
-              <padding>
-                  <Insets right="10.0" />
-              </padding>
-          </VBox>
-      </ScrollPane>
+      <TabPane tabClosingPolicy="UNAVAILABLE" prefHeight="180.0">
+         <tabs>
+            <Tab text="My Duellos">
+               <content>
+                  <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED">
+                      <VBox fx:id="myDuellosContainer" spacing="15.0">
+                          <padding>
+                              <Insets right="10.0" top="10.0" />
+                          </padding>
+                      </VBox>
+                  </ScrollPane>
+               </content>
+            </Tab>
+            <Tab text="Incoming Requests">
+               <content>
+                  <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: transparent;" hbarPolicy="NEVER" vbarPolicy="AS_NEEDED">
+                      <VBox fx:id="incomingRequestsContainer" spacing="15.0">
+                          <padding>
+                              <Insets right="10.0" top="10.0" />
+                          </padding>
+                      </VBox>
+                  </ScrollPane>
+               </content>
+            </Tab>
+         </tabs>
+      </TabPane>
    </VBox>
    
    <VBox styleClass="content-card" VBox.vgrow="ALWAYS">
-      <HBox alignment="CENTER_LEFT">
+      <HBox alignment="CENTER_LEFT" spacing="10.0">
          <VBox>
             <Label styleClass="content-title" text="Available Duellos" />
          </VBox>
          <Region HBox.hgrow="ALWAYS" />
+         <ComboBox fx:id="sportTypeComboBox" prefHeight="35.0" prefWidth="130.0" promptText="Select Sport" styleClass="combo-box" />
+         <Button onAction="#handleFindDuello" prefHeight="35.0" prefWidth="110.0" styleClass="btn-primary" text="Find Duello" />
          <Button onAction="#handleApplyWithCode" prefHeight="35.0" prefWidth="140.0" styleClass="btn-success" text="Apply With Code" />
       </HBox>
       

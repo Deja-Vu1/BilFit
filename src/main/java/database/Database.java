@@ -1,25 +1,27 @@
 package database;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
 
-import models.SportType;
-import models.Student;
 import models.Facility;
 import models.Reservation;
-import java.util.List;
-import java.util.ArrayList;
+import models.SportType;
+import models.Student;
 
 public class Database {
 
@@ -31,6 +33,8 @@ public class Database {
     private String dbPassword;
     private String salt;
     private Connection conn;
+    private String SUPABASE_URL;
+    private String SUPABASE_KEY;
 
     // 2. Constructor'ı "public" yerine "private" yapıyoruz.
     // Bu sayede dışarıdan kimse "new Database()" diyemez!
@@ -64,6 +68,8 @@ public class Database {
             this.dbUser = prop.getProperty("db.user");
             this.dbPassword = prop.getProperty("db.password");
             this.salt = prop.getProperty("security.salt");
+            this.SUPABASE_URL = prop.getProperty("supabase.url");
+            this.SUPABASE_KEY = prop.getProperty("supabase.key");
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -324,15 +330,19 @@ public class Database {
     
     /**
      * Authenticates a student based on email and password.
-     * Ensures the account is activated and the user has the 'student' role.
+     * Ensures the account is activated, NOT banned (students.banned_at is NULL), and the user has the 'student' role.
      * If authentication is successful, updates the 'last_seen' timestamp in the students table.
      * @param email Student's Bilkent email address
      * @param plainPassword The raw password entered by the user
-     * @return DbStatus indicating SUCCESS, ACCOUNT_NOT_ACTIVATED, INVALID_CREDENTIALS, etc.
+     * @return DbStatus indicating SUCCESS, ACCOUNT_NOT_ACTIVATED, ACCOUNT_BANNED, INVALID_CREDENTIALS, etc.
      */
     public DbStatus loginStudent(String email, String plainPassword) {
 
-        String selectSql = "SELECT id, password_hash, role, is_activated FROM users WHERE bilkent_email = ?";
+        // users ve students tablolarını birleştirerek ban durumunu çekiyoruz
+        String selectSql = "SELECT u.id, u.password_hash, u.role, u.is_activated, s.banned_at " +
+                           "FROM users u " +
+                           "INNER JOIN students s ON u.id = s.user_id " +
+                           "WHERE u.bilkent_email = ?";
         
         String updateLastSeenSql = "UPDATE students SET last_seen = CURRENT_TIMESTAMP WHERE user_id = ?";
 
@@ -344,17 +354,29 @@ public class Database {
                 if (rs.next()) {
                     java.util.UUID userId = rs.getObject("id", java.util.UUID.class);
                     boolean isActivated = rs.getBoolean("is_activated");
+                    
+                    // students tablosundan gelen ban tarihini çekiyoruz
+                    java.sql.Timestamp bannedAt = rs.getTimestamp("banned_at"); 
+                    
                     String role = rs.getString("role");
                     String dbPasswordHash = rs.getString("password_hash");
 
+                    // 1. Aktivasyon Kontrolü
                     if (!isActivated) {
                         return DbStatus.ACCOUNT_NOT_ACTIVATED;
                     }
+                    
+                    // 2. Ban Kontrolü (students tablosundaki banned_at null değilse banlıdır)
+                    if (bannedAt != null) {
+                        return DbStatus.ACCOUNT_BANNED;
+                    }
 
+                    // 3. Rol Kontrolü
                     if (!"student".equals(role)) {
                         return DbStatus.INVALID_CREDENTIALS;
                     }
 
+                    // 4. Şifre Kontrolü
                     boolean isPasswordCorrect = verifyPassword(plainPassword, dbPasswordHash); 
                     
                     if (isPasswordCorrect) {
@@ -381,6 +403,7 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
     /**
      * Authenticates an admin based on email and password.
      * Ensures the account is activated and the user has the 'admin' role.
@@ -818,7 +841,7 @@ public class Database {
 
     /**
      * Fetches student records from the 'users' and 'students' tables,
-     * including their sport interests, and updates the provided Student object.
+     * including their sport interests and profile picture, and updates the provided Student object.
      * @param student The existing Student object to be updated
      * @param email Student's Bilkent email address to query the database
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
@@ -829,7 +852,8 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
 
-        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.password_hash, " +
+        // SELECT kısmında u.profile_pic_url çekiliyor
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.password_hash, u.profile_pic_url, " +
                      "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
                      "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled, " +
                      "STRING_AGG(sp.name, ',') AS sport_interests " +
@@ -850,6 +874,9 @@ public class Database {
                     student.setFullName(rs.getString("full_name"));
                     student.setBilkentEmail(rs.getString("bilkent_email"));
                     student.setPassword(rs.getString("password_hash"));
+                    
+                    // Kendi metodunla profile picture set ediliyor
+                    student.setProfilePictureUrl(rs.getString("profile_pic_url"));
                     
                     student.setStudentId(rs.getString("uni_id"));
                     student.setEloPoint(rs.getInt("elo_point"));
@@ -895,7 +922,8 @@ public class Database {
             }
             return DbStatus.QUERY_ERROR;
         }
-    }
+    }    
+    
     /**
      * Updates the ELO score for a student.
      * Finds the user by email and updates their elo_point in the students table.
@@ -962,6 +990,41 @@ public class Database {
         }
     }
 
+    /**
+     * Updates the reliability score for a student.
+     * Finds the user by their Bilkent email address and updates their reliability_score in the students table.
+     * @param email Student's Bilkent email address
+     * @param newReliabilityScore The new reliability score to be set (double value)
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateStudentReliability(String email, double newReliabilityScore) {
+        
+        if (email == null || email.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // users tablosundan email'i bulup, students tablosundaki user_id'ye göre eşleştirerek güncelliyoruz
+        String sql = "UPDATE students SET reliability_score = ? " +
+                     "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            // Değeri setDouble ile veritabanına gönderiyoruz
+            stmt.setDouble(1, newReliabilityScore);
+            stmt.setString(2, email);
+            
+            int updatedRows = stmt.executeUpdate();
+            
+            return (updatedRows > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
     /**
      * Updates the ban status for a student.
      * If isBanned is true, sets banned_at to the current timestamp.
@@ -2137,6 +2200,7 @@ public class Database {
      * Finds up to 5 suitable open Duellos for a specific sport.
      * Searches for active duellos created by other users, ordered by how close 
      * the creator's ELO point is to the current student's ELO.
+     * Also fetches the creator of each duello and adds them to the duello's attendees list.
      * @param currentStudent The student looking for a match
      * @param sportName The name of the sport (e.g., "TENNIS" or "TABLE TENNIS")
      * @return An ArrayList containing a maximum of 5 matching Duello objects.
@@ -2151,10 +2215,13 @@ public class Database {
 
         String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
 
+        // SELECT kısmına kurucunun (creator_u ve creator_s) tüm kişisel ve istatistiksel verileri eklendi
         String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
                      "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
                      "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
-                     "sp.name AS sport_name " +
+                     "sp.name AS sport_name, " +
+                     "creator_u.full_name, creator_u.bilkent_email, creator_u.student_id AS uni_id, " +
+                     "creator_s.elo_point, creator_s.penalty_points, creator_s.reliability_score, creator_s.matches_played, creator_s.win_rate " +
                      "FROM duellos d " +
                      "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
                      "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
@@ -2179,6 +2246,7 @@ public class Database {
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     
+                    // 1. Tesis (Facility) Objesini Oluşturma
                     String facilityId = rs.getObject("facility_id").toString();
                     String facilityName = rs.getString("facility_name");
                     String location = rs.getString("campus_location");
@@ -2198,6 +2266,7 @@ public class Database {
                     models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
                     facility.setUnderMaintenance(maintenance);
 
+                    // 2. Duello ve Reservation Özelliklerini Çekme
                     String reservationId = rs.getObject("reservation_id").toString();
                     java.sql.Date sqlDate = rs.getDate("reservation_date");
                     java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
@@ -2210,11 +2279,37 @@ public class Database {
                     boolean cancelled = rs.getBoolean("is_cancelled");
                     boolean attended = rs.getBoolean("has_attended");
 
-                    // 3. Duello objesini oluştur ve listeye ekle
-                    models.Duello duello = new models.Duello(reservationId, facility, resDate, timeSlot, accessCode, reqSkill, slots);
+                    // 3. Duello Objesini Oluşturma
+                    models.Duello duello = new models.Duello(
+                        reservationId, facility, resDate, timeSlot, accessCode, reqSkill, slots
+                    );
                     duello.setMatched(matched);
                     duello.setCancelled(cancelled);
                     duello.setHasAttended(attended);
+
+                    // 4. Kurucu (Creator) Objesini Oluşturma ve Ekleme
+                    models.Student creator = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    creator.setEloPoint(rs.getInt("elo_point"));
+                    creator.setPenaltyPoints(rs.getInt("penalty_points"));
+                    creator.setReliabilityScore(rs.getDouble("reliability_score"));
+                    creator.setMatchesPlayed(rs.getInt("matches_played"));
+                    creator.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    creator.setMatchesWon(matchesWon);
+
+                    // Eğer attendees listesi null ise hata almamak için kontrol edip başlatıyoruz
+                    if (duello.getAttendees() == null) {
+                        duello.setAttendees(new java.util.ArrayList<>());
+                    }
+                    
+                    // Kurucuyu katılımcı listesine ekliyoruz (İlk eleman / get(0) olarak erişilebilir)
+                    duello.getAttendees().add(creator);
                     
                     suitableDuellos.add(duello);
                 }
@@ -2226,7 +2321,7 @@ public class Database {
 
         return suitableDuellos;
     }
-
+    
 /**
      * Deletes a duello request from the database.
      * Can be used to either cancel an outgoing request or reject an incoming request.
@@ -2458,8 +2553,59 @@ public class Database {
     }
 
     /**
+     * Retrieves all notifications for a specific student.
+     * This includes specific notifications targeted at the student AND system-wide broadcasts (target_user_id IS NULL).
+     * @param currentStudent The student requesting their notifications
+     * @return An ArrayList of Notification objects ordered by date (newest first).
+     */
+    public ArrayList<models.Notification> getNotificationsByStudent(models.Student currentStudent) {
+        
+        ArrayList<models.Notification> notifications = new ArrayList<>();
+
+        if (currentStudent == null || currentStudent.getBilkentEmail() == null) {
+            return notifications;
+        }
+
+        String sql = "SELECT notification_id, title, message, created_date " +
+                     "FROM notifications " +
+                     "WHERE target_user_id IS NULL " +
+                     "   OR target_user_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "ORDER BY created_date DESC";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, currentStudent.getBilkentEmail());
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    String notificationId = rs.getString("notification_id");
+                    String title = rs.getString("title");
+                    String message = rs.getString("message");
+                    
+                    java.sql.Timestamp dbTimestamp = rs.getTimestamp("created_date");
+
+                    models.Notification notification = new models.Notification(notificationId, title, message);
+                    
+                    if (dbTimestamp != null) {
+                        notification.setDate(dbTimestamp.toLocalDateTime());
+                    }
+                    
+                    notifications.add(notification);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return notifications;
+    }
+
+    /**
      * Retrieves all Duellos associated with a specific student.
      * This includes duellos created by the student AND duellos the student has joined as an attendee.
+     * Also fetches the creator of each duello and adds them to the duello's attendees list.
      * @param currentStudent The student whose duellos are being fetched
      * @return An ArrayList of Duello objects ordered by date (newest first).
      */
@@ -2471,15 +2617,20 @@ public class Database {
             return userDuellos;
         }
 
+        // Sorguya kurucunun (creator_u ve creator_s) bilgileri eklendi
         String sql = "SELECT DISTINCT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
                      "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
                      "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
-                     "sp.name AS sport_name " +
+                     "sp.name AS sport_name, " +
+                     "creator_u.full_name, creator_u.bilkent_email, creator_u.student_id AS uni_id, " +
+                     "creator_s.elo_point, creator_s.penalty_points, creator_s.reliability_score, creator_s.matches_played, creator_s.win_rate " +
                      "FROM duellos d " +
                      "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
                      "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
                      "LEFT JOIN sports sp ON f.sport_id = sp.id " +
                      "LEFT JOIN reservation_attendees ra ON r.reservation_id = ra.reservation_id " +
+                     "INNER JOIN users creator_u ON r.reserved_by = creator_u.id " +
+                     "INNER JOIN students creator_s ON creator_u.id = creator_s.user_id " +
                      "WHERE r.reserved_by = (SELECT id FROM users WHERE bilkent_email = ?) " +
                      "   OR ra.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
                      "ORDER BY r.reservation_date DESC, r.time_slot DESC";
@@ -2492,96 +2643,6 @@ public class Database {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    
-                    String facilityId = rs.getObject("facility_id").toString();
-                    String facilityName = rs.getString("facility_name");
-                    String location = rs.getString("campus_location");
-                    int capacity = rs.getInt("capacity");
-                    boolean maintenance = rs.getBoolean("is_under_maintenance");
-                    
-                    models.SportType st = null;
-                    try {
-                        String sportName = rs.getString("sport_name");
-                        if (sportName != null) {
-                            st = models.SportType.valueOf(sportName.trim().toUpperCase().replace(" ", "_"));
-                        }
-                    } catch (IllegalArgumentException e) {
-                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
-                    }
-
-                    models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
-                    facility.setUnderMaintenance(maintenance);
-
-                    String reservationId = rs.getObject("reservation_id").toString();
-                    java.sql.Date sqlDate = rs.getDate("reservation_date");
-                    java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
-                    String timeSlot = rs.getString("time_slot");
-                    
-                    String accessCode = rs.getString("access_code");
-                    String reqSkill = rs.getString("required_skill_level");
-                    int slots = rs.getInt("empty_slots");
-                    boolean matched = rs.getBoolean("is_matched");
-                    boolean cancelled = rs.getBoolean("is_cancelled");
-                    boolean attended = rs.getBoolean("has_attended");
-
-                    models.Duello duello = new models.Duello(
-                            reservationId, 
-                            facility, 
-                            resDate, 
-                            timeSlot, 
-                            accessCode, 
-                            reqSkill, 
-                            slots
-                    );
-                    
-                    duello.setMatched(matched);
-                    duello.setCancelled(cancelled);
-                    duello.setHasAttended(attended);
-                    
-                    userDuellos.add(duello);
-                }
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return userDuellos;
-    }
-
-    /**
-     * Retrieves a specific Duello based on its unique access code.
-     * Also fetches the creator of the duello and adds them to the attendees list.
-     * @param code The 6-digit access code of the duello
-     * @return The matching Duello object, or null if not found
-     */
-    public models.Duello getDuelloByCode(String code) {
-        
-        if (code == null || code.trim().isEmpty()) {
-            return null;
-        }
-
-        // users ve students tabloları JOIN edilerek kurucu (creator) bilgileri sorguya eklendi
-        String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
-                     "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
-                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
-                     "sp.name AS sport_name, " +
-                     "u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
-                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
-                     "FROM duellos d " +
-                     "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
-                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
-                     "LEFT JOIN sports sp ON f.sport_id = sp.id " +
-                     "INNER JOIN users u ON r.reserved_by = u.id " +
-                     "INNER JOIN students s ON u.id = s.user_id " +
-                     "WHERE d.access_code = ?";
-
-        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
-            
-            stmt.setString(1, code);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
                     
                     // 1. Tesis (Facility) Objesini Oluşturma
                     String facilityId = rs.getObject("facility_id").toString();
@@ -2647,12 +2708,119 @@ public class Database {
                     int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
                     creator.setMatchesWon(matchesWon);
 
-                    // Eğer attendees listesi null ise (Reservation class'ında initialize edilmemişse) hata almamak için kontrol edelim
+                    // Listeyi güvenli bir şekilde başlat ve kurucuyu ekle
+                    if (duello.getAttendees() == null) {
+                        duello.setAttendees(new java.util.ArrayList<>());
+                    }
+                    duello.getAttendees().add(creator);
+                    
+                    userDuellos.add(duello);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return userDuellos;
+    }
+    /**
+     * Retrieves a specific Duello based on its unique access code.
+     * Also fetches the creator of the duello and adds them to the attendees list.
+     * @param code The 6-digit access code of the duello
+     * @return The matching Duello object, or null if not found
+     */
+    public models.Duello getDuelloByCode(String code) {
+        
+        if (code == null || code.trim().isEmpty()) {
+            return null;
+        }
+
+        String sql = "SELECT d.reservation_id, d.access_code, d.required_skill_level, d.empty_slots, d.is_matched, " +
+                     "r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
+                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
+                     "sp.name AS sport_name, " +
+                     "u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM duellos d " +
+                     "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
+                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                     "LEFT JOIN sports sp ON f.sport_id = sp.id " +
+                     "INNER JOIN users u ON r.reserved_by = u.id " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE d.access_code = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, code);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    String facilityId = rs.getObject("facility_id").toString();
+                    String facilityName = rs.getString("facility_name");
+                    String location = rs.getString("campus_location");
+                    int capacity = rs.getInt("capacity");
+                    boolean maintenance = rs.getBoolean("is_under_maintenance");
+                    
+                    models.SportType st = null;
+                    try {
+                        String sportName = rs.getString("sport_name");
+                        if (sportName != null) {
+                            st = models.SportType.valueOf(sportName.trim().toUpperCase().replace(" ", "_"));
+                        }
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
+                    }
+
+                    models.Facility facility = new models.Facility(facilityId, facilityName, location, st, capacity);
+                    facility.setUnderMaintenance(maintenance);
+
+                    String reservationId = rs.getObject("reservation_id").toString();
+                    java.sql.Date sqlDate = rs.getDate("reservation_date");
+                    java.time.LocalDate resDate = (sqlDate != null) ? sqlDate.toLocalDate() : null;
+                    String timeSlot = rs.getString("time_slot");
+                    
+                    String accessCode = rs.getString("access_code");
+                    String reqSkill = rs.getString("required_skill_level");
+                    int slots = rs.getInt("empty_slots");
+                    boolean matched = rs.getBoolean("is_matched");
+                    boolean cancelled = rs.getBoolean("is_cancelled");
+                    boolean attended = rs.getBoolean("has_attended");
+
+                    models.Duello duello = new models.Duello(
+                            reservationId, 
+                            facility, 
+                            resDate, 
+                            timeSlot, 
+                            accessCode, 
+                            reqSkill, 
+                            slots
+                    );
+                    
+                    duello.setMatched(matched);
+                    duello.setCancelled(cancelled);
+                    duello.setHasAttended(attended);
+
+                    models.Student creator = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    creator.setEloPoint(rs.getInt("elo_point"));
+                    creator.setPenaltyPoints(rs.getInt("penalty_points"));
+                    creator.setReliabilityScore(rs.getDouble("reliability_score"));
+                    creator.setMatchesPlayed(rs.getInt("matches_played"));
+                    creator.setWinRate(rs.getDouble("win_rate"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    creator.setMatchesWon(matchesWon);
+
                     if (duello.getAttendees() == null) {
                         duello.setAttendees(new java.util.ArrayList<>());
                     }
                     
-                    // Kurucuyu katılımcı listesine ekle
                     duello.getAttendees().add(creator);
                     
                     return duello; // Bulunan düelloyu döndür
@@ -2667,8 +2835,74 @@ public class Database {
     }
 
     /**
+     * Retrieves a list of students who have 'Pending' requests to join a specific duello.
+     * @param reservationId The UUID of the duello/reservation
+     * @return An ArrayList of Student objects representing the requesters.
+     */
+    public ArrayList<models.Student> getPendingRequestsForDuello(String reservationId) {
+        
+        ArrayList<models.Student> pendingStudents = new ArrayList<>();
+
+        if (reservationId == null || reservationId.trim().isEmpty()) {
+            return pendingStudents;
+        }
+
+        // duello_requests tablosu üzerinden users ve students tablolarını birleştirerek 
+        // istek atan kişinin tüm istatistiklerini çekiyoruz.
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM duello_requests dr " +
+                     "INNER JOIN users u ON dr.requester_id = u.id " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE dr.reservation_id = ? AND dr.status = 'Pending'";
+
+        try {
+            java.util.UUID resId = java.util.UUID.fromString(reservationId);
+
+            try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+                
+                stmt.setObject(1, resId);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        
+                        // 1. Temel bilgileri kullanarak Student objesini oluştur
+                        models.Student requester = new models.Student(
+                            rs.getString("full_name"), 
+                            rs.getString("bilkent_email"), 
+                            rs.getString("uni_id")
+                        );
+                        
+                        // 2. Öğrencinin spor/oyun istatistiklerini set et
+                        requester.setEloPoint(rs.getInt("elo_point"));
+                        requester.setPenaltyPoints(rs.getInt("penalty_points"));
+                        requester.setReliabilityScore(rs.getDouble("reliability_score"));
+                        requester.setMatchesPlayed(rs.getInt("matches_played"));
+                        requester.setWinRate(rs.getDouble("win_rate"));
+                        
+                        // Kazanılan maç sayısını (win_rate * matches_played) formülüyle hesapla
+                        int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                        requester.setMatchesWon(matchesWon);
+
+                        // 3. Listeye ekle
+                        pendingStudents.add(requester);
+                    }
+                }
+            }
+
+        } catch (IllegalArgumentException e) {
+            // Geçersiz formattaki UUID'leri yakalar (Sistemin çökmesini engeller)
+            System.err.println("Geçersiz Reservation ID formatı: " + reservationId);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return pendingStudents;
+    }
+    
+    /**
      * Fetches admin records from the 'users' and 'admins' tables
-     * and updates the provided Admin object with this data.
+     * and updates the provided Admin object with this data, including the profile picture.
      * @param admin The existing Admin object to be updated
      * @param email Admin's Bilkent email address to query the database
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
@@ -2680,8 +2914,8 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
 
-        // users ve admins tablolarını birleştiren sorgu
-        String sql = "SELECT u.full_name, u.bilkent_email, u.password_hash, " +
+        // users ve admins tablolarını birleştiren sorgu (u.profile_pic_url eklendi)
+        String sql = "SELECT u.full_name, u.bilkent_email, u.password_hash, u.profile_pic_url, " +
                      "a.actions_performed " +
                      "FROM users u " +
                      "INNER JOIN admins a ON u.id = a.admin_id " +
@@ -2698,6 +2932,9 @@ public class Database {
                     admin.setFullName(rs.getString("full_name"));
                     admin.setBilkentEmail(rs.getString("bilkent_email"));
                     admin.setPassword(rs.getString("password_hash"));
+                    
+                    // Miras alınan User modeline profil fotoğrafını set ediyoruz
+                    admin.setProfilePictureUrl(rs.getString("profile_pic_url"));
                     
                     // 2. Admin'e özel verileri set et
                     // Güncellenen modele uygun olarak setActionsPerformed kullanıldı
@@ -2718,7 +2955,6 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
-
     /**
      * Inserts a new facility into the database.
      * @param facilityName The name of the facility (e.g., "Main Sports Hall")
@@ -2756,6 +2992,52 @@ public class Database {
             
             if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
                 return DbStatus.CONNECTION_ERROR;
+            }
+            
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Deletes a facility from the database using its name.
+     * Note: If multiple facilities have the exact same name, all of them will be deleted.
+     * @param facilityName The exact name of the facility to be deleted
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND (if no facility matched), or errors.
+     */
+    public DbStatus deleteFacility(String facilityName) {
+        
+        if (facilityName == null || facilityName.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String sql = "DELETE FROM facilities WHERE name = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, facilityName);
+            
+            int deletedRows = stmt.executeUpdate();
+            
+            // Eğer silinen satır sayısı 0 ise, bu isme ait bir tesis yok demektir
+            if (deletedRows == 0) {
+                return DbStatus.DATA_NOT_FOUND; 
+            }
+
+            return DbStatus.SUCCESS;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            
+            // Veritabanı bağlantı hatası
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            
+            // Yabancı Anahtar (Foreign Key) İhlali - Hata Kodu: 23503
+            // Eğer bu tesise ait geçmiş veya gelecek rezervasyonlar varsa, veritabanı silmeye izin vermez.
+            if ("23503".equals(e.getSQLState())) {
+                System.err.println("Uyarı: Bu tesise bağlı rezervasyonlar olduğu için tesis silinemiyor!");
+                return DbStatus.QUERY_ERROR; 
             }
             
             return DbStatus.QUERY_ERROR;
@@ -2809,5 +3091,1311 @@ public class Database {
             
             return DbStatus.QUERY_ERROR;
         }
+    }
+
+    /**
+     * Retrieves the total count of student and admin users.
+     * @return A List where index 0 is the number of students, and index 1 is the number of admins.
+     */
+    public java.util.List<Integer> getUsersCount() {
+        
+        java.util.List<Integer> counts = new java.util.ArrayList<>();
+        counts.add(0); // 0. index: student sayısı
+        counts.add(0); // 1. index: admin sayısı
+
+        String sql = "SELECT " +
+                     "COUNT(*) FILTER (WHERE role = 'student') AS student_count, " +
+                     "COUNT(*) FILTER (WHERE role = 'admin') AS admin_count " +
+                     "FROM users";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (rs.next()) {
+                counts.set(0, rs.getInt("student_count"));
+                counts.set(1, rs.getInt("admin_count"));
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return counts;
+    }
+
+    /**
+     * Uploads a profile picture to Supabase Storage and updates the user's profile picture URL in the database.
+     * Validates the file format (PNG, JPG, JPEG) and enforces a maximum file size limit of 5 MB.
+     * Automatically deletes the old profile picture from Storage to save space.
+     * @param email The Bilkent email of the user updating their profile picture
+     * @param pictureFile The image file to be uploaded to the 'avatars' bucket
+     * @return DbStatus indicating SUCCESS, FILE_TOO_LARGE, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateProfilePicture(String email, File pictureFile) {
+        
+        // 1. Dosya Geçerlilik Kontrolü
+        if (pictureFile == null || !pictureFile.exists()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // --- BOYUT KONTROLÜ (Maksimum 5 MB) ---
+        long maxFileSize = 5 * 1024 * 1024; // 5 MB'ın byte karşılığı
+        if (pictureFile.length() > maxFileSize) {
+            System.err.println("Uyarı: Yüklenen dosya çok büyük! Maksimum 5 MB destekleniyor.");
+            return DbStatus.FILE_TOO_LARGE; 
+        }
+
+        String fileName = pictureFile.getName().toLowerCase();
+        if (!fileName.endsWith(".png") && !fileName.endsWith(".jpg") && !fileName.endsWith(".jpeg")) {
+            return DbStatus.QUERY_ERROR; 
+        }
+
+        try {
+            // YENİ ADIM: İşleme başlamadan önce kullanıcının mevcut fotoğraf linkini veritabanından çek (Yedekte tut)
+            String oldProfilePicUrl = getCurrentProfilePicUrl(email);
+
+            // 2. Supabase Storage İçin Benzersiz Dosya Adı Oluşturma
+            String extension = fileName.substring(fileName.lastIndexOf("."));
+            String storagePath = "profile_" + email.replace("@", "_").replace(".", "_") + "_" + System.currentTimeMillis() + extension;
+
+            // 3. Dosyayı Supabase Storage'a Yükleme
+            String uploadUrl = SUPABASE_URL + "/storage/v1/object/avatars/" + storagePath;
+            
+            java.net.URL url = java.net.URI.create(uploadUrl).toURL();
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+            
+            connection.setRequestMethod("POST"); 
+            connection.setRequestProperty("Authorization", "Bearer " + SUPABASE_KEY);
+            connection.setRequestProperty("apikey", SUPABASE_KEY); 
+            
+            String contentType = Files.probeContentType(pictureFile.toPath());
+            if (contentType == null) {
+                contentType = fileName.endsWith(".png") ? "image/png" : "image/jpeg";
+            }
+            connection.setRequestProperty("Content-Type", contentType);
+            connection.setDoOutput(true);
+
+            try (java.io.InputStream fileInput = new FileInputStream(pictureFile);
+                 java.io.OutputStream requestBody = connection.getOutputStream()) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = fileInput.read(buffer)) != -1) {
+                    requestBody.write(buffer, 0, bytesRead);
+                }
+            }
+
+            int statusCode = connection.getResponseCode();
+            if (statusCode == 200 || statusCode == 201) {
+                
+                // 4. Başarılı Yükleme Sonrası Public URL Oluşturma
+                String publicUrl = SUPABASE_URL + "/storage/v1/object/public/avatars/" + storagePath;
+
+                // 5. Veritabanındaki 'users' tablosunu yeni URL ile güncelle
+                DbStatus updateStatus = updateProfilePicUrlInDatabase(email, publicUrl);
+                
+                // YENİ ADIM: Eğer veritabanı başarıyla güncellendiyse ve eski bir fotoğraf varsa, eskiyi Storage'dan SİL!
+                if (updateStatus == DbStatus.SUCCESS && oldProfilePicUrl != null && !oldProfilePicUrl.trim().isEmpty()) {
+                    deleteFileFromStorage(oldProfilePicUrl);
+                }
+                
+                return updateStatus;
+                
+            } else {
+                java.io.InputStream errorStream = connection.getErrorStream();
+                if (errorStream != null) {
+                    try (java.util.Scanner scanner = new java.util.Scanner(errorStream)) {
+                        scanner.useDelimiter("\\A");
+                        String errorBody = scanner.hasNext() ? scanner.next() : "Detay yok";
+                        System.err.println("Storage Hatası Detayı: " + errorBody);
+                    }
+                }
+                System.err.println("Storage Hatası: HTTP " + statusCode);
+                return DbStatus.QUERY_ERROR;
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return DbStatus.CONNECTION_ERROR;
+        }
+    }
+
+    /**
+     * Yardımcı Metot 1: Veritabanındaki URL kolonunu günceller.
+     */
+    private DbStatus updateProfilePicUrlInDatabase(String email, String publicUrl) {
+        String sql = "UPDATE users SET profile_pic_url = ? WHERE bilkent_email = ?";
+        
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, publicUrl);
+            stmt.setString(2, email);
+            
+            int updatedRows = stmt.executeUpdate();
+            return (updatedRows > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Yardımcı Metot 2: Kullanıcının veritabanındaki mevcut profil fotoğrafı URL'sini çeker.
+     */
+    private String getCurrentProfilePicUrl(String email) {
+        String sql = "SELECT profile_pic_url FROM users WHERE bilkent_email = ?";
+        
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, email);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("profile_pic_url");
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Mevcut fotoğraf URL'si çekilirken hata oluştu: " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Yardımcı Metot 3: Supabase Storage API'sini kullanarak verilen URL'ye ait dosyayı fiziksel olarak siler.
+     */
+    private void deleteFileFromStorage(String oldUrl) {
+        // Geçersiz bir URL geldiyse (veya bizim bucket'tan değilse) işlemi iptal et
+        if (oldUrl == null || !oldUrl.contains("/avatars/")) return;
+
+        try {
+            // URL'nin sonundaki dosya adını çekiyoruz (Örn: "profile_berkin_..._162345.png")
+            String fileName = oldUrl.substring(oldUrl.lastIndexOf("/") + 1);
+            
+            // Supabase Delete API Endpoint'i
+            String deleteApiUrl = SUPABASE_URL + "/storage/v1/object/avatars/" + fileName;
+            
+            java.net.URL url = java.net.URI.create(deleteApiUrl).toURL();
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+            
+            connection.setRequestMethod("DELETE");
+            connection.setRequestProperty("Authorization", "Bearer " + SUPABASE_KEY);
+            connection.setRequestProperty("apikey", SUPABASE_KEY);
+            
+            int responseCode = connection.getResponseCode();
+            if (responseCode != 200) {
+                System.err.println("Uyarı: Eski profil fotoğrafı Storage'dan silinemedi. HTTP Kodu: " + responseCode);
+            } else {
+                System.out.println("Eski profil fotoğrafı Storage'dan başarıyla temizlendi.");
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Eski fotoğraf silinirken bir istisna oluştu: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Creates a new team for a given tournament with the specified team name and creator student.
+     * Validates that the creator student is not already an 'ACCEPTED' member of another team in the same tournament.
+     * If validation passes, it creates the team and adds the creator as the captain with 'ACCEPTED' status in a single transaction.
+     * @param creatorStudent The student who will be the captain of the new team
+     * @param currentTournament The tournament for which the team is being created
+     * @param teamName The desired name of the new team
+     * @return DbStatus indicating SUCCESS, ALREADY_IN_TOURNAMENT, or errors.
+     */
+    public DbStatus insertTeam(models.Student creatorStudent, models.Tournament currentTournament, String teamName) {
+        
+        if (creatorStudent == null || currentTournament == null || teamName == null || teamName.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // 1. AŞAMA: Kullanıcının bu turnuvada zaten 'ACCEPTED' olduğu bir takım var mı kontrolü
+        String checkSql = "SELECT 1 FROM team_members tm " +
+                          "INNER JOIN teams t ON tm.team_id = t.team_id " +
+                          "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                          "AND tm.status = 'ACCEPTED' " +
+                          "AND t.tournament_id = ?";
+
+        String teamId = java.util.UUID.randomUUID().toString();
+        String accessCode = generateRandomCode(6); 
+        
+        String insertTeamSql = "INSERT INTO teams (team_id, tournament_id, team_name, access_code, max_capacity, ge250_requested, captain_id) " +
+                               "VALUES (?, ?, ?, ?, ?, ?, (SELECT id FROM users WHERE bilkent_email = ?))";
+        
+        // 2. AŞAMA: Kaptanı 'ACCEPTED' olarak ekleyecek şekilde güncellenen SQL
+        String insertMemberSql = "INSERT INTO team_members (team_id, student_id, status) " +
+                                 "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?), 'ACCEPTED')";
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            
+            // --- KONTROL İŞLEMİ ---
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                checkStmt.setString(1, creatorStudent.getBilkentEmail());
+                checkStmt.setObject(2, java.util.UUID.fromString(currentTournament.getTournamentId()));
+                
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        System.err.println("Hata: Öğrenci zaten bu turnuvadaki bir takımda (ACCEPTED) bulunuyor, yeni takım kuramaz!");
+                        // Arayüzde özel uyarı vermek için DbStatus.ALREADY_IN_TOURNAMENT gibi bir şey dönebilirsin
+                        return DbStatus.QUERY_ERROR; 
+                    }
+                }
+            }
+            
+            // Kontrolü geçtiysek Transaction'ı başlatıyoruz
+            conn.setAutoCommit(false); 
+            
+            // 1. Takımı oluştur
+            try (PreparedStatement stmt1 = conn.prepareStatement(insertTeamSql)) {
+                stmt1.setObject(1, java.util.UUID.fromString(teamId));
+                stmt1.setObject(2, java.util.UUID.fromString(currentTournament.getTournamentId()));
+                stmt1.setString(3, teamName);
+                stmt1.setString(4, accessCode);
+                stmt1.setInt(5, currentTournament.getMaxPlayersPerTeam());
+                stmt1.setBoolean(6, currentTournament.isHasGe250()); 
+                stmt1.setString(7, creatorStudent.getBilkentEmail());
+                stmt1.executeUpdate();
+            }
+            
+            // 2. Kaptanı üye olarak (ACCEPTED) ekle
+            try (PreparedStatement stmt2 = conn.prepareStatement(insertMemberSql)) {
+                stmt2.setObject(1, java.util.UUID.fromString(teamId));
+                stmt2.setString(2, creatorStudent.getBilkentEmail());
+                stmt2.executeUpdate();
+            }
+            
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) try { conn.setAutoCommit(true); } catch (SQLException e) { e.printStackTrace(); }
+        }
+    }
+    
+    /**
+     * Allows a student to join a team using the team's access code.
+     * Validates the access code, checks for team capacity, and ensures the student 
+     * is not already in another team in the same tournament before adding them.
+     * @param currentStudent The student who is trying to join the team
+     * @param inputCode The access code provided by the student to join the team
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or error types.
+     */
+    public DbStatus beTeamMember(models.Student currentStudent, String inputCode) {
+        
+        if (currentStudent == null || inputCode == null || inputCode.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // 1. ADIM: Girilen koda ait takımı, kapasitesini ve mevcut üye sayısını bul
+        String findTeamSql = "SELECT t.team_id, t.tournament_id, t.max_capacity, " +
+                             "(SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id AND tm.status = 'ACCEPTED') AS current_count " +
+                             "FROM teams t WHERE t.access_code = ?";
+
+        // 2. ADIM: Öğrencinin aynı turnuvada başka bir takımda olup olmadığını kontrol et
+        String checkTournamentSql = "SELECT 1 FROM team_members tm " +
+                                    "INNER JOIN teams t ON tm.team_id = t.team_id " +
+                                    "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                                    "AND tm.status = 'ACCEPTED' AND t.tournament_id = ?";
+
+        // 3. ADIM: Öğrenciyi takıma doğrudan 'ACCEPTED' olarak ekle
+        String insertMemberSql = "INSERT INTO team_members (team_id, student_id, status) " +
+                                 "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?), 'ACCEPTED')";
+
+        try {
+            java.util.UUID teamId = null;
+            java.util.UUID tournamentId = null;
+
+            // --- KONTROL 1: Takımı Bul ve Kapasiteyi Denetle ---
+            try (java.sql.PreparedStatement findStmt = getConnection().prepareStatement(findTeamSql)) {
+                findStmt.setString(1, inputCode.trim().toUpperCase()); // Kodları her ihtimale karşı büyük harf ve boşluksuz arıyoruz
+                
+                try (java.sql.ResultSet rs = findStmt.executeQuery()) {
+                    if (rs.next()) {
+                        int maxCap = rs.getInt("max_capacity");
+                        int currentCount = rs.getInt("current_count");
+                        
+                        if (currentCount >= maxCap) {
+                            System.err.println("Hata: Katılmaya çalıştığınız takımın kapasitesi dolu!");
+                            return DbStatus.QUERY_ERROR; // Kapasite hatası
+                        }
+                        
+                        teamId = (java.util.UUID) rs.getObject("team_id");
+                        tournamentId = (java.util.UUID) rs.getObject("tournament_id");
+                    } else {
+                        System.err.println("Hata: Geçersiz veya bulunamayan katılım kodu!");
+                        return DbStatus.DATA_NOT_FOUND; // Takım bulunamadı
+                    }
+                }
+            }
+
+            // --- KONTROL 2: Aynı Turnuvada Başka Takımda Mı? ---
+            try (java.sql.PreparedStatement checkStmt = getConnection().prepareStatement(checkTournamentSql)) {
+                checkStmt.setString(1, currentStudent.getBilkentEmail());
+                checkStmt.setObject(2, tournamentId);
+                
+                try (java.sql.ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        System.err.println("Hata: Öğrenci bu turnuvada zaten başka bir takıma kayıtlı!");
+                        return DbStatus.QUERY_ERROR; // Zaten turnuvada var
+                    }
+                }
+            }
+
+            // --- İŞLEM: Takıma Ekle ---
+            try (java.sql.PreparedStatement insertStmt = getConnection().prepareStatement(insertMemberSql)) {
+                insertStmt.setObject(1, teamId);
+                insertStmt.setString(2, currentStudent.getBilkentEmail());
+                
+                int insertedRows = insertStmt.executeUpdate();
+                return (insertedRows > 0) ? DbStatus.SUCCESS : DbStatus.QUERY_ERROR;
+            }
+
+        } catch (java.sql.SQLException e) {
+            // "23505" hatası PostgreSQL'de "Unique Violation" yani mükerrer kayıt demektir.
+            // Bu durumda öğrenci zaten o takımdadır (veya PENDING olarak daha önceden istek atılmıştır).
+            if ("23505".equals(e.getSQLState())) {
+                System.err.println("Uyarı: Öğrenci zaten bu takımda bulunuyor veya davetiye bekliyor!");
+            } else {
+                e.printStackTrace();
+            }
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) return DbStatus.CONNECTION_ERROR;
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+    
+    /**
+     * Removes a student from a team based on the team ID and student's email.
+     * @param teamId The UUID of the team from which the student wants to be removed
+     * @param studentEmail The Bilkent email of the student to be removed from the team
+     * @return DbStatus indicating SUCCESS or error types.
+     */
+    public DbStatus deleteTeamMember(String teamId, String studentEmail) {
+        String sql = "DELETE FROM team_members WHERE team_id = ? " +
+                     "AND student_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+            stmt.setString(2, studentEmail);
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Deletes a team from the database. 
+     * Since 'ON DELETE CASCADE' is enabled, all members in 'team_members' 
+     * will be automatically removed by the database.
+     * @param teamId The UUID of the team to be deleted
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus deleteTeam(String teamId) {
+        if (teamId == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "DELETE FROM teams WHERE team_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+            
+            int deletedRows = stmt.executeUpdate();
+            return (deletedRows > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+
+    /**
+     * Inserts a new tournament into the database.
+     * Automatically generates a UUID and a 6-character access code.
+     * * @param tournamentName Name of the tournament
+     * @param sportName Name of the sport (e.g., "BASKETBALL")
+     * @param startDate Tournament start date
+     * @param endDate Tournament end date
+     * @param maxPlayersPerTeam Maximum capacity for each team
+     * @param hasGe250 Whether the tournament gives GE250 points
+     * @param campusLocation The campus location (e.g., "Main Campus" or "East Campus")
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus insertTournament(String tournamentName, String sportName, LocalDate startDate, LocalDate endDate, int maxPlayersPerTeam, boolean hasGe250, String campusLocation) {
+        
+        // campusLocation için null ve boşluk kontrolü eklendi
+        if (tournamentName == null || sportName == null || startDate == null || endDate == null || campusLocation == null || campusLocation.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String tournamentId = java.util.UUID.randomUUID().toString();
+        String accessCode = generateRandomCode(6); // Daha önce yazdığın metodu kullanır
+        String formattedSportName = sportName.trim().toUpperCase().replace(" ", "_");
+
+        // sport_id değerini sports tablosundan çekerek ekliyoruz
+        String sql = "INSERT INTO tournaments (tournament_id, tournament_name, sport_id, start_date, end_date, " +
+                     "max_players_per_team, has_ge250, access_code, is_active, campus_location) " +
+                     "SELECT ?, ?, id, ?, ?, ?, ?, ?, ?, ? FROM sports WHERE UPPER(REPLACE(name, ' ', '_')) = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(tournamentId));
+            stmt.setString(2, tournamentName);
+            stmt.setTimestamp(3, java.sql.Timestamp.valueOf(startDate.atStartOfDay()));
+            stmt.setTimestamp(4, java.sql.Timestamp.valueOf(endDate.atStartOfDay()));
+            stmt.setInt(5, maxPlayersPerTeam);
+            
+            // Parametreden gelen değer kullanılıyor
+            stmt.setBoolean(6, hasGe250); 
+            
+            stmt.setString(7, accessCode);
+            stmt.setBoolean(8, true); // Yeni turnuva varsayılan olarak aktiftir
+            
+            // Parametreden gelen değer kullanılıyor
+            stmt.setString(9, campusLocation); 
+            
+            stmt.setString(10, formattedSportName);
+            
+            int insertedRows = stmt.executeUpdate();
+            return (insertedRows > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND; // Spor bulunamazsa
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) return DbStatus.CONNECTION_ERROR;
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the name and maximum players per team for a given tournament.
+     * @param tournamentId The UUID of the tournament to be updated
+     * @param newName The new name for the tournament
+     * @param newMaxPlayers The new maximum number of players allowed per team in the tournament
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateTournamentDetails(String tournamentId, String newName, int newMaxPlayers) {
+        
+        if (tournamentId == null || newName == null || newName.trim().isEmpty()) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE tournaments SET tournament_name = ?, max_players_per_team = ? WHERE tournament_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setString(1, newName);
+            stmt.setInt(2, newMaxPlayers);
+            stmt.setObject(3, java.util.UUID.fromString(tournamentId));
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Activates or deactivates a tournament by updating its 'is_active' status in the database.
+     * @param tournamentId The UUID of the tournament to be updated
+     * @param isActive The new active status for the tournament (true for active, false for inactive)
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateTournamentStatus(String tournamentId, boolean isActive) {
+        
+        if (tournamentId == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE tournaments SET is_active = ? WHERE tournament_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setBoolean(1, isActive);
+            stmt.setObject(2, java.util.UUID.fromString(tournamentId));
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the start and end dates of a tournament in the database.
+     * @param tournamentId The UUID of the tournament to be updated
+     * @param newStart The new start date for the tournament
+     * @param newEnd The new end date for the tournament
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateTournamentDates(String tournamentId, LocalDate newStart, LocalDate newEnd) {
+        
+        if (tournamentId == null || newStart == null || newEnd == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE tournaments SET start_date = ?, end_date = ? WHERE tournament_id = ?";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setTimestamp(1, java.sql.Timestamp.valueOf(newStart.atStartOfDay()));
+            stmt.setTimestamp(2, java.sql.Timestamp.valueOf(newEnd.atStartOfDay()));
+            stmt.setObject(3, java.util.UUID.fromString(tournamentId));
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves a list of all active tournaments from the database, including their associated sport names.
+     * Joins the 'tournaments' table with the 'sports' table to fetch the sport name for each tournament.
+     * Converts database records into Tournament model objects and returns them in a list.
+     * @return A List of Tournament objects representing all active tournaments.
+     */
+    public java.util.List<models.Tournament> getAllActiveTournaments() {
+        
+        java.util.List<models.Tournament> activeTournaments = new java.util.ArrayList<>();
+        
+        String sql = "SELECT t.tournament_id, t.tournament_name, s.name AS sport_name, " +
+                     "t.start_date, t.end_date, t.max_players_per_team, t.has_ge250, " +
+                     "t.access_code, t.campus_location " +
+                     "FROM tournaments t " +
+                     "INNER JOIN sports s ON t.sport_id = s.id " +
+                     "WHERE t.is_active = true";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql);
+             java.sql.ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                String tId = rs.getObject("tournament_id").toString();
+                String tName = rs.getString("tournament_name");
+                
+                // String spor adını Enum'a çeviriyoruz
+                String sportNameStr = rs.getString("sport_name");
+                models.SportType sType = null;
+                try {
+                    sType = models.SportType.valueOf(sportNameStr.trim().toUpperCase().replace(" ", "_"));
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Geçersiz spor türü: " + sportNameStr);
+                    continue; // Hatalı spor varsa bu turnuvayı atla
+                }
+
+                // timestamptz verisini LocalDate'e dönüştürüyoruz
+                LocalDate sDate = rs.getTimestamp("start_date").toLocalDateTime().toLocalDate();
+                LocalDate eDate = rs.getTimestamp("end_date").toLocalDateTime().toLocalDate();
+                
+                int maxPlayers = rs.getInt("max_players_per_team");
+                boolean ge250 = rs.getBoolean("has_ge250");
+                String code = rs.getString("access_code");
+                String location = rs.getString("campus_location");
+
+                // Constructor üzerinden Tournament objesini oluşturup listeye ekliyoruz
+                models.Tournament tournament = new models.Tournament(
+                    tId, tName, sType, sDate, eDate, maxPlayers, ge250, code, location
+                );
+                
+                activeTournaments.add(tournament);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return activeTournaments;
+    }
+
+    /**
+     * Sends a team invite to a student by inserting a pending invitation record into the 'team_members' table.
+     * The invitation is represented as a record with 'PENDING' status, which can later be accepted or rejected by the student.
+     * @param teamId The UUID of the team sending the invite
+     * @param receiverEmail The Bilkent email of the student receiving the invite
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus sendTeamInvite(String teamId, String receiverEmail) {
+        if (teamId == null || receiverEmail == null) return DbStatus.QUERY_ERROR;
+
+        // 1. AŞAMA: Kullanıcının aynı turnuvada zaten bir takımda olup olmadığını kontrol eden SQL
+        String checkSql = "SELECT 1 FROM team_members tm " +
+                          "INNER JOIN teams t ON tm.team_id = t.team_id " +
+                          "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                          "AND tm.status = 'ACCEPTED' " +
+                          "AND t.tournament_id = (SELECT tournament_id FROM teams WHERE team_id = ?)";
+
+        // 2. AŞAMA: İsteği PENDING olarak ekleyen SQL
+        String insertSql = "INSERT INTO team_members (team_id, student_id, status) " +
+                           "VALUES (?, (SELECT id FROM users WHERE bilkent_email = ?), 'PENDING')";
+
+        try {
+            java.util.UUID tId = java.util.UUID.fromString(teamId);
+
+            // Önce turnuva kontrolünü yapıyoruz
+            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
+                checkStmt.setString(1, receiverEmail);
+                checkStmt.setObject(2, tId);
+                
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (rs.next()) {
+                        System.err.println("Reddedildi: Kullanıcı zaten bu turnuvadaki bir takımda yer alıyor.");
+                        // Arayüzde özel bir uyarı göstermek istersen DbStatus enum'ına 
+                        // ALREADY_IN_TOURNAMENT gibi yeni bir flag ekleyip onu döndürebilirsin.
+                        return DbStatus.QUERY_ERROR; 
+                    }
+                }
+            }
+
+            // Kontrol temiz çıkarsa (kullanıcı turnuvada değilse) daveti atıyoruz
+            try (PreparedStatement insertStmt = getConnection().prepareStatement(insertSql)) {
+                insertStmt.setObject(1, tId);
+                insertStmt.setString(2, receiverEmail);
+                
+                return (insertStmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+            }
+
+        } catch (SQLException e) {
+            // Composite Primary Key (team_id, student_id) ihlali (Zaten bu takımda veya davet bekliyor)
+            if ("23505".equals(e.getSQLState())) {
+                System.err.println("Uyarı: Bu kullanıcıya bu takım için zaten davet atılmış veya kullanıcı zaten takımda!");
+                return DbStatus.ALREADY_IN_TOURNAMENT;
+            } else {
+                e.printStackTrace();
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+    /**
+     * Retrieves a list of tournaments that the given student is currently a member of.
+     * Joins multiple tables to fetch tournaments where the student has an 'ACCEPTED' membership status.
+     * Converts database records into Tournament model objects and returns them in a list.
+     * @param currentStudent The student for whom to fetch the tournaments
+     * @return A List of Tournament objects representing the tournaments the student is part of.
+     */
+    public java.util.ArrayList<models.Tournament> getUserTournaments(Student currentStudent) {
+        java.util.ArrayList<models.Tournament> tournaments = new java.util.ArrayList<>();
+        if (currentStudent == null) return tournaments;
+
+        String sql = "SELECT t.tournament_id, t.tournament_name, s.name AS sport_name, " +
+                     "t.start_date, t.end_date, t.max_players_per_team, t.has_ge250, " +
+                     "t.access_code, t.campus_location " +
+                     "FROM tournaments t " +
+                     "INNER JOIN sports s ON t.sport_id = s.id " +
+                     "INNER JOIN teams tm ON t.tournament_id = tm.tournament_id " +
+                     "INNER JOIN team_members tmem ON tm.team_id = tmem.team_id " +
+                     "INNER JOIN users u ON tmem.student_id = u.id " +
+                     "WHERE u.bilkent_email = ? AND tmem.status = 'ACCEPTED' AND t.is_active = true";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, currentStudent.getBilkentEmail());
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String sportNameStr = rs.getString("sport_name");
+                    models.SportType sType = null;
+                    try {
+                        sType = models.SportType.valueOf(sportNameStr.trim().toUpperCase().replace(" ", "_"));
+                    } catch (IllegalArgumentException e) {
+                        continue;
+                    }
+
+                    tournaments.add(new models.Tournament(
+                        rs.getObject("tournament_id").toString(),
+                        rs.getString("tournament_name"),
+                        sType,
+                        rs.getTimestamp("start_date").toLocalDateTime().toLocalDate(),
+                        rs.getTimestamp("end_date").toLocalDateTime().toLocalDate(),
+                        rs.getInt("max_players_per_team"),
+                        rs.getBoolean("has_ge250"),
+                        rs.getString("access_code"),
+                        rs.getString("campus_location")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return tournaments;
+    }
+
+    /**
+     * Allows a student to reject a team invite by deleting the corresponding pending record from the 'team_members' table.
+     * The method checks for the existence of a pending invitation for the given team and student before attempting deletion.
+     * @param teamId The UUID of the team whose invite is being rejected
+     * @param receiverEmail The Bilkent email of the student rejecting the invite
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus rejectTeamInvite(String teamId, String receiverEmail) {
+        if (teamId == null || receiverEmail == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "DELETE FROM team_members " +
+                     "WHERE team_id = ? AND student_id = (SELECT id FROM users WHERE bilkent_email = ?) AND status = 'PENDING'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+            stmt.setString(2, receiverEmail);
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Allows a student to accept a team invite by updating the corresponding record in the 'team_members' table from 'PENDING' to 'ACCEPTED'.
+     * The method checks for the existence of a pending invitation for the given team and student before attempting the update.
+     * @param teamId The UUID of the team whose invite is being accepted
+     * @param receiverEmail The Bilkent email of the student accepting the invite
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus acceptTeamInvite(String teamId, String receiverEmail) {
+        if (teamId == null || receiverEmail == null) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE team_members SET status = 'ACCEPTED' " +
+                     "WHERE team_id = ? AND student_id = (SELECT id FROM users WHERE bilkent_email = ?) AND status = 'PENDING'";
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+            stmt.setString(2, receiverEmail);
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves a list of teams that have sent pending join requests to a specific student.
+     * Joins multiple tables to fetch team details along with the captain's information for teams where the student has a 'PENDING' status.
+     * @param teamId Optional UUID of a specific team to filter the incoming requests (if null, fetches all incoming requests)
+     * @param currentStudent The student for whom to fetch the incoming requests (used to filter requests relevant to this student)
+     * @return A List of Team objects representing the teams that have sent join requests to the specified student.
+     */
+    public java.util.ArrayList<models.Team> getTeamIncomingRequests(String teamId, models.Student currentStudent) {
+        java.util.ArrayList<models.Team> incomingTeams = new java.util.ArrayList<>();
+        if (currentStudent == null) return incomingTeams;
+
+        // t.* -> Takım bilgileri
+        // c_u.* ve c_s.* -> Kaptanın bilgileri (users ve students tablolarından)
+        StringBuilder sql = new StringBuilder(
+            "SELECT t.team_id, t.team_name, t.access_code, t.max_capacity, t.ge250_requested, " +
+            "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.student_id AS cap_uni_id, c_u.profile_pic_url AS cap_pic, " +
+            "c_s.elo_point, c_s.win_rate " +
+            "FROM teams t " +
+            "INNER JOIN team_members tm ON t.team_id = tm.team_id " +
+            "INNER JOIN users u ON tm.student_id = u.id " +
+            "INNER JOIN users c_u ON t.captain_id = c_u.id " +
+            "INNER JOIN students c_s ON c_u.id = c_s.user_id " +
+            "WHERE u.bilkent_email = ? AND tm.status = 'PENDING'"
+        );
+
+        if (teamId != null && !teamId.trim().isEmpty()) {
+            sql.append(" AND tm.team_id = ?");
+        }
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql.toString())) {
+            stmt.setString(1, currentStudent.getBilkentEmail());
+            if (teamId != null && !teamId.trim().isEmpty()) {
+                stmt.setObject(2, java.util.UUID.fromString(teamId));
+            }
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    // 1. Kaptanı oluşturuyoruz
+                    models.Student captain = new models.Student(
+                        rs.getString("cap_name"), 
+                        rs.getString("cap_email"), 
+                        rs.getString("cap_uni_id")
+                    );
+                    captain.setProfilePictureUrl(rs.getString("cap_pic"));
+                    captain.setEloPoint(rs.getInt("elo_point"));
+                    captain.setWinRate(rs.getDouble("win_rate"));
+
+                    // 2. Takımı oluşturuyoruz
+                    models.Team team = new models.Team(
+                        rs.getObject("team_id").toString(),
+                        rs.getString("team_name"),
+                        rs.getString("access_code"),
+                        rs.getInt("max_capacity"),
+                        rs.getBoolean("ge250_requested"),
+                        captain
+                    );
+
+                    incomingTeams.add(team);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return incomingTeams;
+    }
+    /**
+     * Retrieves a list of students who have received pending join requests from a specific team.
+     * Joins multiple tables to fetch students who have a 'PENDING' status for the given team ID and the current student's email.
+     * @param teamId The UUID of the team for which to fetch outgoing join requests
+     * @param currentStudent The student for whom to fetch the outgoing requests (used to filter requests relevant to this student)
+     * @return A List of Student objects representing the students who have received join requests from the specified team.
+     */
+    public java.util.ArrayList<models.Student> getTeamOutgoingRequests(String teamId, Student currentStudent) {
+        java.util.ArrayList<models.Student> requestReceivers = new java.util.ArrayList<>();
+        if (currentStudent == null) return requestReceivers;
+
+        StringBuilder sql = new StringBuilder(
+            "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
+            "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+            "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+            "FROM team_members tm " +
+            "INNER JOIN teams t ON tm.team_id = t.team_id " +
+            "INNER JOIN users u ON tm.student_id = u.id " +
+            "INNER JOIN students s ON u.id = s.user_id " +
+            "WHERE t.captain_id = (SELECT id FROM users WHERE bilkent_email = ?) AND tm.status = 'PENDING'"
+        );
+
+        if (teamId != null && !teamId.trim().isEmpty()) {
+            sql.append(" AND tm.team_id = ?");
+        }
+
+        try (PreparedStatement stmt = getConnection().prepareStatement(sql.toString())) {
+            stmt.setString(1, currentStudent.getBilkentEmail());
+            if (teamId != null && !teamId.trim().isEmpty()) {
+                stmt.setObject(2, java.util.UUID.fromString(teamId));
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    models.Student receiver = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    
+                    receiver.setFullName(rs.getString("full_name"));
+                    receiver.setBilkentEmail(rs.getString("bilkent_email"));
+                    receiver.setStudentId(rs.getString("uni_id"));
+                    receiver.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                    receiver.setEloPoint(rs.getInt("elo_point"));
+                    receiver.setPenaltyPoints(rs.getInt("penalty_points"));
+                    receiver.setReliabilityScore(rs.getDouble("reliability_score"));
+                    receiver.setMatchesPlayed(rs.getInt("matches_played"));
+                    receiver.setWinRate(rs.getDouble("win_rate"));
+                    receiver.setPublicProfile(rs.getBoolean("is_public_profile"));
+                    receiver.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+                    
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    receiver.setMatchesWon(matchesWon);
+
+                    requestReceivers.add(receiver);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return requestReceivers;
+    }
+
+    /**
+     * Retrieves a list of teams that the given student is currently a member of.
+     * Joins multiple tables to fetch teams where the student has an 'ACCEPTED' membership status.
+     * Converts database records into Team model objects and returns them in a list.
+     * @param currentStudent The student for whom to fetch the teams
+     * @return A List of Team objects representing the teams the student is part of.
+     */
+    public java.util.ArrayList<models.Team> getMyTeams(models.Student currentStudent) {
+        java.util.ArrayList<models.Team> myTeams = new java.util.ArrayList<>();
+        
+        if (currentStudent == null) return myTeams;
+
+        // t.* -> Takım bilgileri
+        // c_u.* ve c_s.* -> Kaptanın bilgileri (users ve students tablolarından)
+        // c_u.student_id AS cap_uni_id SQL sorgusuna eklendi!
+        String sql = "SELECT t.team_id, t.team_name, t.access_code, t.max_capacity, t.ge250_requested, " +
+                     "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.student_id AS cap_uni_id, c_u.profile_pic_url AS cap_pic, " +
+                     "c_s.elo_point, c_s.win_rate " +
+                     "FROM teams t " +
+                     "INNER JOIN team_members tm ON t.team_id = tm.team_id " +
+                     "INNER JOIN users u ON tm.student_id = u.id " +
+                     "INNER JOIN users c_u ON t.captain_id = c_u.id " +
+                     "INNER JOIN students c_s ON c_u.id = c_s.user_id " +
+                     "WHERE u.bilkent_email = ? AND tm.status = 'ACCEPTED'";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setString(1, currentStudent.getBilkentEmail());
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    // 1. Önce Kaptan (Student) objesini doğru SQL alias'ları ile oluşturuyoruz
+                    models.Student captain = new models.Student(
+                        rs.getString("cap_name"), 
+                        rs.getString("cap_email"), 
+                        rs.getString("cap_uni_id")
+                    );
+                    
+                    // Geri kalan bilgileri setter'lar ile ekliyoruz
+                    captain.setProfilePictureUrl(rs.getString("cap_pic"));
+                    captain.setEloPoint(rs.getInt("elo_point"));
+                    captain.setWinRate(rs.getDouble("win_rate"));
+
+                    // 2. Senin modelindeki Constructor'ı kullanarak Team objesini oluşturuyoruz
+                    models.Team team = new models.Team(
+                        rs.getObject("team_id").toString(),
+                        rs.getString("team_name"),
+                        rs.getString("access_code"),
+                        rs.getInt("max_capacity"),
+                        rs.getBoolean("ge250_requested"),
+                        captain
+                    );
+                    
+                    myTeams.add(team);
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return myTeams;
+    }
+    /**
+     * Retrieves a list of teams that are participating in a specific tournament.
+     * Joins multiple tables to fetch teams associated with the given tournament ID, along with their captains' information.
+     * Converts database records into Team model objects and returns them in a list.
+     * @param tournament_id The UUID of the tournament for which to fetch the teams
+     * @return A List of Team objects representing the teams participating in the specified tournament.
+     */
+    public java.util.ArrayList<models.Team> getTournamentTeams(String tournament_id) {
+        java.util.ArrayList<models.Team> tournamentTeams = new java.util.ArrayList<>();
+        
+        if (tournament_id == null || tournament_id.trim().isEmpty()) return tournamentTeams;
+
+        String sql = "SELECT t.team_id, t.team_name, t.access_code, t.max_capacity, t.ge250_requested, " +
+                     "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.profile_pic_url AS cap_pic, " +
+                     "c_s.elo_point, c_s.win_rate " +
+                     "FROM teams t " +
+                     "INNER JOIN users c_u ON t.captain_id = c_u.id " +
+                     "INNER JOIN students c_s ON c_u.id = c_s.user_id " +
+                     "WHERE t.tournament_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(tournament_id));
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    // 1. Kaptanı oluştur
+                    models.Student captain = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    captain.setFullName(rs.getString("cap_name"));
+                    captain.setBilkentEmail(rs.getString("cap_email"));
+                    captain.setProfilePictureUrl(rs.getString("cap_pic"));
+                    captain.setEloPoint(rs.getInt("elo_point"));
+                    captain.setWinRate(rs.getDouble("win_rate"));
+
+                    // 2. Takımı oluştur
+                    models.Team team = new models.Team(
+                        rs.getObject("team_id").toString(),
+                        rs.getString("team_name"),
+                        rs.getString("access_code"),
+                        rs.getInt("max_capacity"),
+                        rs.getBoolean("ge250_requested"),
+                        captain
+                    );
+                    
+                    tournamentTeams.add(team);
+                }
+            }
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+            System.err.println("Geçersiz turnuva ID formatı veya SQL hatası!");
+        }
+        
+        return tournamentTeams;
+    }
+
+    /**
+     * Inserts a new match record into the 'matches' table, associating it with the specified tournament and teams.
+     * Automatically generates a UUID for the match and retrieves the sport_id from the associated tournament.
+     * @param currentTournament The Tournament object to which the match belongs
+     * @param team1 The first team participating in the match
+     * @param team2 The second team participating in the match
+     * @param matchDate The date and time when the match is scheduled to take place
+     * @param pointChange The number of points to be awarded or deducted based on the match outcome
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus insertMatch(models.Tournament currentTournament, models.Team team1, models.Team team2, java.time.OffsetDateTime matchDate, int pointChange) {
+        
+        // currentTournament için null kontrolü eklendi
+        if (currentTournament == null || team1 == null || team2 == null || matchDate == null) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String matchId = java.util.UUID.randomUUID().toString();
+        
+        // Turnuva ID'sini artık doğrudan metoda gönderdiğin turnuva objesinden alıyoruz
+        String tournamentId = currentTournament.getTournamentId();
+
+        // sport_id'yi tournaments tablosundan otomatik çeken alt sorgulu (subquery) SQL
+        String sql = "INSERT INTO matches (match_id, tournament_id, sport_id, match_date, " +
+                     "team1_id, team2_id, point_change, is_concluded) " +
+                     "VALUES (?, ?, (SELECT sport_id FROM tournaments WHERE tournament_id = ?), ?, ?, ?, ?, false)";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(matchId));
+            stmt.setObject(2, java.util.UUID.fromString(tournamentId));
+            
+            // Subquery (Alt sorgu) içindeki '?' parametresi için turnuva ID'sini tekrar gönderiyoruz
+            stmt.setObject(3, java.util.UUID.fromString(tournamentId)); 
+            
+            // timestamptz için setObject ile OffsetDateTime gönderiyoruz
+            stmt.setObject(4, matchDate); 
+            
+            stmt.setObject(5, java.util.UUID.fromString(team1.getTeamId()));
+            stmt.setObject(6, java.util.UUID.fromString(team2.getTeamId()));
+            stmt.setInt(7, pointChange);
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) return DbStatus.CONNECTION_ERROR;
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the conclusion status of a match in the database.
+     * @param matchId The UUID of the match to be updated
+     * @param isConcluded The new conclusion status for the match (true if the match is concluded, false otherwise)
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateMatchStatus(String matchId, boolean isConcluded) {
+        
+        if (matchId == null || matchId.trim().isEmpty()) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE matches SET is_concluded = ? WHERE match_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setBoolean(1, isConcluded);
+            stmt.setObject(2, java.util.UUID.fromString(matchId));
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the winner team of a match in the database.
+     * If the winnerTeam parameter is null, it sets the winner_team_id to SQL NULL, indicating a draw or no winner.
+     * @param matchId The UUID of the match to be updated
+     * @param winnerTeam The Team object representing the winner team (can be null for draw/no winner)
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus updateMatchWinner(String matchId, models.Team winnerTeam) {
+        
+        if (matchId == null || matchId.trim().isEmpty()) return DbStatus.QUERY_ERROR;
+
+        String sql = "UPDATE matches SET winner_team_id = ? WHERE match_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            if (winnerTeam != null && winnerTeam.getTeamId() != null) {
+                stmt.setObject(1, java.util.UUID.fromString(winnerTeam.getTeamId()));
+            } else {
+                // Eğer winnerTeam null gelirse, veritabanına SQL NULL kaydederiz (Beraberlik durumu vb.)
+                stmt.setNull(1, java.sql.Types.OTHER); 
+            }
+            
+            stmt.setObject(2, java.util.UUID.fromString(matchId));
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves a list of matches from a specific tournament that involve the given student.
+     * Joins multiple tables to fetch matches where the student is a member of either team1 or team2 with 'ACCEPTED' status.
+     * Converts database records into Match model objects and returns them in a list.
+     * @param tournamentId The UUID of the tournament for which to fetch the matches
+     * @param currentStudent The student for whom to fetch the matches (used to filter matches relevant to this student)
+     * @return A List of Match objects representing the matches in the specified tournament that involve the given student.
+     */
+    public java.util.ArrayList<models.Match> getStudentTournamentMatches(String tournamentId, models.Student currentStudent) {
+        java.util.ArrayList<models.Match> studentMatches = new java.util.ArrayList<>();
+        
+        if (tournamentId == null || tournamentId.trim().isEmpty() || currentStudent == null) {
+            return studentMatches;
+        }
+
+        // Maç, Spor, Takımlar ve Kaptanları çeken, ancak sadece öğrencinin olduğu maçları filtreleyen sorgu
+        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, " +
+                     "sp.name AS sport_name, " +
+                     
+                     // 1. Takım ve Kaptan Bilgileri
+                     "t1.team_id AS t1_id, t1.team_name AS t1_name, t1.access_code AS t1_code, t1.max_capacity AS t1_cap, t1.ge250_requested AS t1_ge250, " +
+                     "c1_u.full_name AS c1_name, c1_u.bilkent_email AS c1_email, c1_u.profile_pic_url AS c1_pic, c1_s.elo_point AS c1_elo, c1_s.win_rate AS c1_win, " +
+                     
+                     // 2. Takım ve Kaptan Bilgileri
+                     "t2.team_id AS t2_id, t2.team_name AS t2_name, t2.access_code AS t2_code, t2.max_capacity AS t2_cap, t2.ge250_requested AS t2_ge250, " +
+                     "c2_u.full_name AS c2_name, c2_u.bilkent_email AS c2_email, c2_u.profile_pic_url AS c2_pic, c2_s.elo_point AS c2_elo, c2_s.win_rate AS c2_win " +
+                     
+                     "FROM matches m " +
+                     "INNER JOIN sports sp ON m.sport_id = sp.id " +
+                     "INNER JOIN teams t1 ON m.team1_id = t1.team_id " +
+                     "INNER JOIN users c1_u ON t1.captain_id = c1_u.id " +
+                     "INNER JOIN students c1_s ON c1_u.id = c1_s.user_id " +
+                     "INNER JOIN teams t2 ON m.team2_id = t2.team_id " +
+                     "INNER JOIN users c2_u ON t2.captain_id = c2_u.id " +
+                     "INNER JOIN students c2_s ON c2_u.id = c2_s.user_id " +
+                     "WHERE m.tournament_id = ? " +
+                     
+                     // --- FİLTRELEME KISMI: Öğrenci bu iki takımdan birinde ACCEPTED olarak var mı? ---
+                     "AND EXISTS (" +
+                     "    SELECT 1 FROM team_members tm " +
+                     "    INNER JOIN users u ON tm.student_id = u.id " +
+                     "    WHERE u.bilkent_email = ? AND tm.status = 'ACCEPTED' " +
+                     "    AND (tm.team_id = m.team1_id OR tm.team_id = m.team2_id)" +
+                     ")";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            // 1. Parametre: Turnuva ID'si
+            stmt.setObject(1, java.util.UUID.fromString(tournamentId));
+            
+            // 2. Parametre: EXISTS alt sorgusundaki e-posta kontrolü
+            stmt.setString(2, currentStudent.getBilkentEmail());
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    // --- 1. TAKIMIN OLUŞTURULMASI ---
+                    models.Student captain1 = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    captain1.setFullName(rs.getString("c1_name"));
+                    captain1.setBilkentEmail(rs.getString("c1_email"));
+                    captain1.setProfilePictureUrl(rs.getString("c1_pic"));
+                    captain1.setEloPoint(rs.getInt("c1_elo"));
+                    captain1.setWinRate(rs.getDouble("c1_win"));
+
+                    models.Team team1 = new models.Team(
+                        rs.getObject("t1_id").toString(), rs.getString("t1_name"), 
+                        rs.getString("t1_code"), rs.getInt("t1_cap"), 
+                        rs.getBoolean("t1_ge250"), captain1
+                    );
+
+                    // --- 2. TAKIMIN OLUŞTURULMASI ---
+                    models.Student captain2 = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    captain2.setFullName(rs.getString("c2_name"));
+                    captain2.setBilkentEmail(rs.getString("c2_email"));
+                    captain2.setProfilePictureUrl(rs.getString("c2_pic"));
+                    captain2.setEloPoint(rs.getInt("c2_elo"));
+                    captain2.setWinRate(rs.getDouble("c2_win"));
+
+                    models.Team team2 = new models.Team(
+                        rs.getObject("t2_id").toString(), rs.getString("t2_name"), 
+                        rs.getString("t2_code"), rs.getInt("t2_cap"), 
+                        rs.getBoolean("t2_ge250"), captain2
+                    );
+
+                    // --- SPOR TÜRÜ VE TARİH DÖNÜŞÜMÜ ---
+                    models.SportType sType = null;
+                    try {
+                        sType = models.SportType.valueOf(rs.getString("sport_name").trim().toUpperCase().replace(" ", "_"));
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Uyarı: Veritabanında eşleşmeyen spor türü: " + rs.getString("sport_name"));
+                    }
+                    
+                    java.time.LocalDateTime matchDate = rs.getTimestamp("match_date").toLocalDateTime();
+
+                    // --- MAÇ OBJESİNİN OLUŞTURULMASI ---
+                    models.Match match = new models.Match(
+                        rs.getObject("match_id").toString(),
+                        matchDate,
+                        sType,
+                        team1,
+                        team2
+                    );
+                    
+                    match.setPointChange(rs.getInt("point_change"));
+
+                    // --- KAZANAN TAKIMIN BELİRLENMESİ ---
+                    String winnerId = rs.getString("winner_team_id");
+                    if (winnerId != null) {
+                        if (winnerId.equals(team1.getTeamId())) {
+                            match.setWinner(team1);
+                        } else if (winnerId.equals(team2.getTeamId())) {
+                            match.setWinner(team2);
+                        }
+                    } 
+
+                    studentMatches.add(match);
+                }
+            }
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+
+        return studentMatches;
+    }
+
+    /**
+     * Retrieves a list of students who are members of a specific team.
+     * Joins multiple tables to fetch students with 'ACCEPTED' status for the given team ID.
+     * Converts database records into Student model objects and returns them in a list.
+     * @param teamId The UUID of the team for which to fetch the members
+     * @return A List of Student objects representing the members of the specified team.
+     */
+    public java.util.ArrayList<models.Student> getTeamMembers(String teamId) {
+        java.util.ArrayList<models.Student> membersList = new java.util.ArrayList<>();
+        
+        if (teamId == null || teamId.trim().isEmpty()) {
+            return membersList;
+        }
+
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
+                     "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled " +
+                     "FROM team_members tm " +
+                     "INNER JOIN users u ON tm.student_id = u.id " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE tm.team_id = ? AND tm.status = 'ACCEPTED'";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    // 1. Zorunlu alanlarla Student objesini oluşturuyoruz
+                    models.Student member = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
+                    
+                    // 2. Geri kalan özellikleri Setter'lar ile ekliyoruz
+                    member.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                    member.setEloPoint(rs.getInt("elo_point"));
+                    member.setPenaltyPoints(rs.getInt("penalty_points"));
+                    member.setReliabilityScore(rs.getDouble("reliability_score"));
+                    member.setMatchesPlayed(rs.getInt("matches_played"));
+                    member.setWinRate(rs.getDouble("win_rate"));
+                    member.setPublicProfile(rs.getBoolean("is_public_profile"));
+                    member.setEloMatchingEnabled(rs.getBoolean("is_elo_matching_enabled"));
+                    
+                    // 3. Kazanılan maç sayısını (matches_won) oran üzerinden hesaplıyoruz
+                    int matchesWon = (int) Math.round(rs.getInt("matches_played") * rs.getDouble("win_rate"));
+                    member.setMatchesWon(matchesWon);
+
+                    membersList.add(member);
+                }
+            }
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+            System.err.println("Takım üyeleri çekilirken hata oluştu. Team ID: " + teamId);
+        }
+        
+        return membersList;
     }
 }

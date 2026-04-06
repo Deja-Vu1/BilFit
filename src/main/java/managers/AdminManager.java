@@ -42,13 +42,19 @@ public class AdminManager {
         return status;
     }
 
+    // YENİ GÜNCELLEME: Ban kalktığında ceza puanı 0'lanır!
     public DbStatus unbanStudent(Admin admin, Student student) {
         if (admin == null || student == null) return DbStatus.QUERY_ERROR;
 
         DbStatus status = db.updateStudentBanStatus(student.getBilkentEmail(), false);
         if (status == DbStatus.SUCCESS) {
             student.setBanned(false);
-            notifManager.sendToUser(student, "Account Unbanned", "Your account ban has been unbanned.");
+            
+           
+            db.updateStudentPenalty(student.getBilkentEmail(), 0);
+            student.setPenaltyPoints(0);
+            
+            notifManager.sendToUser(student, "Account Unbanned", "Your account ban has been lifted and your penalty points have been reset to 0.");
         }
         return status;
     }
@@ -121,7 +127,7 @@ public class AdminManager {
 
         DbStatus status = db.updateUserNickname(admin.getBilkentEmail(), newNickname);
         if (status == DbStatus.SUCCESS) {
-            admin.setNickname(newNickname);
+            admin.setFullName(newNickname); // YENİ: setNickname yerine setFullName olmalı, çünkü üst sınıf User
         }
         return status;
     }
@@ -132,6 +138,33 @@ public class AdminManager {
         DbStatus status = db.updatePassword(admin.getBilkentEmail(), newPassword);
         if (status == DbStatus.SUCCESS) {
             admin.setPassword(newPassword);
+        }
+        return status;
+    }
+    public java.util.List<Integer> getUsersCount() {
+        return db.getUsersCount();
+    }
+    public DbStatus updateProfilePicture(Admin admin, java.io.File file) {
+        if (admin == null || file == null) return DbStatus.QUERY_ERROR;
+        DbStatus status = db.updateProfilePicture(admin.getBilkentEmail(), file);
+        if (status == DbStatus.SUCCESS) {
+           
+            db.fillAdminDataByEmail(admin, admin.getBilkentEmail());
+        }
+        return status;
+    }
+    public DbStatus updateReliabilityPoints(Admin admin, Student student, double newPoints) {
+        if (admin == null || student == null) return DbStatus.QUERY_ERROR;
+        
+        // Puanı güvenli sınırlara çek (0 ile 100 arası)
+        double boundedPoints = Math.max(0.0, Math.min(100.0, newPoints));
+        
+        DbStatus status = db.updateStudentReliability(student.getBilkentEmail(), boundedPoints);
+        if (status == DbStatus.SUCCESS) {
+            student.setReliabilityScore(boundedPoints);
+            // Öğrenciye bildirim atılır (Double değeri 1 ondalıklı olarak formatla)
+            String formattedScore = String.format(java.util.Locale.US, "%.1f", boundedPoints);
+            notifManager.sendToUser(student, "Reliability Score Updated", "Your reliability score has been updated to " + formattedScore + "/100 by an admin.");
         }
         return status;
     }

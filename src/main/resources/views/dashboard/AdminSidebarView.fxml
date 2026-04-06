@@ -1,13 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.image.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.shape.*?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
@@ -16,7 +11,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
 
-<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminSidebarController">
+<VBox xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.AdminSidebarController">
    <children>
       <VBox prefWidth="280.0" styleClass="sidebar">
          <children>
@@ -30,7 +25,7 @@
                         <Image url="@../../images/bilfit_logo.png" />
                      </image>
                      <VBox.margin>
-                        <Insets bottom="30" />
+                        <Insets bottom="30.0" />
                      </VBox.margin>
                   </ImageView>
                </children>
@@ -40,7 +35,7 @@
                   <Insets bottom="10.0" />
                </padding>
                <children>
-                  <Circle fill="#E2E8F0" radius="35.0" stroke="#4318FF" strokeType="INSIDE" strokeWidth="2.0" />
+                  <Circle fx:id="profileImageCircle" fill="#E2E8F0" radius="35.0" stroke="#4318FF" strokeType="INSIDE" strokeWidth="2.0" />
                   <HBox alignment="CENTER" spacing="15.0">
                      <children>
                         <Circle fill="#4318FF" radius="12.0" />
@@ -62,7 +57,8 @@
                   <Button fx:id="btnAccount" alignment="BASELINE_LEFT" onAction="#loadAccount" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Account" />
                   <Button fx:id="btnHome" alignment="BASELINE_LEFT" onAction="#loadHome" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn, active" stylesheets="@bilfit-exact.css" text="    Home" />
                   <Button fx:id="btnReservation" alignment="BASELINE_LEFT" onAction="#loadReservations" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Reservation" />
-                  <Label prefHeight="45.0" prefWidth="210.0" />
+                  <Button fx:id="btnFacilities" alignment="BASELINE_LEFT" onAction="#loadFacilities" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Facilities" />
+                  <Button fx:id="btnTournaments" alignment="BASELINE_LEFT" onAction="#loadTournaments" prefHeight="45.0" prefWidth="210.0" styleClass="menu-btn" stylesheets="@bilfit-exact.css" text="    Tournaments" />
                   <Label prefHeight="45.0" prefWidth="210.0" />
                </children>
             </VBox>

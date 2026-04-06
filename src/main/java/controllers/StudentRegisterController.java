@@ -40,23 +40,23 @@ public class StudentRegisterController {
         String password = passwordField.getText(); 
       
         if (name.isEmpty() || email.isEmpty() || studentId.isEmpty() || password == null || password.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen tüm alanları doldurunuz.");
+            showAlert(Alert.AlertType.WARNING, "Missing Information", "Please fill in all fields.");
             return;
         }
         
         if (!email.endsWith("@ug.bilkent.edu.tr") && !email.endsWith("@bilkent.edu.tr") && !email.endsWith("@alumni.bilkent.edu.tr")) {
-            showAlert(Alert.AlertType.WARNING, "Geçersiz E-posta", "Sisteme sadece Bilkent e-posta adresleri ile kayıt olunabilir.");
+            showAlert(Alert.AlertType.WARNING, "Invalid Email", "You can only register with Bilkent email addresses in the system.");
             return;
         }
 
         // DB'nin reddetmesini engellemek için ID kuralı eklendi (Sadece sayılar ve tam 8 hane)
         if (!studentId.matches("\\d+") || studentId.length() < 7 || studentId.length() > 9) {
-            showAlert(Alert.AlertType.WARNING, "Geçersiz ID", "Öğrenci numaranız sadece rakamlardan oluşmalı ve geçerli uzunlukta (Örn: 22200000) olmalıdır.");
+            showAlert(Alert.AlertType.WARNING, "Invalid ID", "Your student number must consist only of digits and be of valid length (Ex: 22200000).");
             return;
         }
 
         if (password.length() < 6) {
-            showAlert(Alert.AlertType.WARNING, "Zayıf Şifre", "Şifreniz en az 6 karakter uzunluğunda olmalıdır.");
+            showAlert(Alert.AlertType.WARNING, "Weak Password", "Your password must be at least 6 characters long.");
             return;
         }
 
@@ -66,11 +66,10 @@ public class StudentRegisterController {
       
         clickedButton.getParent().requestFocus();
         clickedButton.setDisable(true);
-        clickedButton.setText("Kayıt Yapılıyor...");
+        clickedButton.setText("Registering...");
 
         new Thread(() -> {
             try {
-                // Her şey tertemiz bir şekilde Manager'a iletiliyor
                 DbStatus registerStatus = authManager.registerStudent(email, password, studentId, name);
 
                 Platform.runLater(() -> {
@@ -84,20 +83,19 @@ public class StudentRegisterController {
                             goToActivation(event);
                             break;
                         case EMAIL_ALREADY_EXISTS:
-                            showAlert(Alert.AlertType.ERROR, "Kayıt Başarısız", "Bu e-posta adresi sistemde zaten mevcut.");
+                            showAlert(Alert.AlertType.ERROR, "Registration Failed", "This email address already exists in the system.");
                             break;
                         case ID_ALREADY_EXISTS:
-                            showAlert(Alert.AlertType.ERROR, "Kayıt Başarısız", "Bu öğrenci numarası sistemde zaten mevcut.");
+                            showAlert(Alert.AlertType.ERROR, "Registration Failed", "This student number already exists in the system.");
                             break;
                         case CONNECTION_ERROR:
-                            showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
+                            showAlert(Alert.AlertType.ERROR, "Connection Error", "Could not connect to the database.");
                             break;
                         case QUERY_ERROR:
-                            // EĞER HALA BU HATAYI ALIYORSAN AŞAĞIDAKİ YAZIYI OKU!
-                            showAlert(Alert.AlertType.ERROR, "Veritabanı Reddi", "Veritabanı bu kaydı reddetti! Ya bilgilerde özel bir karakter var, ya da bu maille önceden yarım kalmış bir kayıt bulunuyor.");
+                            showAlert(Alert.AlertType.ERROR, "Database Rejection", "The database rejected this record! Either there is a special character in the information, or there is a previously incomplete registration with this email.");
                             break;
                         default:
-                            showAlert(Alert.AlertType.ERROR, "Sistem Hatası", "Kayıt sırasında beklenmeyen bir hata oluştu.");
+                            showAlert(Alert.AlertType.ERROR, "System Error", "An unexpected error occurred during registration.");
                             break;
                     }
                 });

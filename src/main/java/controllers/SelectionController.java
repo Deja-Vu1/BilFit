@@ -27,7 +27,7 @@ public class SelectionController implements Initializable {
 
    @Override
    public void initialize(URL url, ResourceBundle rb) {
-       System.out.println("SelectionController başarıyla yüklendi.");
+       System.out.println("SelectionController loaded successfully.");
    }
 
 
@@ -38,7 +38,6 @@ public class SelectionController implements Initializable {
            Parent root = loader.load();
            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
           
-           // FULL SCREEN KORUMA: Sadece içindekini değiştiriyoruz
            stage.getScene().setRoot(root);
           
        } catch (IOException e) {
@@ -54,7 +53,6 @@ public class SelectionController implements Initializable {
            Parent root = loader.load();
            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
           
-           // FULL SCREEN KORUMA: Sadece içindekini değiştiriyoruz
            stage.getScene().setRoot(root);
           
        } catch (IOException e) {

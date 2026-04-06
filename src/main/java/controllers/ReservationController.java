@@ -35,13 +35,13 @@ public class ReservationController {
     
     @FXML private ComboBox<String> facilityComboBox;
     @FXML private DatePicker datePicker;
-    @FXML private Button refreshBtn; // Yeni Eklenen Refresh Butonu
+    @FXML private Button refreshBtn;
     @FXML private GridPane timeSlotGrid;
 
     private ReservationManager resManager = new ReservationManager(Database.getInstance());
     private boolean isProcessing = false;
     private List<Facility> allFacilities = new ArrayList<>();
-    private long currentGridUpdateId = 0; // Çoklu tıklamada sistemi çökertmeyi engelleyen kilit
+    private long currentGridUpdateId = 0;
 
     @FXML
     public void initialize() {
@@ -57,7 +57,6 @@ public class ReservationController {
             reservationsContainer.getChildren().add(loadingLabel);
         }
         
-        // Sadece SelectBox'lar değiştiğinde veya butona tıklandığında yeniler
         if (facilityComboBox != null) {
             facilityComboBox.valueProperty().addListener((obs, oldVal, newVal) -> refreshTimeSlots());
         }
@@ -80,7 +79,8 @@ public class ReservationController {
                 if (facilityComboBox != null) {
                     facilityComboBox.getItems().clear();
                     for (Facility f : allFacilities) {
-                        facilityComboBox.getItems().add(f.getName());
+                        String statusLabel = f.isUnderMaintenance() ? " (Under Maintenance)" : " (Active)";
+                        facilityComboBox.getItems().add(f.getName() + statusLabel);
                     }
                     if (!allFacilities.isEmpty()) {
                         facilityComboBox.getSelectionModel().selectFirst();
@@ -90,14 +90,15 @@ public class ReservationController {
         }).start();
     }
 
-    // SAATLERİ VERİTABANINDAN ÇEKİP RENKLENDİREN ANA METOT
     private void refreshTimeSlots() {
-        String selectedFacilityName = facilityComboBox.getValue();
+        String selectedVal = facilityComboBox.getValue();
         LocalDate selectedDate = datePicker.getValue();
 
-        if (selectedFacilityName == null || selectedDate == null || timeSlotGrid == null) {
+        if (selectedVal == null || selectedDate == null || timeSlotGrid == null) {
             return;
         }
+
+        String selectedFacilityName = selectedVal.replace(" (Under Maintenance)", "").replace(" (Active)", "").replace(" (Bakımda)", "").replace(" (Aktif)", "").trim();
 
         final long updateId = ++currentGridUpdateId;
 
@@ -105,7 +106,6 @@ public class ReservationController {
         timeSlotGrid.setHgap(10);
         timeSlotGrid.setVgap(10);
 
-        // Ekran donmasın diye önce tüm saatleri gri "Yükleniyor" moduna alıyoruz
         int initHour = 8;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 5; col++) {
@@ -119,7 +119,6 @@ public class ReservationController {
             }
         }
 
-        // Arka planda 15 saat için veritabanını tarıyoruz
         new Thread(() -> {
             Database db = Database.getInstance();
             boolean[] availabilities = new boolean[15];
@@ -131,7 +130,6 @@ public class ReservationController {
                 checkHour++;
             }
 
-            // Arayüzü güncelliyoruz
             Platform.runLater(() -> {
                 if (updateId != currentGridUpdateId) return;
 
@@ -143,7 +141,6 @@ public class ReservationController {
                         String timeSlot = String.format("%02d.00-%02d.00", currentHour, currentHour + 1);
                         boolean isAvailableFromDb = availabilities[(row * 5) + col];
                         
-                        // Geçmiş Zaman Kontrolü
                         boolean isPast = false;
                         if (selectedDate.isBefore(LocalDate.now())) {
                             isPast = true;
@@ -157,18 +154,17 @@ public class ReservationController {
                         slotBtn.setPrefHeight(40.0);
                         slotBtn.setPrefWidth(110.0);
 
-                        // Renk ve Tıklanabilirlik Mantığı
                         if (isPast) {
                             slotBtn.getStyleClass().add("btn-danger");
                             slotBtn.setDisable(true);
-                            slotBtn.setTooltip(new Tooltip("Bu seansın süresi geçmiş.")); // Kullanıcıya neden kırmızı olduğunu söyler
+                            slotBtn.setTooltip(new Tooltip("This session has expired."));
                         } else if (isAvailableFromDb) {
-                            slotBtn.getStyleClass().add("btn-success"); // Boş ise yeşil
+                            slotBtn.getStyleClass().add("btn-success"); 
                             slotBtn.setOnAction(e -> attemptReservation(timeSlot, slotBtn));
                         } else {
-                            slotBtn.getStyleClass().add("btn-danger"); // Veritabanında doluysa kırmızı
+                            slotBtn.getStyleClass().add("btn-danger"); 
                             slotBtn.setDisable(true);
-                            slotBtn.setTooltip(new Tooltip("Bu seans dolu veya tesis bakımda."));
+                            slotBtn.setTooltip(new Tooltip("This session is full or the facility is under maintenance."));
                         }
 
                         timeSlotGrid.add(slotBtn, col, row);
@@ -182,7 +178,14 @@ public class ReservationController {
     private void attemptReservation(String timeSlot, Button clickedButton) {
         if (isProcessing) return;
 
-        String selectedFacilityName = facilityComboBox.getValue();
+        String selectedVal = facilityComboBox.getValue();
+        
+        String selectedFacilityName = selectedVal.replace(" (Under Maintenance)", "")
+                                                 .replace(" (Active)", "")
+                                                 .replace(" (Bakımda)", "")
+                                                 .replace(" (Aktif)", "")
+                                                 .trim();
+                                                 
         LocalDate selectedDate = datePicker.getValue();
 
         Facility foundFacility = null;
@@ -194,7 +197,12 @@ public class ReservationController {
         }
 
         if (foundFacility == null) {
-            showAlert(Alert.AlertType.ERROR, "Hata", "Seçilen tesis sistemde bulunamadı.");
+            showAlert(Alert.AlertType.ERROR, "Error", "The selected facility was not found in the system.");
+            return;
+        }
+
+        if (foundFacility.isUnderMaintenance()) {
+            showAlert(Alert.AlertType.WARNING, "Warning", "Reservations cannot be made for this facility as it is currently under maintenance.");
             return;
         }
 
@@ -202,26 +210,24 @@ public class ReservationController {
 
         isProcessing = true;
         String originalText = clickedButton.getText();
-        clickedButton.setText("İşleniyor");
+        clickedButton.setText("Processing");
         clickedButton.setDisable(true);
         
         new Thread(() -> {
             try {
                 Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-                
                 Reservation newRes = resManager.makeReservation(currentUser, targetFacility, selectedDate, timeSlot);
 
                 Platform.runLater(() -> {
                     isProcessing = false;
-                    
                     if (newRes != null) { 
-                        refreshTimeSlots(); // Rezervasyon yapıldığında ekranı hemen tazele (Yeşili kırmızıya çevir)
-                        fetchFreshReservations(); // Alttaki listeyi tazele
-                        showAlert(Alert.AlertType.INFORMATION, "Başarılı", targetFacility.getName() + " için " + timeSlot + " rezervasyonunuz oluşturuldu.");
+                        refreshTimeSlots(); 
+                        fetchFreshReservations(); 
+                        showAlert(Alert.AlertType.INFORMATION, "Successful", targetFacility.getName() + " reservation for " + timeSlot + " has been created.");
                     } else {
                         clickedButton.setText(originalText);
                         clickedButton.setDisable(false);
-                        showAlert(Alert.AlertType.ERROR, "İşlem Başarısız", "Rezervasyon oluşturulamadı. (Tesis dolu olabilir, ceza puanınız olabilir veya tarih sınırını aşmış olabilirsiniz.)");
+                        showAlert(Alert.AlertType.ERROR, "Operation Failed", "Reservation could not be created. (The facility may be full, you may have penalty points, or you may have exceeded the date limit.)");
                     }
                 });
             } catch (Exception e) {
@@ -245,7 +251,30 @@ public class ReservationController {
         new Thread(() -> {
             try {
                 ArrayList<Reservation> dbList = resManager.getUserReservations(currentUser);
-                dbList.removeIf(Reservation::isCancelled);
+                
+                // YENİ MANTIK: İptal edilenleri VE süresi dolmuş (deadline'ı geçmiş) rezervasyonları anında listeden uçur!
+                dbList.removeIf(r -> {
+                    if (r.isCancelled()) return true;
+                    
+                    if (r.getDate().isBefore(LocalDate.now())) {
+                        return true; 
+                    } else if (r.getDate().isEqual(LocalDate.now())) {
+                        try {
+                            // "13.00-14.00" stringinden bitiş saatini (14) çekiyoruz
+                            String endTimeStr = r.getTimeSlot().split("-")[1];
+                            int endHour = Integer.parseInt(endTimeStr.split("\\.")[0]);
+                            
+                            // Şu anki saat, rezervasyonun bitiş saatini geçmiş veya eşitse listeden uçur
+                            if (LocalTime.now().getHour() >= endHour) {
+                                return true;
+                            }
+                        } catch (Exception e) {
+                            // Hata durumunda silmeyi pas geç
+                        }
+                    }
+                    return false;
+                });
+                
                 SessionManager.getInstance().setCurrentReservations(dbList);
             } catch (Throwable t) { 
                 t.printStackTrace();
@@ -275,7 +304,16 @@ public class ReservationController {
     private String formatReservationText(Reservation res) {
         if (res == null) return "";
         String facilityName = (res.getFacility() != null) ? res.getFacility().getName() : "Unknown Facility";
-        String status = res.isHasAttended() ? " [Attended]" : " [Active]";
+        
+        String status;
+        if (res.getFacility() != null && res.getFacility().isUnderMaintenance()) {
+            status = " [Under Maintenance / Invalid]";
+        } else if (res.isHasAttended()) {
+            status = " [Attended]";
+        } else {
+            status = " [Active]";
+        }
+        
         return res.getDate().toString() + "   |   " + res.getTimeSlot() + "   |   " + facilityName + status;
     }
 
@@ -286,7 +324,12 @@ public class ReservationController {
         row.setPadding(new Insets(10, 20, 10, 20));
 
         Label infoLabel = new Label(formatReservationText(res));
-        infoLabel.setStyle("-fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-font-size: 14px;");
+        
+        if (res.getFacility() != null && res.getFacility().isUnderMaintenance()) {
+            infoLabel.setStyle("-fx-text-fill: #D93025; -fx-font-weight: bold; -fx-font-size: 14px;");
+        } else {
+            infoLabel.setStyle("-fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-font-size: 14px;");
+        }
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -320,9 +363,8 @@ public class ReservationController {
 
                 Platform.runLater(() -> {
                     isProcessing = false;
-                    
                     if (status == DbStatus.SUCCESS) { 
-                        refreshTimeSlots(); // İptal edildiğinde o saati tekrar yeşil yapmak için yeniler
+                        refreshTimeSlots(); 
                         fetchFreshReservations(); 
                         showAlert(Alert.AlertType.INFORMATION, "Success", "Reservation has been cancelled successfully.");
                     } else {

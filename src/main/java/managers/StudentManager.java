@@ -138,9 +138,11 @@ public class StudentManager {
     public DbStatus updateNickname(Student student, String newNickname) {
         if (student == null || newNickname == null || newNickname.trim().isEmpty()) return DbStatus.QUERY_ERROR;
 
+        // Veritabanındaki full_name'i günceller
         DbStatus status = db.updateUserNickname(student.getBilkentEmail(), newNickname);
         if (status == DbStatus.SUCCESS) {
-            student.setNickname(newNickname);
+            // İŞTE ÇÖZÜM BURADA: Hafızadaki (Session) aktif kullanıcının adını da anında güncelliyoruz!
+            student.setFullName(newNickname);
         }
         return status;
     }
@@ -151,6 +153,15 @@ public class StudentManager {
         DbStatus status = db.updatePassword(student.getBilkentEmail(), newPassword);
         if (status == DbStatus.SUCCESS) {
             student.setPassword(newPassword);
+        }
+        return status;
+    }
+    public DbStatus updateProfilePicture(Student student, java.io.File file) {
+        if (student == null || file == null) return DbStatus.QUERY_ERROR;
+        DbStatus status = db.updateProfilePicture(student.getBilkentEmail(), file);
+        if (status == DbStatus.SUCCESS) {
+            // Yükleme başarılıysa URL'i veritabanından tazeleyip Session'a yansıt
+            db.fillStudentDataByEmail(student, student.getBilkentEmail());
         }
         return status;
     }

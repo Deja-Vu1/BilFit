@@ -25,7 +25,7 @@
                
                <FlowPane fx:id="interestsContainer" hgap="10" vgap="10" alignment="CENTER_LEFT" />
                
-               <Button fx:id="addInterestBtn" onAction="#handleAddInterest" prefHeight="35" prefWidth="120" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-border-radius: 10; -fx-background-radius: 10; -fx-font-weight: bold;" text="+ Add Interest" />
+               <Button fx:id="addInterestBtn" onAction="#handleAddInterest" prefHeight="35" prefWidth="120" style="-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-border-radius: 10; -fx-background-radius: 10; -fx-font-weight: bold; -fx-cursor: hand;" text="+ Add Interest" />
             </FlowPane>
          </VBox>
          
@@ -34,16 +34,23 @@
             <HBox alignment="CENTER_LEFT" spacing="20"><VBox.margin><Insets bottom="15" top="15" /></VBox.margin>
                
                <Label text="Public account" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
-               <Button fx:id="publicAccountToggle" onAction="#handleTogglePublic" prefHeight="25" prefWidth="50" style="-fx-background-color: #1E8E3E; -fx-background-radius: 20;" /> 
+               <Button fx:id="publicAccountToggle" onAction="#handleTogglePublic" prefHeight="25" prefWidth="50" style="-fx-background-color: #1E8E3E; -fx-background-radius: 20; -fx-cursor: hand;" /> 
                
                <Label text="ELO" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font><HBox.margin><Insets left="30" /></HBox.margin></Label>
-               <Button fx:id="eloToggle" onAction="#handleToggleElo" prefHeight="25" prefWidth="50" style="-fx-background-color: #E2E8F0; -fx-background-radius: 20;" /> 
+               <Button fx:id="eloToggle" onAction="#handleToggleElo" prefHeight="25" prefWidth="50" style="-fx-background-color: #E2E8F0; -fx-background-radius: 20; -fx-cursor: hand;" /> 
             </HBox>
             
             <HBox alignment="CENTER_LEFT" spacing="10">
-               <Label text="Password" textFill="#2b3674"><font><Font name="System Bold" size="14.0" /></font></Label>
-               <TextField fx:id="passwordField" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10;" />
-               <Button fx:id="changePasswordBtn" onAction="#handleChangePassword" prefHeight="35" prefWidth="100" style="-fx-background-color: #E9EDF7; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10;" text="Change" />
+               <Label text="Password" textFill="#2b3674" prefWidth="80"><font><Font name="System Bold" size="14.0" /></font></Label>
+               <TextField fx:id="passwordField" promptText="At least 6 characters" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 200;" />
+               <Button fx:id="changePasswordBtn" onAction="#handleChangePassword" prefHeight="35" prefWidth="100" style="-fx-background-color: #E9EDF7; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Change" />
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="10">
+               <VBox.margin><Insets top="15" /></VBox.margin>
+               <Label text="Nickname" textFill="#2b3674" prefWidth="80"><font><Font name="System Bold" size="14.0" /></font></Label>
+               <TextField fx:id="nicknameField" promptText="Your new nickname" style="-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 10; -fx-pref-width: 200;" />
+               <Button fx:id="changeNicknameBtn" onAction="#handleChangeNickname" prefHeight="35" prefWidth="100" style="-fx-background-color: #E9EDF7; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="Change" />
             </HBox>
          </VBox>
          

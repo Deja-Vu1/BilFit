@@ -32,11 +32,10 @@ public class AdminResetPasswordController {
     public void sendActivationCode(ActionEvent event) {
         if (isProcessing) return;
 
-        // VERİLERİ TEMİZLE
         String email = emailField.getText() != null ? emailField.getText().trim().toLowerCase() : "";
 
         if (email.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Eksik Bilgi", "Lütfen şifresini sıfırlamak istediğiniz e-posta adresini giriniz.");
+            showAlert(Alert.AlertType.WARNING, "Missing Information", "Please enter the email address for which you want to reset the password.");
             return;
         }
 
@@ -46,11 +45,10 @@ public class AdminResetPasswordController {
         
         clickedButton.getParent().requestFocus();
         clickedButton.setDisable(true);
-        clickedButton.setText("Kod Gönderiliyor...");
+        clickedButton.setText("Sending Code...");
 
         new Thread(() -> {
             try {
-                // DOĞRU METOT: Database içindeki ortak metodu çağırıyoruz
                 DbStatus status = db.createActivationCode(email); 
 
                 Platform.runLater(() -> {
@@ -60,21 +58,20 @@ public class AdminResetPasswordController {
 
                     switch (status) {
                         case SUCCESS:
-                            // AdminActivationController'ı ŞİFRE SIFIRLAMA modunda hazırlıyoruz
                             AdminActivationController.emailToActivate = email;
                             AdminActivationController.currentContext = AdminActivationController.ActivationContext.PASSWORD_RESET;
                             
-                            showAlert(Alert.AlertType.INFORMATION, "Başarılı", "Şifre sıfırlama kodu e-posta adresinize gönderildi!");
+                            showAlert(Alert.AlertType.INFORMATION, "Successful", "Password reset code has been sent to your email address!");
                             goToActivationPage(event);
                             break;
                         case DATA_NOT_FOUND:
-                            showAlert(Alert.AlertType.ERROR, "Hata", "Bu e-posta adresine ait bir admin hesabı bulunamadı.");
+                            showAlert(Alert.AlertType.ERROR, "Error", "No admin account found for this email address.");
                             break;
                         case CONNECTION_ERROR:
-                            showAlert(Alert.AlertType.ERROR, "Bağlantı Hatası", "Veritabanına bağlanılamadı.");
+                            showAlert(Alert.AlertType.ERROR, "Connection Error", "Could not connect to the database.");
                             break;
                         default:
-                            showAlert(Alert.AlertType.ERROR, "Sistem Hatası", "Kod gönderilirken bir hata oluştu.");
+                            showAlert(Alert.AlertType.ERROR, "System Error", "An error occurred while sending the code.");
                             break;
                     }
                 });
@@ -91,7 +88,6 @@ public class AdminResetPasswordController {
 
     private void goToActivationPage(ActionEvent event) {
         try {
-            // Admin için olan Aktivasyon görünümüne gidiyoruz
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/AdminActivationView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();

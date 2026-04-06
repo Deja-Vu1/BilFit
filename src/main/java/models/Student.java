@@ -31,6 +31,7 @@ public class Student extends User {
     public Student(String fullName, String bilkentEmail, String studentId) {
         super(fullName, bilkentEmail);
         this.studentId = studentId;
+
         // Başlangıçta nickname boş kalmasın diye tam adı atıyoruz. (İstersen boş da bırakabilirsin)
         this.nickname = fullName; 
         this.eloPoint = 1000;
