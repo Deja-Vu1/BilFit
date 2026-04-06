@@ -133,4 +133,9 @@ public class TournamentManager {
         if (tournamentId == null) return new java.util.ArrayList<>();
         return db.getTournamentTeams(tournamentId);
     }
+    public void fillTournamentFixtures(models.Tournament tournament) {
+        if (tournament == null) {
+            return;
+        }
+    }
 }

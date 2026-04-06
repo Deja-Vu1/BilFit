@@ -1,10 +1,11 @@
 package managers;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import database.Database;
 import models.SportType;
 import models.Student;
-import java.util.ArrayList;
-import java.util.List;
 
 public class RecommendationManager {
 
@@ -35,15 +36,26 @@ public class RecommendationManager {
             
             boolean isAlreadyConnected = false;
             
-            for (Student friend : targetStudent.getFriends()) {
-                if(friend.getBilkentEmail().equals(other.getBilkentEmail())) {
-                    isAlreadyConnected = true;
-                    break;
+            if (targetStudent.getFriends() != null) {
+                for (Student friend : targetStudent.getFriends()) {
+                    if(friend.getBilkentEmail().equals(other.getBilkentEmail())) {
+                        isAlreadyConnected = true;
+                        break;
+                    }
                 }
             }
             
-            if(!isAlreadyConnected) {
-                for (Student request : targetStudent.getFriendRequests()) {
+            if(!isAlreadyConnected && targetStudent.getIncomingFriendRequests() != null) {
+                for (Student request : targetStudent.getIncomingFriendRequests()) {
+                    if(request.getBilkentEmail().equals(other.getBilkentEmail())) {
+                        isAlreadyConnected = true;
+                        break;
+                    }
+                }
+            }
+
+            if(!isAlreadyConnected && targetStudent.getOutgoingFriendRequests() != null) {
+                for (Student request : targetStudent.getOutgoingFriendRequests()) {
                     if(request.getBilkentEmail().equals(other.getBilkentEmail())) {
                         isAlreadyConnected = true;
                         break;

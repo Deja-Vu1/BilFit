@@ -18,10 +18,12 @@ public class AdminSidebarController {
     
     private AdminMainController mainController;
     private static AdminSidebarController instance;
+    
     @FXML private Button btnHome;
     @FXML private Button btnAccount;
     @FXML private Button btnReservation;
     @FXML private Button btnFacilities;
+    @FXML private Button btnTournaments;
     @FXML private Button btnSettings;
     
     @FXML private Circle profileImageCircle;
@@ -31,6 +33,7 @@ public class AdminSidebarController {
         instance = this;
         loadSidebarProfilePicture();
     }
+
     public static void refreshProfilePicture() {
         if (instance != null) {
             instance.loadSidebarProfilePicture();
@@ -68,7 +71,7 @@ public class AdminSidebarController {
     }
 
     private void updateActiveButton(Button clickedButton) {
-        Button[] allButtons = {btnHome, btnAccount, btnReservation, btnFacilities, btnSettings};
+        Button[] allButtons = {btnHome, btnAccount, btnReservation, btnFacilities, btnTournaments, btnSettings};
         
         for (Button btn : allButtons) {
             if (btn != null) {
@@ -90,11 +93,11 @@ public class AdminSidebarController {
     @FXML private void loadAccount() { updateActiveButton(btnAccount); if (mainController != null) mainController.loadAccount(); }
     @FXML private void loadReservations() { updateActiveButton(btnReservation); if (mainController != null) mainController.loadReservations(); }
     @FXML private void loadFacilities() { updateActiveButton(btnFacilities); if (mainController != null) mainController.loadFacilities(); }
+    @FXML private void loadTournaments() { updateActiveButton(btnTournaments); if (mainController != null) mainController.loadTournaments(); }
     @FXML private void loadSettings() { updateActiveButton(btnSettings); if (mainController != null) mainController.loadSettings(); }
 
     @FXML 
     private void logout() {
-        System.out.println("Admin is logging out...");
         SessionManager.getInstance().logout();
         
         try {
@@ -103,7 +106,6 @@ public class AdminSidebarController {
             Stage stage = (Stage) btnHome.getScene().getWindow(); 
             stage.getScene().setRoot(root);
         } catch (IOException e) {
-            System.err.println("ERROR: SelectionView page could not be loaded during logout!");
             e.printStackTrace();
         }
     }

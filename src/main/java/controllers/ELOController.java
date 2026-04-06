@@ -112,8 +112,17 @@ public class ELOController {
                     if (myDuellosContainer != null) {
                         myDuellosContainer.getChildren().clear();
                         if (myDuellos != null && !myDuellos.isEmpty()) {
+                            boolean hasActiveDuello = false;
                             for (Duello d : myDuellos) {
-                                myDuellosContainer.getChildren().add(createMyDuelloRow(d));
+                                if (!d.isCancelled()) {
+                                    myDuellosContainer.getChildren().add(createMyDuelloRow(d));
+                                    hasActiveDuello = true;
+                                }
+                            }
+                            if (!hasActiveDuello) {
+                                Label emptyMyDuellosLabel = new Label("You have not created or joined any active duello yet.");
+                                emptyMyDuellosLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold; -fx-font-size: 13px;");
+                                myDuellosContainer.getChildren().add(emptyMyDuellosLabel);
                             }
                         } else {
                             Label emptyMyDuellosLabel = new Label("You have not created or joined any duello yet.");
@@ -214,9 +223,9 @@ public class ELOController {
         actionBtn.setPrefWidth(110.0);
 
         if (duello.isMatched()) {
-            actionBtn.setText("Matched");
-            actionBtn.setStyle("-fx-background-color: #05CD99; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10;");
-            actionBtn.setDisable(true);
+            actionBtn.setText("Cancel Match");
+            actionBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10;");
+            actionBtn.setOnAction(e -> handleCancelSpecificDuello(duello, actionBtn));
         } else {
             actionBtn.setText("Cancel Duello");
             actionBtn.setStyle("-fx-background-color: #E2ECF6; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10;");
@@ -394,28 +403,43 @@ public class ELOController {
         isProcessing = true;
         String originalText = clickedButton.getText();
         clickedButton.setDisable(true);
-        clickedButton.setText("Canceling...");
+        clickedButton.setText("Processing...");
 
         new Thread(() -> {
             try {
                 Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
                 DbStatus status = DbStatus.QUERY_ERROR;
                 
+                boolean isCreator = false;
+                if (duello.getAttendees() != null && !duello.getAttendees().isEmpty()) {
+                    Student creator = duello.getAttendees().get(0);
+                    if (creator.getBilkentEmail().equals(currentUser.getBilkentEmail())) {
+                        isCreator = true;
+                    }
+                }
+
                 try {
-                    status = duelloManager.cancelDuello(duello, currentUser);
+                    if (isCreator) {
+                        status = duelloManager.cancelDuello(duello, currentUser);
+                    } else {
+                        status = duelloManager.leaveDuello(duello, currentUser);
+                    }
                 } catch (Exception ex) {}
 
                 final DbStatus finalStatus = status;
+                final boolean wasCreator = isCreator;
 
                 Platform.runLater(() -> {
                     isProcessing = false;
                     if (finalStatus == DbStatus.SUCCESS) {
-                        showAlert(Alert.AlertType.INFORMATION, "Cancelled", "Duello has been successfully cancelled and converted back to normal reservation.");
+                        String msg = wasCreator ? "Duello has been successfully cancelled and converted back to a normal reservation." 
+                                                : "You have successfully left the duello. Match is cancelled.";
+                        showAlert(Alert.AlertType.INFORMATION, "Success", msg);
                         loadEloAndDuelloData();
                     } else {
                         clickedButton.setDisable(false);
                         clickedButton.setText(originalText);
-                        showAlert(Alert.AlertType.ERROR, "Error", "Duello could not be cancelled or you do not have permission.");
+                        showAlert(Alert.AlertType.ERROR, "Error", "Action could not be completed.");
                     }
                 });
             } catch (Exception e) {

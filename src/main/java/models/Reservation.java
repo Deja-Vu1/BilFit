@@ -12,7 +12,7 @@ public class Reservation {
     protected boolean hasAttended;
     protected Facility facility;
     protected List<Student> attendees;
-
+    protected Student organizer;
     public Reservation(String reservationId, Facility facility, LocalDate date, String timeSlot) {
         this.reservationId = reservationId;
         this.facility = facility;
@@ -21,6 +21,7 @@ public class Reservation {
         this.isCancelled = false;
         this.hasAttended = false;
         this.attendees = new ArrayList<>();
+        
     }
 
     public String getReservationId() { return reservationId; }
@@ -37,6 +38,17 @@ public class Reservation {
     public void setFacility(Facility facility) { this.facility = facility; }
     public List<Student> getAttendees() { return attendees; }
     public void setAttendees(List<Student> attendees) { this.attendees = attendees; }
+    public Student getOrganizer() {
+        
+        if (this.organizer == null && this.attendees != null && !this.attendees.isEmpty()) {
+            return this.attendees.get(0);
+        }
+        return this.organizer;
+    }
+
+    public void setOrganizer(Student organizer) {
+        this.organizer = organizer;
+    }
 
     public String toString() {
         return "Reservation{" +
