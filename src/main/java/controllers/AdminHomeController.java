@@ -1,5 +1,9 @@
 package controllers;
 
+import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.List;
+
 import database.Database;
 import database.DbStatus;
 import javafx.application.Platform;
@@ -19,10 +23,11 @@ import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import managers.TournamentManager;
+import models.Tournament;
 
 public class AdminHomeController {
 
-    
     @FXML private Label tournament1Label;
     @FXML private Label tournament2Label;
 
@@ -33,6 +38,7 @@ public class AdminHomeController {
     @FXML private Button sendBtn;
 
     private Database db = Database.getInstance();
+    private TournamentManager tManager = new TournamentManager(db);
     private boolean isProcessing = false;
 
     @FXML
@@ -40,7 +46,6 @@ public class AdminHomeController {
        
         loadTournaments();
 
-        
         broadcastCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
             emailsArea.setDisable(newVal);
             if (newVal) {
@@ -52,17 +57,37 @@ public class AdminHomeController {
         });
     }
 
-    
     private void loadTournaments() {
         new Thread(() -> {
             try {
-                
-                String t1 = "Football Tournament  | 25.02.2026 - 20.03.2026  |  Max 10 player  | Ge250-251";
-                String t2 = "Tennis Tournament  | 25.02.2026 - 20.03.2026  |  Max 4 player  | Ge250-251";
+                // Veritabanından tüm aktif turnuvaları çekiyoruz
+                List<Tournament> tournaments = tManager.getAllActiveTournaments();
+
+                String t1 = "No upcoming tournaments.";
+                String t2 = "No upcoming tournaments.";
+
+                if (tournaments != null && !tournaments.isEmpty()) {
+                    // Turnuvaları başlangıç tarihine göre (en yakından uzağa) sıralıyoruz
+                    tournaments.sort(Comparator.comparing(Tournament::getStartDate));
+                    
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+                    if (tournaments.size() > 0) {
+                        Tournament first = tournaments.get(0);
+                        t1 = first.getTournamentName() + " | " + first.getStartDate().format(dtf) + " - " + first.getEndDate().format(dtf) + " | Max " + first.getMaxPlayersPerTeam() + " player | Ge250: " + (first.isHasGe250() ? "Yes" : "No");
+                    }
+                    if (tournaments.size() > 1) {
+                        Tournament second = tournaments.get(1);
+                        t2 = second.getTournamentName() + " | " + second.getStartDate().format(dtf) + " - " + second.getEndDate().format(dtf) + " | Max " + second.getMaxPlayersPerTeam() + " player | Ge250: " + (second.isHasGe250() ? "Yes" : "No");
+                    }
+                }
+
+                final String finalT1 = t1;
+                final String finalT2 = t2;
 
                 Platform.runLater(() -> {
-                    if (tournament1Label != null) tournament1Label.setText(t1);
-                    if (tournament2Label != null) tournament2Label.setText(t2);
+                    if (tournament1Label != null) tournament1Label.setText(finalT1);
+                    if (tournament2Label != null) tournament2Label.setText(finalT2);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
