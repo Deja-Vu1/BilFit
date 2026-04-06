@@ -4864,4 +4864,93 @@ public class Database {
             return DbStatus.QUERY_ERROR;
         }
     }
+
+    /**
+     * Updates the match count and win rate for a given student by executing two SQL queries:
+     * 1. A SELECT query that calculates the total number of concluded matches and total wins for the student.
+     * 2. An UPDATE query that updates the 'matches_played' and 'win_rate' fields in the 'students' table based on the calculated values.
+     * Uses transaction management to ensure data integrity, rolling back if any part of the process fails.
+     * @param student The Student object for which to update the match count and win rate (must have a valid bilkentEmail)
+     * @return DbStatus indicating SUCCESS if the update was successful, DATA_NOT_FOUND if the student was not found, or QUERY_ERROR in case of errors (including invalid input).
+     */
+    public DbStatus updateMatchCountStatus(models.Student student) {
+        
+        if (student == null || student.getBilkentEmail() == null || student.getBilkentEmail().trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // 1. AŞAMA: Toplam sonuçlanan maçları ve kazanılan maçları hesaplayan SQL sorgusu
+        String countSql = "SELECT " +
+                          "COUNT(m.match_id) AS total_matches, " +
+                          "COALESCE(SUM(CASE WHEN m.winner_team_id = tm.team_id THEN 1 ELSE 0 END), 0) AS total_wins " +
+                          "FROM matches m " +
+                          "INNER JOIN team_members tm ON (tm.team_id = m.team1_id OR tm.team_id = m.team2_id) " +
+                          "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                          "AND tm.status = 'ACCEPTED' " +
+                          "AND m.is_concluded = TRUE";
+
+        // 2. AŞAMA: Öğrencinin istatistiklerini güncelleyen SQL sorgusu
+        String updateSql = "UPDATE students SET matches_played = ?, win_rate = ? " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        java.sql.Connection conn = null;
+        
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // Transaction başlat
+
+            int matchesPlayed = 0;
+            int totalWins = 0;
+            double winRate = 0.0;
+
+            // --- 1. HESAPLAMA ---
+            try (java.sql.PreparedStatement countStmt = conn.prepareStatement(countSql)) {
+                countStmt.setString(1, student.getBilkentEmail());
+                
+                try (java.sql.ResultSet rs = countStmt.executeQuery()) {
+                    if (rs.next()) {
+                        matchesPlayed = rs.getInt("total_matches");
+                        totalWins = rs.getInt("total_wins");
+                    }
+                }
+            }
+
+            // Kazanma oranını (win_rate) hesapla
+            if (matchesPlayed > 0) {
+                winRate = (double) totalWins / matchesPlayed;
+            }
+
+            // Java tarafındaki objeyi de yeni değerlerle senkronize et
+            student.setMatchesPlayed(matchesPlayed);
+            student.setWinRate(winRate);
+
+            // --- 2. GÜNCELLEME ---
+            try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                updateStmt.setInt(1, matchesPlayed);
+                updateStmt.setDouble(2, winRate);
+                updateStmt.setString(3, student.getBilkentEmail());
+                
+                int updatedRows = updateStmt.executeUpdate();
+                
+                if (updatedRows == 0) {
+                    conn.rollback(); // Öğrenci bulunamazsa işlemi geri al
+                    return DbStatus.DATA_NOT_FOUND;
+                }
+            }
+
+            // Her şey hatasız bittiyse veritabanına kaydet
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (java.sql.SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (java.sql.SQLException ex) { ex.printStackTrace(); }
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) try { conn.setAutoCommit(true); } catch (java.sql.SQLException e) { e.printStackTrace(); }
+        }
+    }
 }
