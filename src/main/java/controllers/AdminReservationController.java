@@ -2,17 +2,16 @@ package controllers;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import database.Database;
 import database.DbStatus;
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.HBox;
@@ -161,7 +160,8 @@ public class AdminReservationController {
             Student targetStudent = res.getOrganizer();
             
             if (targetStudent != null) {
-                adminManager.givePenaltyPoint(currentAdmin, targetStudent, 1);
+                // Ceza puanı artışı 1'den 20'ye çıkarıldı
+                adminManager.givePenaltyPoint(currentAdmin, targetStudent, 20);
             }
             
             db.updateReservationAttendance(res.getReservationId(), false);
@@ -170,7 +170,8 @@ public class AdminReservationController {
             Platform.runLater(() -> {
                 isProcessing = false;
                 loadReservations();
-                showCustomAlert("Penalty Issued", "Student received 1 penalty point for no-show.");
+                // Admine gösterilen uyarı mesajı 20 puana göre düzeltildi
+                showCustomAlert("Penalty Issued", "Student received 20 penalty points for no-show.");
             });
         }).start();
     }
