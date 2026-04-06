@@ -4051,6 +4051,7 @@ public class Database {
         
         return myTeams;
     }
+    
     /**
      * Retrieves a list of teams that are participating in a specific tournament.
      * Joins multiple tables to fetch teams associated with the given tournament ID, along with their captains' information.
@@ -4063,8 +4064,9 @@ public class Database {
         
         if (tournament_id == null || tournament_id.trim().isEmpty()) return tournamentTeams;
 
+        // SQL sorgusuna kaptanın okul numarası (c_u.student_id AS cap_uni_id) eklendi!
         String sql = "SELECT t.team_id, t.team_name, t.access_code, t.max_capacity, t.ge250_requested, " +
-                     "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.profile_pic_url AS cap_pic, " +
+                     "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.student_id AS cap_uni_id, c_u.profile_pic_url AS cap_pic, " +
                      "c_s.elo_point, c_s.win_rate " +
                      "FROM teams t " +
                      "INNER JOIN users c_u ON t.captain_id = c_u.id " +
@@ -4076,10 +4078,15 @@ public class Database {
 
             try (java.sql.ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    // 1. Kaptanı oluştur
-                    models.Student captain = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
-                    captain.setFullName(rs.getString("cap_name"));
-                    captain.setBilkentEmail(rs.getString("cap_email"));
+                    
+                    // 1. Kaptanı zorunlu 3 parametreli Constructor ile oluştur
+                    models.Student captain = new models.Student(
+                        rs.getString("cap_name"), 
+                        rs.getString("cap_email"), 
+                        rs.getString("cap_uni_id")
+                    );
+                    
+                    // Geri kalan değerleri Setter ile ata
                     captain.setProfilePictureUrl(rs.getString("cap_pic"));
                     captain.setEloPoint(rs.getInt("elo_point"));
                     captain.setWinRate(rs.getDouble("win_rate"));
@@ -4104,7 +4111,7 @@ public class Database {
         
         return tournamentTeams;
     }
-
+    
     /**
      * Inserts a new match record into the 'matches' table, associating it with the specified tournament and teams.
      * Automatically generates a UUID for the match and retrieves the sport_id from the associated tournament.
