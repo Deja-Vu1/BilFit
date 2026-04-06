@@ -1,6 +1,7 @@
 package managers;
 
 import java.time.LocalDate;
+
 import database.Database;
 import database.DbStatus;
 import models.Admin;
@@ -156,7 +157,7 @@ public class AdminManager {
     public DbStatus updateReliabilityPoints(Admin admin, Student student, double newPoints) {
         if (admin == null || student == null) return DbStatus.QUERY_ERROR;
         
-        // Puanı güvenli sınırlara çek (0 ile 100 arası)
+
         double boundedPoints = Math.max(0.0, Math.min(100.0, newPoints));
         
         DbStatus status = db.updateStudentReliability(student.getBilkentEmail(), boundedPoints);
@@ -166,6 +167,20 @@ public class AdminManager {
             String formattedScore = String.format(java.util.Locale.US, "%.1f", boundedPoints);
             notifManager.sendToUser(student, "Reliability Score Updated", "Your reliability score has been updated to " + formattedScore + "/100 by an admin.");
         }
+        return status;
+    }
+
+    public DbStatus recalculateStudentMatchStats(Admin admin, Student targetStudent) {
+        if (admin == null || targetStudent == null) return DbStatus.QUERY_ERROR;
+
+
+        DbStatus status = db.updateMatchCountStatus(targetStudent);
+        
+        if (status == DbStatus.SUCCESS) {
+
+            notifManager.sendToUser(targetStudent, "Stats Synchronized", "Your match statistics have been recalculated and synchronized by an admin.");
+        }
+        
         return status;
     }
 }
