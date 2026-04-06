@@ -4435,10 +4435,8 @@ public class Database {
     
     /**
      * Retrieves a list of matches from a specific tournament that involve the given student.
-     * Joins multiple tables to fetch matches where the student is a member of either team1 or team2 with 'ACCEPTED' status.
-     * Converts database records into Match model objects and returns them in a list.
      * @param tournamentId The UUID of the tournament for which to fetch the matches
-     * @param currentStudent The student for whom to fetch the matches (used to filter matches relevant to this student)
+     * @param currentStudent The student for whom to fetch the matches
      * @return A List of Match objects representing the matches in the specified tournament that involve the given student.
      */
     public java.util.ArrayList<models.Match> getStudentTournamentMatches(String tournamentId, models.Student currentStudent) {
@@ -4448,18 +4446,13 @@ public class Database {
             return studentMatches;
         }
 
-        // Maç, Spor, Takımlar ve Kaptanları çeken, ancak sadece öğrencinin olduğu maçları filtreleyen sorgu
-        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, " +
+        // m.is_concluded ve öğrenci uni_id'leri SQL sorgusuna eklendi!
+        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, m.is_concluded, " +
                      "sp.name AS sport_name, " +
-                     
-                     // 1. Takım ve Kaptan Bilgileri
                      "t1.team_id AS t1_id, t1.team_name AS t1_name, t1.access_code AS t1_code, t1.max_capacity AS t1_cap, t1.ge250_requested AS t1_ge250, " +
-                     "c1_u.full_name AS c1_name, c1_u.bilkent_email AS c1_email, c1_u.profile_pic_url AS c1_pic, c1_s.elo_point AS c1_elo, c1_s.win_rate AS c1_win, " +
-                     
-                     // 2. Takım ve Kaptan Bilgileri
+                     "c1_u.full_name AS c1_name, c1_u.bilkent_email AS c1_email, c1_u.student_id AS c1_uni, c1_u.profile_pic_url AS c1_pic, c1_s.elo_point AS c1_elo, c1_s.win_rate AS c1_win, " +
                      "t2.team_id AS t2_id, t2.team_name AS t2_name, t2.access_code AS t2_code, t2.max_capacity AS t2_cap, t2.ge250_requested AS t2_ge250, " +
-                     "c2_u.full_name AS c2_name, c2_u.bilkent_email AS c2_email, c2_u.profile_pic_url AS c2_pic, c2_s.elo_point AS c2_elo, c2_s.win_rate AS c2_win " +
-                     
+                     "c2_u.full_name AS c2_name, c2_u.bilkent_email AS c2_email, c2_u.student_id AS c2_uni, c2_u.profile_pic_url AS c2_pic, c2_s.elo_point AS c2_elo, c2_s.win_rate AS c2_win " +
                      "FROM matches m " +
                      "INNER JOIN sports sp ON m.sport_id = sp.id " +
                      "INNER JOIN teams t1 ON m.team1_id = t1.team_id " +
@@ -4469,30 +4462,23 @@ public class Database {
                      "INNER JOIN users c2_u ON t2.captain_id = c2_u.id " +
                      "INNER JOIN students c2_s ON c2_u.id = c2_s.user_id " +
                      "WHERE m.tournament_id = ? " +
-                     
-                     // --- FİLTRELEME KISMI: Öğrenci bu iki takımdan birinde ACCEPTED olarak var mı? ---
                      "AND EXISTS (" +
                      "    SELECT 1 FROM team_members tm " +
                      "    INNER JOIN users u ON tm.student_id = u.id " +
                      "    WHERE u.bilkent_email = ? AND tm.status = 'ACCEPTED' " +
                      "    AND (tm.team_id = m.team1_id OR tm.team_id = m.team2_id)" +
-                     ")";
+                     ") ORDER BY m.match_date ASC";
 
         try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
             
-            // 1. Parametre: Turnuva ID'si
             stmt.setObject(1, java.util.UUID.fromString(tournamentId));
-            
-            // 2. Parametre: EXISTS alt sorgusundaki e-posta kontrolü
             stmt.setString(2, currentStudent.getBilkentEmail());
 
             try (java.sql.ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     
-                    // --- 1. TAKIMIN OLUŞTURULMASI ---
-                    models.Student captain1 = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
-                    captain1.setFullName(rs.getString("c1_name"));
-                    captain1.setBilkentEmail(rs.getString("c1_email"));
+                    // Constructor'lar uni_id ile düzeltildi!
+                    models.Student captain1 = new models.Student(rs.getString("c1_name"), rs.getString("c1_email"), rs.getString("c1_uni"));
                     captain1.setProfilePictureUrl(rs.getString("c1_pic"));
                     captain1.setEloPoint(rs.getInt("c1_elo"));
                     captain1.setWinRate(rs.getDouble("c1_win"));
@@ -4503,10 +4489,7 @@ public class Database {
                         rs.getBoolean("t1_ge250"), captain1
                     );
 
-                    // --- 2. TAKIMIN OLUŞTURULMASI ---
-                    models.Student captain2 = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
-                    captain2.setFullName(rs.getString("c2_name"));
-                    captain2.setBilkentEmail(rs.getString("c2_email"));
+                    models.Student captain2 = new models.Student(rs.getString("c2_name"), rs.getString("c2_email"), rs.getString("c2_uni"));
                     captain2.setProfilePictureUrl(rs.getString("c2_pic"));
                     captain2.setEloPoint(rs.getInt("c2_elo"));
                     captain2.setWinRate(rs.getDouble("c2_win"));
@@ -4517,35 +4500,22 @@ public class Database {
                         rs.getBoolean("t2_ge250"), captain2
                     );
 
-                    // --- SPOR TÜRÜ VE TARİH DÖNÜŞÜMÜ ---
-                    models.SportType sType = null;
-                    try {
-                        sType = models.SportType.valueOf(rs.getString("sport_name").trim().toUpperCase().replace(" ", "_"));
-                    } catch (IllegalArgumentException e) {
-                        System.err.println("Uyarı: Veritabanında eşleşmeyen spor türü: " + rs.getString("sport_name"));
-                    }
-                    
+                    models.SportType sType = models.SportType.valueOf(rs.getString("sport_name").trim().toUpperCase().replace(" ", "_"));
                     java.time.LocalDateTime matchDate = rs.getTimestamp("match_date").toLocalDateTime();
 
-                    // --- MAÇ OBJESİNİN OLUŞTURULMASI ---
                     models.Match match = new models.Match(
-                        rs.getObject("match_id").toString(),
-                        matchDate,
-                        sType,
-                        team1,
-                        team2
+                        rs.getObject("match_id").toString(), matchDate, sType, team1, team2
                     );
                     
                     match.setPointChange(rs.getInt("point_change"));
+                    
+                    // --- BİTİŞ DURUMUNU SET EDİYORUZ ---
+                    match.set_concluded(rs.getBoolean("is_concluded"));
 
-                    // --- KAZANAN TAKIMIN BELİRLENMESİ ---
                     String winnerId = rs.getString("winner_team_id");
                     if (winnerId != null) {
-                        if (winnerId.equals(team1.getTeamId())) {
-                            match.setWinner(team1);
-                        } else if (winnerId.equals(team2.getTeamId())) {
-                            match.setWinner(team2);
-                        }
+                        if (winnerId.equals(team1.getTeamId())) match.setWinner(team1);
+                        else if (winnerId.equals(team2.getTeamId())) match.setWinner(team2);
                     } 
 
                     studentMatches.add(match);
@@ -4753,27 +4723,22 @@ public class Database {
 
     /**
      * Retrieves a list of all matches associated with a specific tournament, regardless of the student's involvement.
-     * Joins multiple tables to fetch match details, including teams and their captains, for the given tournament ID.
-     * Converts database records into Match model objects and returns them in a list.
+     * Joins multiple tables to fetch match details, including teams, captains, and conclusion status.
      * @param tournamentId The UUID of the tournament for which to fetch all matches
-     * @return A List of Match objects representing all matches in the specified tournament, or an empty list if none found or in case of errors.
+     * @return A List of Match objects representing all matches in the specified tournament.
      */
     public java.util.ArrayList<models.Match> getAllTournamentMatches(String tournamentId) {
         java.util.ArrayList<models.Match> tournamentMatches = new java.util.ArrayList<>();
         
         if (tournamentId == null || tournamentId.trim().isEmpty()) return tournamentMatches;
 
-        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, " +
+        // m.is_concluded SQL sorgusuna eklendi!
+        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, m.is_concluded, " +
                      "sp.name AS sport_name, " +
-                     
-                     // 1. Takım ve Kaptan Bilgileri (student_id uni_id için eklendi)
                      "t1.team_id AS t1_id, t1.team_name AS t1_name, t1.access_code AS t1_code, t1.max_capacity AS t1_cap, t1.ge250_requested AS t1_ge250, " +
                      "c1_u.full_name AS c1_name, c1_u.bilkent_email AS c1_email, c1_u.student_id AS c1_uni, c1_u.profile_pic_url AS c1_pic, c1_s.elo_point AS c1_elo, c1_s.win_rate AS c1_win, " +
-                     
-                     // 2. Takım ve Kaptan Bilgileri
                      "t2.team_id AS t2_id, t2.team_name AS t2_name, t2.access_code AS t2_code, t2.max_capacity AS t2_cap, t2.ge250_requested AS t2_ge250, " +
                      "c2_u.full_name AS c2_name, c2_u.bilkent_email AS c2_email, c2_u.student_id AS c2_uni, c2_u.profile_pic_url AS c2_pic, c2_s.elo_point AS c2_elo, c2_s.win_rate AS c2_win " +
-                     
                      "FROM matches m " +
                      "INNER JOIN sports sp ON m.sport_id = sp.id " +
                      "INNER JOIN teams t1 ON m.team1_id = t1.team_id " +
@@ -4790,7 +4755,6 @@ public class Database {
             try (java.sql.ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     
-                    // --- 1. TAKIM (Kaptan -> Takım) ---
                     models.Student captain1 = new models.Student(rs.getString("c1_name"), rs.getString("c1_email"), rs.getString("c1_uni"));
                     captain1.setProfilePictureUrl(rs.getString("c1_pic"));
                     captain1.setEloPoint(rs.getInt("c1_elo"));
@@ -4801,7 +4765,6 @@ public class Database {
                         rs.getString("t1_code"), rs.getInt("t1_cap"), rs.getBoolean("t1_ge250"), captain1
                     );
 
-                    // --- 2. TAKIM (Kaptan -> Takım) ---
                     models.Student captain2 = new models.Student(rs.getString("c2_name"), rs.getString("c2_email"), rs.getString("c2_uni"));
                     captain2.setProfilePictureUrl(rs.getString("c2_pic"));
                     captain2.setEloPoint(rs.getInt("c2_elo"));
@@ -4812,17 +4775,18 @@ public class Database {
                         rs.getString("t2_code"), rs.getInt("t2_cap"), rs.getBoolean("t2_ge250"), captain2
                     );
 
-                    // --- SPOR TÜRÜ VE TARİH ---
                     models.SportType sType = models.SportType.valueOf(rs.getString("sport_name").trim().toUpperCase().replace(" ", "_"));
                     java.time.LocalDateTime matchDate = rs.getTimestamp("match_date").toLocalDateTime();
 
-                    // --- MAÇ MODELİ ---
                     models.Match match = new models.Match(
                         rs.getObject("match_id").toString(), matchDate, sType, team1, team2
                     );
+                    
                     match.setPointChange(rs.getInt("point_change"));
+                    
+                    // --- BİTİŞ DURUMUNU SET EDİYORUZ ---
+                    match.set_concluded(rs.getBoolean("is_concluded"));
 
-                    // --- KAZANAN TAKIM DURUMU ---
                     String winnerId = rs.getString("winner_team_id");
                     if (winnerId != null) {
                         if (winnerId.equals(team1.getTeamId())) match.setWinner(team1);
@@ -4838,7 +4802,7 @@ public class Database {
 
         return tournamentMatches;
     }
-
+    
     /**
      * Deletes a tournament from the database based on the provided tournament ID.
      * Handles potential foreign key constraint violations by catching SQL exceptions and providing informative error messages.
@@ -5030,5 +4994,5 @@ public class Database {
                 try { conn.setAutoCommit(true); } catch (java.sql.SQLException ex) { ex.printStackTrace(); }
             }
         }
-    }    
+    }
 }

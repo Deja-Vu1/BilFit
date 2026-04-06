@@ -10,6 +10,7 @@ public class Match {
     private Team team1;
     private Team team2;
     private Team winner;
+    private boolean is_concluded;
 
     public Match(String matchId, LocalDateTime date, SportType sportType, Team team1, Team team2) {
         this.matchId = matchId;
@@ -34,4 +35,7 @@ public class Match {
     public void setTeam2(Team team2) { this.team2 = team2; }
     public Team getWinner() { return winner; }
     public void setWinner(Team winner) { this.winner = winner; }
+    public boolean is_concluded() { return is_concluded; }
+    public void set_concluded(boolean is_concluded) { this.is_concluded = is_concluded; }
+
 }
