@@ -1,6 +1,5 @@
 package controllers;
 
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -333,8 +332,8 @@ public class AdminTournamentsController {
         matchesBox.setPadding(new Insets(10));
 
         new Thread(() -> {
-            // Gerçek veritabanından maçları çekiyoruz
-            List<Match> matches = db.getTournamentMatchesAll(t.getTournamentId());
+
+        List<Match> matches = db.getAllTournamentMatches(t.getTournamentId());
             
             Platform.runLater(() -> {
                 if (matches == null || matches.isEmpty()) {
