@@ -160,7 +160,7 @@ public class AdminReservationController {
             Student targetStudent = res.getOrganizer();
             
             if (targetStudent != null) {
-                // Ceza puanı artışı 1'den 20'ye çıkarıldı
+
                 adminManager.givePenaltyPoint(currentAdmin, targetStudent, 20);
             }
             
@@ -170,7 +170,7 @@ public class AdminReservationController {
             Platform.runLater(() -> {
                 isProcessing = false;
                 loadReservations();
-                // Admine gösterilen uyarı mesajı 20 puana göre düzeltildi
+
                 showCustomAlert("Penalty Issued", "Student received 20 penalty points for no-show.");
             });
         }).start();
