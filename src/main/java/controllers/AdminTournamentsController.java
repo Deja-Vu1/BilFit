@@ -359,6 +359,16 @@ public class AdminTournamentsController {
                             Button updateBtn = new Button("Onayla");
                             updateBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-cursor: hand;");
                             
+                            if (m.getWinner() != null) {
+                                winnerCombo.setValue(m.getWinner().getTeamName());
+                                updateBtn.setText("Onaylandı");
+                                updateBtn.setDisable(true);
+                            } else if (m.is_concluded()) { // YENİ MODELE GÖRE GÜNCELLENDİ
+                                winnerCombo.setValue("Beraberlik");
+                                updateBtn.setText("Onaylandı");
+                                updateBtn.setDisable(true);
+                            }
+                            
                             updateBtn.setOnAction(e -> {
                                 if (winnerCombo.getValue() == null) return;
                                 
@@ -379,7 +389,7 @@ public class AdminTournamentsController {
                                     
                                     Platform.runLater(() -> {
                                         updateBtn.setText("Onaylandı");
-                                        showCustomAlert("Başarılı", "Maç sonucu başarıyla kaydedildi ve takım statüsü ayarlandı.");
+                                        showCustomAlert("Başarılı", "Maç sonucu başarıyla kaydedildi ve statü ayarlandı.");
                                     });
                                 }).start();
                             });

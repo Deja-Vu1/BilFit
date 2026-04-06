@@ -24,7 +24,7 @@ import models.Tournament;
 public class TournamentScheduleController {
 
     @FXML private Label scheduleTitleLabel;
-    @FXML private Label tournamentStatusLabel; // FXML'de yoksa bile kod artık çökmeyecek!
+    @FXML private Label tournamentStatusLabel; 
     @FXML private VBox matchesVBox;
     @FXML private HBox byeTeamBox;
     @FXML private Label byeTeamLabel;
@@ -58,9 +58,6 @@ public class TournamentScheduleController {
 
                 List<Match> allMatches = Database.getInstance().getAllTournamentMatches(tournament.getTournamentId());
                 
-                // =====================================================================================
-                // 1. DURUM: TURNUVA HENÜZ BAŞLAMADI (Maç Yok) -> TÜM TAKIMLARI VE ÜYELERİNİ GÖSTER
-                // =====================================================================================
                 if (allMatches.isEmpty()) {
                     List<Team> allTeams = Database.getInstance().getTournamentTeams(tournament.getTournamentId());
                     
@@ -132,9 +129,6 @@ public class TournamentScheduleController {
                     return; 
                 }
 
-                // =====================================================================================
-                // 2. DURUM: TURNUVA BAŞLADI (Maçlar Var) -> FİKSTÜR (VS) TABLOSU VE SONUÇLAR
-                // =====================================================================================
                 List<Match> teamMatches = allMatches.stream()
                     .filter(m -> m.getTeam1().getTeamId().equals(team.getTeamId()) || 
                                 (m.getTeam2() != null && m.getTeam2().getTeamId().equals(team.getTeamId())))
@@ -242,6 +236,13 @@ public class TournamentScheduleController {
                                     statusLabel.setText(t2.getTeamName() + " Won");
                                     statusLabel.setStyle("-fx-text-fill: #28A745;"); 
                                 }
+                            } else if (match.is_concluded()) { // YENİ MODELE GÖRE GÜNCELLENDİ
+                                t1Box.setStyle("-fx-background-color: #FFF4E5; -fx-background-radius: 8 0 0 8;");
+                                t1Label.setTextFill(javafx.scene.paint.Color.web("#DD6B20"));
+                                t2Box.setStyle("-fx-background-color: #FFF4E5;");
+                                t2Label.setTextFill(javafx.scene.paint.Color.web("#DD6B20"));
+                                statusLabel.setText("Draw (Berabere)");
+                                statusLabel.setStyle("-fx-text-fill: #DD6B20;");
                             } else {
                                 t1Box.setStyle("-fx-background-color: transparent;");
                                 t2Box.setStyle("-fx-background-color: transparent;");

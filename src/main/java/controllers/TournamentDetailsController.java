@@ -198,6 +198,11 @@ public class TournamentDetailsController {
                     statusLabel.setText(t2.getTeamName() + " Won");
                     statusLabel.setStyle("-fx-text-fill: #28A745;");
                 }
+            } else if (match.is_concluded()) { // YENİ MODELE GÖRE GÜNCELLENDİ
+                t1Box.setStyle("-fx-background-color: #FFF4E5; -fx-background-radius: 8 0 0 8;");
+                t2Box.setStyle("-fx-background-color: #FFF4E5;");
+                statusLabel.setText("Draw (Berabere)");
+                statusLabel.setStyle("-fx-text-fill: #DD6B20;");
             } else {
                 t1Box.setStyle("-fx-background-color: #F8FAFC; -fx-background-radius: 8 0 0 8;");
                 t2Box.setStyle("-fx-background-color: #F8FAFC;");
