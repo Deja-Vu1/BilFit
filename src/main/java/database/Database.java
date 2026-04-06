@@ -4739,4 +4739,46 @@ public class Database {
 
         return reservations;
     }
+
+    /**
+     * Removes a participant (student) from a duello reservation by deleting the corresponding record from the 'reservation_attendees' table.
+     * Uses a SQL DELETE statement with a subquery to identify the student ID based on the provided email and reservation ID.
+     * @param reservationId The UUID of the reservation from which to remove the participant
+     * @param studentEmail The email of the student to be removed from the reservation
+     * @return DbStatus indicating SUCCESS if the participant was removed, DATA_NOT_FOUND if no matching record was found, or QUERY_ERROR in case of errors (including invalid input).
+     */
+    public DbStatus removeDuelloParticipant(String reservationId, String studentEmail) {
+        
+        if (reservationId == null || reservationId.trim().isEmpty() || 
+            studentEmail == null || studentEmail.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // reservation_attendees tablosuna ve şemana tam uyumlu SQL sorgusu
+        String sql = "DELETE FROM reservation_attendees " +
+                     "WHERE reservation_id = ? AND student_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            // 1. Parametre: Rezervasyon UUID'si
+            stmt.setObject(1, java.util.UUID.fromString(reservationId));
+            
+            // 2. Parametre: Kullanıcının e-postası (Alt sorgu için)
+            stmt.setString(2, studentEmail);
+            
+            int rowsDeleted = stmt.executeUpdate();
+            
+            return (rowsDeleted > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException e) {
+            System.err.println("Geçersiz UUID formatı: " + reservationId);
+            return DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
 }

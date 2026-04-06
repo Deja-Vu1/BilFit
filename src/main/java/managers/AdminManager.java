@@ -22,7 +22,7 @@ public class AdminManager {
     public DbStatus addFacility(Admin admin, Facility facility) {
         if (admin == null || facility == null) return DbStatus.QUERY_ERROR;
         
-        return db.insertFacility(facility.getName(), facility.getCampusLocation(), facility.getSportType().name(), facility.getCapacity());
+        return db.insertFacility(facility.getName(), facility.getCampusLocation(), facility.getCapacity(),facility.getSportType().name(), facility.isUnderMaintenance());
     }
 
     public DbStatus removeFacility(Admin admin, Facility facility) {
@@ -74,7 +74,7 @@ public class AdminManager {
 
     public Notification sendSystemBroadcast(Admin admin, String message) {
         if (admin == null || message == null || message.trim().isEmpty()) return null;
-        return notifManager.broadcastToAll("System Update by " + admin.getNickname(), message);
+        return notifManager.broadcastToAll("System Update by " + admin.getFullName(), message);
     }
 
     public DbStatus givePenaltyPoint(Admin admin, Student targetStudent, int points) {

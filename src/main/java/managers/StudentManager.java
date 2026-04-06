@@ -65,61 +65,15 @@ public class StudentManager {
         return status;
     }
 
-    public DbStatus rateOpponent(Student student, Student target, double score) {
-        if (student == null || target == null || score < 0 || score > 100) return DbStatus.QUERY_ERROR;
-        
-        boolean hasPlayed = db.hasPlayedMatchTogether(student.getBilkentEmail(), target.getBilkentEmail());
-        if (!hasPlayed) {
-            return DbStatus.QUERY_ERROR;
-        }
-
-        DbStatus status = db.insertStudentRating(target.getBilkentEmail(), score);
-        if (status == DbStatus.SUCCESS) {
-            int count = target.getRatingCount() + 1;
-            double newScore = ((target.getReliabilityScore() * (count - 1)) + score) / count;
-            
-            target.setReliabilityScore(newScore);
-            target.setRatingCount(count);
-        }
-        return status;
-    }
-
-    public DbStatus sendFriendRequest(Student sender, Student target) {
-        if (sender == null || target == null || sender.getBilkentEmail().equals(target.getBilkentEmail())) return DbStatus.QUERY_ERROR;
-        
-        if (target.getFriendRequests().contains(sender) || target.getFriends().contains(sender)) {
-            return DbStatus.QUERY_ERROR;
-        }
-
-        DbStatus status = db.insertFriendRequest(sender.getBilkentEmail(), target.getBilkentEmail());
-        if (status == DbStatus.SUCCESS) {
-            target.getFriendRequests().add(sender);
-            notifManager.sendToUser(target, "Friend Request", sender.getNickname() + " sent you a friend request.");
-        }
-        return status;
-    }
-
     public DbStatus acceptFriendRequest(Student receiver, Student requester) {
         if (receiver == null || requester == null) return DbStatus.QUERY_ERROR;
 
         DbStatus status = db.acceptFriendRequest(requester.getBilkentEmail(), receiver.getBilkentEmail());
         if (status == DbStatus.SUCCESS) {
             if (!receiver.getFriends().contains(requester)) receiver.getFriends().add(requester);
-            receiver.getFriendRequests().remove(requester);
             if (!requester.getFriends().contains(receiver)) requester.getFriends().add(receiver);
             
             notifManager.sendToUser(requester, "Friend Request Accepted", receiver.getNickname() + " accepted your friend request.");
-        }
-        return status;
-    }
-
-    public DbStatus declineFriendRequest(Student receiver, Student requester) {
-        if (receiver == null || requester == null) return DbStatus.QUERY_ERROR;
-
-        DbStatus status = db.deleteFriendRequest(requester.getBilkentEmail(), receiver.getBilkentEmail());
-        if (status == DbStatus.SUCCESS || status == DbStatus.DATA_NOT_FOUND) {
-             receiver.getFriendRequests().remove(requester);
-             return DbStatus.SUCCESS;
         }
         return status;
     }
