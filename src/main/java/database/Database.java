@@ -4825,8 +4825,7 @@ public class Database {
 
     /**
      * Removes a participant (student) from a duello reservation by deleting the corresponding record from the 'reservation_attendees' table.
-     * Also updates the 'is_matched' status to FALSE in the 'duellos' table.
-     * Uses a SQL DELETE statement with a subquery to identify the student ID based on the provided email and reservation ID.
+     * Also updates the 'is_matched' status to FALSE and increments 'empty_slots' in the 'duellos' table.
      * @param reservationId The UUID of the reservation from which to remove the participant
      * @param studentEmail The email of the student to be removed from the reservation
      * @return DbStatus indicating SUCCESS if the participant was removed, DATA_NOT_FOUND if no matching record was found, or QUERY_ERROR in case of errors.
@@ -4842,8 +4841,8 @@ public class Database {
         String deleteSql = "DELETE FROM reservation_attendees " +
                            "WHERE reservation_id = ? AND student_id = (SELECT id FROM users WHERE bilkent_email = ?)";
                            
-        // 2. Düellonun is_matched durumunu false yapma sorgusu
-        String updateDuelloSql = "UPDATE duellos SET is_matched = FALSE WHERE reservation_id = ?";
+        // 2. ÇÖZÜM BURADA: is_matched'i FALSE yaparken boş yer (empty_slots) sayısını 1 artırıyoruz!
+        String updateDuelloSql = "UPDATE duellos SET is_matched = FALSE, empty_slots = empty_slots + 1 WHERE reservation_id = ?";
 
         java.sql.Connection conn = null;
 
@@ -4875,7 +4874,7 @@ public class Database {
                 return DbStatus.DATA_NOT_FOUND;
             }
 
-            // --- 2. AŞAMA: DÜELLO DURUMUNU GÜNCELLE ---
+            // --- 2. AŞAMA: DÜELLO DURUMUNU VE KAPASİTESİNİ GÜNCELLE ---
             try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(updateDuelloSql)) {
                 updateStmt.setObject(1, resUuid);
                 updateStmt.executeUpdate();
@@ -4901,8 +4900,8 @@ public class Database {
                 try { conn.setAutoCommit(true); } catch (java.sql.SQLException ex) { ex.printStackTrace(); }
             }
         }
-    }
-    
+    }    
+
     /**
      * Updates the match count and win rate for a given student by executing two SQL queries:
      * 1. A SELECT query that calculates the total number of concluded matches and total wins for the student.
