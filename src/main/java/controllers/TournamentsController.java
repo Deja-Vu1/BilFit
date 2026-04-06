@@ -23,8 +23,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import managers.SessionManager;
@@ -307,7 +305,7 @@ public class TournamentsController {
         }).start();
     }
 
-    private void openScheduleView(Team t) {
+   private void openScheduleView(Team t) {
         try {
             java.net.URL fxmlLocation = getClass().getResource("/views/dashboard/TournamentScheduleView.fxml");
             if (fxmlLocation == null) {
@@ -317,6 +315,9 @@ public class TournamentsController {
             FXMLLoader loader = new FXMLLoader(fxmlLocation);
             Parent root = loader.load();
             
+            TournamentScheduleController controller = loader.getController();
+            controller.setTeam(t);
+
             Stage stage = new Stage();
             stage.setTitle("Tournament Schedule");
             stage.initModality(Modality.APPLICATION_MODAL);
