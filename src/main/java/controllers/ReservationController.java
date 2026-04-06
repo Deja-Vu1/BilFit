@@ -121,12 +121,13 @@ public class ReservationController {
 
         new Thread(() -> {
             Database db = Database.getInstance();
+            Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
             boolean[] availabilities = new boolean[15];
             
             int checkHour = 8;
             for (int i = 0; i < 15; i++) {
                 String ts = String.format("%02d.00-%02d.00", checkHour, checkHour + 1);
-                availabilities[i] = db.checkFacilityAvailability(selectedFacilityName, selectedDate, ts);
+                availabilities[i] = db.checkFacilityAvailability(selectedFacilityName, selectedDate, ts, currentUser);
                 checkHour++;
             }
 

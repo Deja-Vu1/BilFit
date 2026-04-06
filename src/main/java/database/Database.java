@@ -1325,6 +1325,89 @@ public class Database {
     }
 
     /**
+     * THIS IS AN OVERLOADED VERSION OF checkFacilityAvailability() THAT ALSO CHECKS FOR DOUBLE BOOKING.
+     * Checks if a facility is available for a specific date and time slot, AND ensures 
+     * the given student does not already have a reservation at the exact same time (Double Booking).
+     * @param facilityName The name of the facility
+     * @param date The date of the reservation
+     * @param timeSlot The specific time slot (e.g., "14:00-15:30")
+     * @param currentStudent The student requesting the reservation
+     * @return true if available AND student is not double-booked, false otherwise.
+     */
+    public boolean checkFacilityAvailability(String facilityName, java.time.LocalDate date, String timeSlot, models.Student currentStudent) {
+        
+        if (currentStudent == null || currentStudent.getBilkentEmail() == null) {
+            return false;
+        }
+
+        // 1. Tesis kapasitesi ve aktif rezervasyonlar
+        // 2. Öğrencinin o saatteki aktif (iptal edilmemiş) rezervasyonu var mı kontrolü (EXISTS ile)
+        String sql = "SELECT f.capacity, f.is_under_maintenance, " +
+                     
+                     // Tesisin o saatteki doluluk oranı alt sorgusu
+                     "(SELECT COUNT(*) FROM reservations r " +
+                     " WHERE r.facility_id = f.facility_id " +
+                     "   AND r.reservation_date = ? " +
+                     "   AND r.time_slot = ? " +
+                     "   AND r.is_cancelled = FALSE) AS active_reservations, " +
+                     
+                     // Öğrenci Çifte Rezervasyon (Double Booking) alt sorgusu
+                     "(SELECT EXISTS (" +
+                     "   SELECT 1 FROM reservations r2 " +
+                     "   INNER JOIN reservation_attendees ra ON r2.reservation_id = ra.reservation_id " +
+                     "   WHERE ra.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "     AND r2.reservation_date = ? " +
+                     "     AND r2.time_slot = ? " +
+                     "     AND r2.is_cancelled = FALSE" +
+                     ")) AS is_double_booked " +
+                     
+                     "FROM facilities f " +
+                     "WHERE f.name = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+
+            java.sql.Date sqlDate = java.sql.Date.valueOf(date);
+
+            // 1. Kapasite alt sorgusu için parametreler
+            stmt.setDate(1, sqlDate);
+            stmt.setString(2, timeSlot);
+            
+            // 2. Double booking alt sorgusu için parametreler
+            stmt.setString(3, currentStudent.getBilkentEmail());
+            stmt.setDate(4, sqlDate);
+            stmt.setString(5, timeSlot);
+            
+            // 3. Ana sorgu için tesis adı
+            stmt.setString(6, facilityName);
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    boolean isUnderMaintenance = rs.getBoolean("is_under_maintenance");
+                    int capacity = rs.getInt("capacity");
+                    int activeReservations = rs.getInt("active_reservations");
+                    boolean isDoubleBooked = rs.getBoolean("is_double_booked");
+
+                    // Eğer tesis bakımdaysa VEYA öğrencinin o saatte zaten işi varsa direkt false
+                    if (isUnderMaintenance || isDoubleBooked) {
+                        if (isDoubleBooked) {
+                            System.err.println("Uyarı: Öğrencinin bu tarih ve saatte zaten başka bir rezervasyonu bulunuyor (Double Booking)!");
+                        }
+                        return false;
+                    }
+
+                    // Her şey yolundaysa kapasitenin dolup dolmadığına bak
+                    return activeReservations < capacity;
+                }
+            }
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
+    /**
      * Creates a new reservation for a student at a specific facility.
      * Automatically adds the reservation creator as the first attendee in the 'reservation_attendees' table.
      * @param studentEmail The Bilkent email of the student making the reservation

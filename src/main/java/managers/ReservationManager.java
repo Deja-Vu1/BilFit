@@ -43,7 +43,7 @@ public class ReservationManager {
             return null;
         }
 
-        boolean isAvailable = db.checkFacilityAvailability(facility.getName(), date, timeSlot);
+        boolean isAvailable = db.checkFacilityAvailability(facility.getName(), date, timeSlot, student);
         if (!isAvailable) {
             return null;
         }
