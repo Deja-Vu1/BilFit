@@ -4398,4 +4398,224 @@ public class Database {
         
         return membersList;
     }
+
+    /**
+     * Checks if any matches have been created for a specific tournament by querying the 'matches' table.
+     * Uses an efficient SQL query to determine the existence of at least one match record associated with the given tournament ID.
+     * @param tournamentId The UUID of the tournament for which to check match creation
+     * @return true if at least one match exists for the tournament, false otherwise or in case of errors.
+     */
+    public boolean checkIfFixtureCreated(String tournamentId) {
+        if (tournamentId == null || tournamentId.trim().isEmpty()) return false;
+
+        // COUNT kullanmak yerine sadece 1 kayıt bulması yeterli (Çok daha performanslıdır)
+        String sql = "SELECT 1 FROM matches WHERE tournament_id = ? LIMIT 1";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(tournamentId));
+            
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                return rs.next(); // Eğer kayıt bulursa true döner
+            }
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Retrieves the tournament associated with a specific team by joining the 'tournaments', 'teams', and 'sports' tables.
+     * Converts the database record into a Tournament model object and returns it.
+     * @param teamId The UUID of the team for which to fetch the tournament
+     * @return A Tournament object representing the tournament associated with the specified team, or null if not found or in case of errors.
+     */
+    public models.Tournament getTournamentByTeamId(String teamId) {
+        if (teamId == null || teamId.trim().isEmpty()) return null;
+
+        String sql = "SELECT t.tournament_id, t.tournament_name, s.name AS sport_name, " +
+                     "t.start_date, t.end_date, t.max_players_per_team, t.has_ge250, " +
+                     "t.access_code, t.campus_location, t.is_active " +
+                     "FROM tournaments t " +
+                     "INNER JOIN teams tm ON t.tournament_id = tm.tournament_id " +
+                     "INNER JOIN sports s ON t.sport_id = s.id " +
+                     "WHERE tm.team_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(teamId));
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    models.SportType sType = null;
+                    try {
+                        sType = models.SportType.valueOf(rs.getString("sport_name").trim().toUpperCase().replace(" ", "_"));
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Geçersiz spor türü: " + rs.getString("sport_name"));
+                    }
+
+                    java.time.LocalDate sDate = rs.getTimestamp("start_date").toLocalDateTime().toLocalDate();
+                    java.time.LocalDate eDate = rs.getTimestamp("end_date").toLocalDateTime().toLocalDate();
+
+                    models.Tournament tournament = new models.Tournament(
+                        rs.getObject("tournament_id").toString(),
+                        rs.getString("tournament_name"),
+                        sType,
+                        sDate,
+                        eDate,
+                        rs.getInt("max_players_per_team"),
+                        rs.getBoolean("has_ge250"),
+                        rs.getString("access_code"),
+                        rs.getString("campus_location")
+                    );
+                    
+                    tournament.setActive(rs.getBoolean("is_active"));
+                    return tournament;
+                }
+            }
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Inserts multiple match records into the 'matches' table for a specific tournament.
+     * Uses batch processing to efficiently insert a list of Match objects into the database.
+     * @param matches A List of Match objects to be inserted into the database
+     * @param tournamentId The UUID of the tournament to which the matches belong
+     * @return DbStatus indicating SUCCESS, QUERY_ERROR, or other relevant statuses based on the operation outcome.
+     */
+    public DbStatus saveMatches(java.util.List<models.Match> matches, String tournamentId) {
+        if (matches == null || tournamentId == null || tournamentId.trim().isEmpty()) return DbStatus.QUERY_ERROR;
+        if (matches.isEmpty()) return DbStatus.SUCCESS; // Boş liste geldiyse başarılı sayılır
+
+        String sql = "INSERT INTO matches (match_id, tournament_id, sport_id, match_date, " +
+                     "team1_id, team2_id, point_change, is_concluded) " +
+                     "VALUES (?, ?, (SELECT sport_id FROM tournaments WHERE tournament_id = ?), ?, ?, ?, ?, false)";
+
+        java.sql.Connection conn = null;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // Transaction başlat
+
+            try (java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+                
+                java.util.UUID tId = java.util.UUID.fromString(tournamentId);
+
+                for (models.Match m : matches) {
+                    stmt.setObject(1, java.util.UUID.fromString(m.getMatchId()));
+                    stmt.setObject(2, tId);
+                    stmt.setObject(3, tId); // Subquery için
+                    
+                    // LocalDateTime'ı veritabanı Timestamp'ine çeviriyoruz
+                    stmt.setTimestamp(4, java.sql.Timestamp.valueOf(m.getDate())); 
+                    
+                    stmt.setObject(5, java.util.UUID.fromString(m.getTeam1().getTeamId()));
+                    stmt.setObject(6, java.util.UUID.fromString(m.getTeam2().getTeamId()));
+                    stmt.setInt(7, m.getPointChange());
+                    
+                    stmt.addBatch(); // Sorguyu batch (toplu işlem) listesine ekle
+                }
+                
+                stmt.executeBatch(); // Tüm maçları tek seferde veritabanına yaz
+            }
+            
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (java.sql.SQLException ex) {}
+            e.printStackTrace();
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) try { conn.setAutoCommit(true); } catch (java.sql.SQLException ex) {}
+        }
+    }
+
+    /**
+     * Retrieves a list of all matches associated with a specific tournament, regardless of the student's involvement.
+     * Joins multiple tables to fetch match details, including teams and their captains, for the given tournament ID.
+     * Converts database records into Match model objects and returns them in a list.
+     * @param tournamentId The UUID of the tournament for which to fetch all matches
+     * @return A List of Match objects representing all matches in the specified tournament, or an empty list if none found or in case of errors.
+     */
+    public java.util.ArrayList<models.Match> getAllTournamentMatches(String tournamentId) {
+        java.util.ArrayList<models.Match> tournamentMatches = new java.util.ArrayList<>();
+        
+        if (tournamentId == null || tournamentId.trim().isEmpty()) return tournamentMatches;
+
+        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, " +
+                     "sp.name AS sport_name, " +
+                     
+                     // 1. Takım ve Kaptan Bilgileri (student_id uni_id için eklendi)
+                     "t1.team_id AS t1_id, t1.team_name AS t1_name, t1.access_code AS t1_code, t1.max_capacity AS t1_cap, t1.ge250_requested AS t1_ge250, " +
+                     "c1_u.full_name AS c1_name, c1_u.bilkent_email AS c1_email, c1_u.student_id AS c1_uni, c1_u.profile_pic_url AS c1_pic, c1_s.elo_point AS c1_elo, c1_s.win_rate AS c1_win, " +
+                     
+                     // 2. Takım ve Kaptan Bilgileri
+                     "t2.team_id AS t2_id, t2.team_name AS t2_name, t2.access_code AS t2_code, t2.max_capacity AS t2_cap, t2.ge250_requested AS t2_ge250, " +
+                     "c2_u.full_name AS c2_name, c2_u.bilkent_email AS c2_email, c2_u.student_id AS c2_uni, c2_u.profile_pic_url AS c2_pic, c2_s.elo_point AS c2_elo, c2_s.win_rate AS c2_win " +
+                     
+                     "FROM matches m " +
+                     "INNER JOIN sports sp ON m.sport_id = sp.id " +
+                     "INNER JOIN teams t1 ON m.team1_id = t1.team_id " +
+                     "INNER JOIN users c1_u ON t1.captain_id = c1_u.id " +
+                     "INNER JOIN students c1_s ON c1_u.id = c1_s.user_id " +
+                     "INNER JOIN teams t2 ON m.team2_id = t2.team_id " +
+                     "INNER JOIN users c2_u ON t2.captain_id = c2_u.id " +
+                     "INNER JOIN students c2_s ON c2_u.id = c2_s.user_id " +
+                     "WHERE m.tournament_id = ? ORDER BY m.match_date ASC";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            stmt.setObject(1, java.util.UUID.fromString(tournamentId));
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    
+                    // --- 1. TAKIM (Kaptan -> Takım) ---
+                    models.Student captain1 = new models.Student(rs.getString("c1_name"), rs.getString("c1_email"), rs.getString("c1_uni"));
+                    captain1.setProfilePictureUrl(rs.getString("c1_pic"));
+                    captain1.setEloPoint(rs.getInt("c1_elo"));
+                    captain1.setWinRate(rs.getDouble("c1_win"));
+
+                    models.Team team1 = new models.Team(
+                        rs.getObject("t1_id").toString(), rs.getString("t1_name"), 
+                        rs.getString("t1_code"), rs.getInt("t1_cap"), rs.getBoolean("t1_ge250"), captain1
+                    );
+
+                    // --- 2. TAKIM (Kaptan -> Takım) ---
+                    models.Student captain2 = new models.Student(rs.getString("c2_name"), rs.getString("c2_email"), rs.getString("c2_uni"));
+                    captain2.setProfilePictureUrl(rs.getString("c2_pic"));
+                    captain2.setEloPoint(rs.getInt("c2_elo"));
+                    captain2.setWinRate(rs.getDouble("c2_win"));
+
+                    models.Team team2 = new models.Team(
+                        rs.getObject("t2_id").toString(), rs.getString("t2_name"), 
+                        rs.getString("t2_code"), rs.getInt("t2_cap"), rs.getBoolean("t2_ge250"), captain2
+                    );
+
+                    // --- SPOR TÜRÜ VE TARİH ---
+                    models.SportType sType = models.SportType.valueOf(rs.getString("sport_name").trim().toUpperCase().replace(" ", "_"));
+                    java.time.LocalDateTime matchDate = rs.getTimestamp("match_date").toLocalDateTime();
+
+                    // --- MAÇ MODELİ ---
+                    models.Match match = new models.Match(
+                        rs.getObject("match_id").toString(), matchDate, sType, team1, team2
+                    );
+                    match.setPointChange(rs.getInt("point_change"));
+
+                    // --- KAZANAN TAKIM DURUMU ---
+                    String winnerId = rs.getString("winner_team_id");
+                    if (winnerId != null) {
+                        if (winnerId.equals(team1.getTeamId())) match.setWinner(team1);
+                        else if (winnerId.equals(team2.getTeamId())) match.setWinner(team2);
+                    } 
+
+                    tournamentMatches.add(match);
+                }
+            }
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+
+        return tournamentMatches;
+    }
 }
