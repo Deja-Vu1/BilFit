@@ -23,6 +23,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import managers.SessionManager;
@@ -315,15 +317,37 @@ public class TournamentsController {
             FXMLLoader loader = new FXMLLoader(fxmlLocation);
             Parent root = loader.load();
             
-            // İŞTE CLASSCAST HATASINI YOK EDEN VE VERİYİ GÖNDEREN KISIM
-            controllers.TournamentScheduleController controller = loader.getController();
-            controller.setTeam(t);
-            
             Stage stage = new Stage();
             stage.setTitle("Tournament Schedule");
             stage.initModality(Modality.APPLICATION_MODAL);
             stage.setScene(new Scene(root, 900, 700));
             stage.show();
+        } catch(Exception ex) {
+            ex.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Kritik Hata", "Ekran yüklenirken hata oluştu: " + ex.toString());
+        }
+    }
+
+    private void openTeamEditView(Team t) {
+        try {
+            java.net.URL fxmlLocation = getClass().getResource("/views/dashboard/TeamEditView.fxml");
+            if (fxmlLocation == null) {
+                showAlert(Alert.AlertType.ERROR, "Yol Hatası", "TeamEditView.fxml dosyası bulunamadı!");
+                return;
+            }
+
+            FXMLLoader loader = new FXMLLoader(fxmlLocation);
+            Parent root = loader.load();
+            
+            TeamEditController controller = loader.getController();
+            controller.setTeam(t);
+
+            Stage stage = new Stage();
+            stage.setTitle("Team Info");
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.setScene(new Scene(root, 900, 650));
+            stage.show();
+            
         } catch(Exception ex) {
             ex.printStackTrace();
             showAlert(Alert.AlertType.ERROR, "Kritik Hata", "Ekran yüklenirken hata oluştu: " + ex.toString());
@@ -491,31 +515,5 @@ public class TournamentsController {
             alert.getDialogPane().getStylesheets().add(getClass().getResource("/views/dashboard/bilfit-exact.css").toExternalForm()); 
         } catch (Exception e) {}
         alert.showAndWait();
-    }
-
-    private void openTeamEditView(Team t) {
-        try {
-            java.net.URL fxmlLocation = getClass().getResource("/views/dashboard/TeamEditView.fxml");
-            if (fxmlLocation == null) {
-                showAlert(Alert.AlertType.ERROR, "Yol Hatası", "TeamEditView.fxml dosyası bulunamadı!");
-                return;
-            }
-
-            FXMLLoader loader = new FXMLLoader(fxmlLocation);
-            Parent root = loader.load();
-            
-            TeamEditController controller = loader.getController();
-            controller.setTeam(t);
-
-            Stage stage = new Stage();
-            stage.setTitle("Team Info");
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.setScene(new Scene(root, 900, 650));
-            stage.show();
-            
-        } catch(Exception ex) {
-            ex.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Kritik Hata", "Ekran yüklenirken hata oluştu: " + ex.toString());
-        }
     }
 }

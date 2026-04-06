@@ -43,7 +43,7 @@ public class HomeController {
 
                List<Notification> myNotifications = db.getNotificationsByStudent(currentUser);
                
-               List<Tournament> allTournaments = db.getAllActiveTournaments();
+               List<Tournament> allTournaments = db.getAllTournaments();
                List<Tournament> upcomingTournaments = new ArrayList<>();
                LocalDate currentDate = LocalDate.now();
 

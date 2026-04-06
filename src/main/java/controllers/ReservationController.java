@@ -98,7 +98,7 @@ public class ReservationController {
             return;
         }
 
-        String selectedFacilityName = selectedVal.replace(" (Under Maintenance)", "").replace(" (Active)", "").replace(" (Bakımda)", "").replace(" (Aktif)", "").trim();
+        String selectedFacilityName = selectedVal.replace(" (Under Maintenance)", "").replace(" (Active)", "");
 
         final long updateId = ++currentGridUpdateId;
 
@@ -201,7 +201,11 @@ public class ReservationController {
         if (isProcessing) return;
 
         String selectedVal = facilityComboBox.getValue();
+<<<<<<< HEAD
         String selectedFacilityName = selectedVal.replace(" (Under Maintenance)", "").replace(" (Active)", "");
+=======
+        String selectedFacilityName = selectedVal.replace(" (Bakımda)", "").replace(" (Aktif)", "");
+>>>>>>> parent of 903ec7e (add torunaments schedule)
         LocalDate selectedDate = datePicker.getValue();
 
         Facility foundFacility = null;
