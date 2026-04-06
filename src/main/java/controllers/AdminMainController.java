@@ -42,7 +42,8 @@ public class AdminMainController {
     }
 
     public void loadReservations() {
-        loadView("/views/dashboard/MyReservationsView.fxml"); 
+     
+        loadView("/views/auth/AdminReservation.fxml"); 
     }
     
     public void loadFacilities() {
