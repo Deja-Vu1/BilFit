@@ -8,8 +8,6 @@ import javafx.scene.layout.StackPane;
 public class AdminMainController {
     
     @FXML private StackPane contentArea;
-    
-    
     @FXML private AdminSidebarController sidebarController;
 
     @FXML
@@ -21,11 +19,9 @@ public class AdminMainController {
             System.err.println("ATTENTION: Admin Sidebar failed to load! Please check the fx:id in the FXML file.");
         }
         
-        
         loadHome(); 
     }
 
-    
     public void loadView(String path) {
         try {
             System.out.println("Page Loading: " + path);
@@ -37,28 +33,27 @@ public class AdminMainController {
         }
     }
 
-    
-    
     public void loadHome() {
-        
         loadView("/views/dashboard/AdminHomeView.fxml");
     }
     
     public void loadAccount() {
-        
         loadView("/views/dashboard/AdminProfileView.fxml");
     }
 
     public void loadReservations() {
-        
         loadView("/views/dashboard/MyReservationsView.fxml"); 
     }
     
     public void loadFacilities() {
         loadView("/views/dashboard/AdminFacilitiesView.fxml"); 
     }
+
     public void loadSettings() {
-        
         loadView("/views/dashboard/AdminSettingsView.fxml");
+    }
+
+    public void loadTournaments() {
+        loadView("/views/dashboard/AdminTournamentsView.fxml");
     }
 }
