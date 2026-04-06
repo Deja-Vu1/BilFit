@@ -94,12 +94,24 @@ public class DuelloManager {
     }
 
     public DbStatus cancelDuello(Duello duello, Student creator) {
-        if (duello == null || creator == null || duello.isMatched()) return DbStatus.QUERY_ERROR;
+        if (duello == null || creator == null) return DbStatus.QUERY_ERROR;
         
         DbStatus status = db.deleteDuello(duello.getReservationId(), creator.getBilkentEmail());
         if(status == DbStatus.SUCCESS) {
             duello.setCancelled(true);
             duello.getAttendees().clear();
+        }
+        return status;
+    }
+
+    public DbStatus leaveDuello(Duello duello, Student student) {
+        if (duello == null || student == null) return DbStatus.QUERY_ERROR;
+        
+        DbStatus status = db.removeDuelloParticipant(duello.getReservationId(), student.getBilkentEmail());
+        if (status == DbStatus.SUCCESS) {
+            duello.setMatched(false);
+            duello.setEmptySlots(duello.getEmptySlots() + 1);
+            duello.getAttendees().remove(student);
         }
         return status;
     }
