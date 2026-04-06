@@ -4064,7 +4064,7 @@ public class Database {
         if (tournament_id == null || tournament_id.trim().isEmpty()) return tournamentTeams;
 
         String sql = "SELECT t.team_id, t.team_name, t.access_code, t.max_capacity, t.ge250_requested, " +
-                     "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.student_id AS cap_uni_id, c_u.profile_pic_url AS cap_pic, " +
+                     "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.profile_pic_url AS cap_pic, " +
                      "c_s.elo_point, c_s.win_rate " +
                      "FROM teams t " +
                      "INNER JOIN users c_u ON t.captain_id = c_u.id " +
@@ -4076,16 +4076,15 @@ public class Database {
 
             try (java.sql.ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    models.Student captain = new Student(
-                        rs.getString("cap_name"), 
-                        rs.getString("cap_email"), 
-                        rs.getString("cap_uni_id")
-                    );
-                    
+                    // 1. Kaptanı oluştur
+                    models.Student captain = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    captain.setFullName(rs.getString("cap_name"));
+                    captain.setBilkentEmail(rs.getString("cap_email"));
                     captain.setProfilePictureUrl(rs.getString("cap_pic"));
                     captain.setEloPoint(rs.getInt("elo_point"));
                     captain.setWinRate(rs.getDouble("win_rate"));
 
+                    // 2. Takımı oluştur
                     models.Team team = new models.Team(
                         rs.getObject("team_id").toString(),
                         rs.getString("team_name"),
@@ -4399,131 +4398,4 @@ public class Database {
         
         return membersList;
     }
-
-    public java.util.ArrayList<models.Match> getAllTournamentMatches(String tournamentId) {
-        java.util.ArrayList<models.Match> allMatches = new java.util.ArrayList<>();
-        
-        if (tournamentId == null || tournamentId.trim().isEmpty()) {
-            return allMatches;
-        }
-
-        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, m.is_concluded, " +
-                     "sp.name AS sport_name, " +
-                     "t1.team_id AS t1_id, t1.team_name AS t1_name, t1.access_code AS t1_code, t1.max_capacity AS t1_cap, t1.ge250_requested AS t1_ge250, " +
-                     "c1_u.full_name AS c1_name, c1_u.bilkent_email AS c1_email, c1_u.student_id AS c1_uni_id, c1_u.profile_pic_url AS c1_pic, c1_s.elo_point AS c1_elo, c1_s.win_rate AS c1_win, " +
-                     "t2.team_id AS t2_id, t2.team_name AS t2_name, t2.access_code AS t2_code, t2.max_capacity AS t2_cap, t2.ge250_requested AS t2_ge250, " +
-                     "c2_u.full_name AS c2_name, c2_u.bilkent_email AS c2_email, c2_u.student_id AS c2_uni_id, c2_u.profile_pic_url AS c2_pic, c2_s.elo_point AS c2_elo, c2_s.win_rate AS c2_win " +
-                     "FROM matches m " +
-                     "INNER JOIN sports sp ON m.sport_id = sp.id " +
-                     "INNER JOIN teams t1 ON m.team1_id = t1.team_id " +
-                     "INNER JOIN users c1_u ON t1.captain_id = c1_u.id " +
-                     "INNER JOIN students c1_s ON c1_u.id = c1_s.user_id " +
-                     "INNER JOIN teams t2 ON m.team2_id = t2.team_id " +
-                     "INNER JOIN users c2_u ON t2.captain_id = c2_u.id " +
-                     "INNER JOIN students c2_s ON c2_u.id = c2_s.user_id " +
-                     "WHERE m.tournament_id = ? " +
-                     "ORDER BY m.match_date ASC";
-
-        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
-            stmt.setObject(1, java.util.UUID.fromString(tournamentId));
-
-            try (java.sql.ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    models.Student captain1 = new models.Student(rs.getString("c1_name"), rs.getString("c1_email"), rs.getString("c1_uni_id"));
-                    captain1.setProfilePictureUrl(rs.getString("c1_pic"));
-                    captain1.setEloPoint(rs.getInt("c1_elo"));
-                    captain1.setWinRate(rs.getDouble("c1_win"));
-
-                    models.Team team1 = new models.Team(
-                        rs.getObject("t1_id").toString(), rs.getString("t1_name"), 
-                        rs.getString("t1_code"), rs.getInt("t1_cap"), 
-                        rs.getBoolean("t1_ge250"), captain1
-                    );
-
-                    models.Student captain2 = new models.Student(rs.getString("c2_name"), rs.getString("c2_email"), rs.getString("c2_uni_id"));
-                    captain2.setProfilePictureUrl(rs.getString("c2_pic"));
-                    captain2.setEloPoint(rs.getInt("c2_elo"));
-                    captain2.setWinRate(rs.getDouble("c2_win"));
-
-                    models.Team team2 = new models.Team(
-                        rs.getObject("t2_id").toString(), rs.getString("t2_name"), 
-                        rs.getString("t2_code"), rs.getInt("t2_cap"), 
-                        rs.getBoolean("t2_ge250"), captain2
-                    );
-
-                    models.SportType sType = models.SportType.valueOf(rs.getString("sport_name").trim().toUpperCase().replace(" ", "_"));
-                    java.time.LocalDateTime matchDate = rs.getTimestamp("match_date").toLocalDateTime();
-
-                    models.Match match = new models.Match(
-                        rs.getObject("match_id").toString(),
-                        matchDate,
-                        sType,
-                        team1,
-                        team2
-                    );
-                    
-                    match.setPointChange(rs.getInt("point_change"));
-                    
-                    String winnerId = rs.getString("winner_team_id");
-                    if (winnerId != null) {
-                        if (winnerId.equals(team1.getTeamId())) {
-                            match.setWinner(team1);
-                        } else if (winnerId.equals(team2.getTeamId())) {
-                            match.setWinner(team2);
-                        }
-                    }
-
-                    allMatches.add(match);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return allMatches;
-    }
-    public models.Tournament getTournamentByTeamId(String teamId) {
-        if (teamId == null || teamId.trim().isEmpty()) return null;
-
-        String sql = "SELECT t.tournament_id, t.tournament_name, s.name AS sport_name, " +
-                     "t.start_date, t.end_date, t.max_players_per_team, t.has_ge250, " +
-                     "t.access_code, t.campus_location " +
-                     "FROM tournaments t " +
-                     "INNER JOIN sports s ON t.sport_id = s.id " +
-                     "INNER JOIN teams tm ON t.tournament_id = tm.tournament_id " +
-                     "WHERE tm.team_id = ?";
-
-        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
-            stmt.setObject(1, java.util.UUID.fromString(teamId));
-
-            try (java.sql.ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    String sportNameStr = rs.getString("sport_name");
-                    models.SportType sType = null;
-                    try {
-                        sType = models.SportType.valueOf(sportNameStr.trim().toUpperCase().replace(" ", "_"));
-                    } catch (IllegalArgumentException e) {
-                        System.err.println("Geçersiz spor türü: " + sportNameStr);
-                    }
-
-                    return new models.Tournament(
-                        rs.getObject("tournament_id").toString(),
-                        rs.getString("tournament_name"),
-                        sType,
-                        rs.getTimestamp("start_date").toLocalDateTime().toLocalDate(),
-                        rs.getTimestamp("end_date").toLocalDateTime().toLocalDate(),
-                        rs.getInt("max_players_per_team"),
-                        rs.getBoolean("has_ge250"),
-                        rs.getString("access_code"),
-                        rs.getString("campus_location")
-                    );
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    
 }
