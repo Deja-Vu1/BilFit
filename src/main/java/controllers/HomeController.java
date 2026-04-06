@@ -43,7 +43,7 @@ public class HomeController {
 
                List<Notification> myNotifications = db.getNotificationsByStudent(currentUser);
                
-               List<Tournament> allTournaments = db.getAllTournaments();
+               List<Tournament> allTournaments = db.getAllActiveTournaments();
                List<Tournament> upcomingTournaments = new ArrayList<>();
                LocalDate currentDate = LocalDate.now();
 
@@ -106,7 +106,7 @@ public class HomeController {
        }).start();
    }
 
-private HBox createTournamentRow(Tournament t, DateTimeFormatter formatter, Student currentUser) {
+   private HBox createTournamentRow(Tournament t, DateTimeFormatter formatter, Student currentUser) {
        HBox row = new HBox();
        row.setAlignment(Pos.CENTER_LEFT);
        row.setStyle("-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;");
@@ -123,9 +123,8 @@ private HBox createTournamentRow(Tournament t, DateTimeFormatter formatter, Stud
 
        Label tLabel = new Label(labelText);
        tLabel.setStyle("-fx-text-fill: #2b3674; -fx-font-weight: bold; -fx-font-size: 13px;");
-       tLabel.setWrapText(false); // Yazı alt satıra inmesin, sığmazsa sonuna ... koysun
+       tLabel.setWrapText(false);
        
-       // ÇÖZÜMÜN KALBİ: Spacer'ı sildik! Yazının (Label) kendisinin genişlemesini ve butonu sağa itmesini sağlıyoruz.
        tLabel.setMaxWidth(Double.MAX_VALUE);
        HBox.setHgrow(tLabel, Priority.ALWAYS);
 
@@ -134,7 +133,6 @@ private HBox createTournamentRow(Tournament t, DateTimeFormatter formatter, Stud
        applyBtn.setMinWidth(100.0); 
        applyBtn.getStyleClass().add("btn-secondary");
 
-       // Arka plandaki veritabanı kayıt işlemi (Apply)
        applyBtn.setOnAction(event -> {
            javafx.scene.control.TextInputDialog dialog = new javafx.scene.control.TextInputDialog();
            dialog.setTitle("Tournament Application");
@@ -149,7 +147,6 @@ private HBox createTournamentRow(Tournament t, DateTimeFormatter formatter, Stud
                    return;
                }
                
-               // Doğrudan veritabanına kayıt yapıyoruz
                database.DbStatus status = db.insertTeam(currentUser, t, teamName.trim());
                
                if (status == database.DbStatus.SUCCESS) {
@@ -162,7 +159,6 @@ private HBox createTournamentRow(Tournament t, DateTimeFormatter formatter, Stud
            });
        });
 
-       // Spacer olmadığı için sadece yazıyı ve butonu ekliyoruz
        row.getChildren().addAll(tLabel, applyBtn);
 
        return row;
