@@ -4074,7 +4074,8 @@ public class Database {
 
     /**
      * Retrieves a list of teams that the given student is currently a member of.
-     * Joins multiple tables to fetch teams where the student has an 'ACCEPTED' membership status.
+     * Joins multiple tables to fetch teams where the student has an 'ACCEPTED' membership status,
+     * along with their associated tournament and captain info.
      * Converts database records into Team model objects and returns them in a list.
      * @param currentStudent The student for whom to fetch the teams
      * @return A List of Team objects representing the teams the student is part of.
@@ -4085,16 +4086,21 @@ public class Database {
         if (currentStudent == null) return myTeams;
 
         // t.* -> Takım bilgileri
-        // c_u.* ve c_s.* -> Kaptanın bilgileri (users ve students tablolarından)
-        // c_u.student_id AS cap_uni_id SQL sorgusuna eklendi!
+        // c_u.* ve c_s.* -> Kaptanın bilgileri
+        // tr.* ve sp.* -> Turnuva ve spor bilgileri SQL sorgusuna eklendi
         String sql = "SELECT t.team_id, t.team_name, t.access_code, t.max_capacity, t.ge250_requested, " +
                      "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.student_id AS cap_uni_id, c_u.profile_pic_url AS cap_pic, " +
-                     "c_s.elo_point, c_s.win_rate " +
+                     "c_s.elo_point, c_s.win_rate, " +
+                     "tr.tournament_id AS tr_id, tr.tournament_name, tr.start_date, tr.end_date, " +
+                     "tr.max_players_per_team AS tr_max_cap, tr.has_ge250 AS tr_ge250, tr.access_code AS tr_code, tr.campus_location, tr.is_active, " +
+                     "sp.name AS sport_name " +
                      "FROM teams t " +
                      "INNER JOIN team_members tm ON t.team_id = tm.team_id " +
                      "INNER JOIN users u ON tm.student_id = u.id " +
                      "INNER JOIN users c_u ON t.captain_id = c_u.id " +
                      "INNER JOIN students c_s ON c_u.id = c_s.user_id " +
+                     "INNER JOIN tournaments tr ON t.tournament_id = tr.tournament_id " +
+                     "INNER JOIN sports sp ON tr.sport_id = sp.id " +
                      "WHERE u.bilkent_email = ? AND tm.status = 'ACCEPTED'";
 
         try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
@@ -4103,19 +4109,17 @@ public class Database {
             try (java.sql.ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     
-                    // 1. Önce Kaptan (Student) objesini doğru SQL alias'ları ile oluşturuyoruz
+                    // --- 1. KAPTAN (STUDENT) OBJESİNİ OLUŞTUR ---
                     models.Student captain = new models.Student(
                         rs.getString("cap_name"), 
                         rs.getString("cap_email"), 
                         rs.getString("cap_uni_id")
                     );
-                    
-                    // Geri kalan bilgileri setter'lar ile ekliyoruz
                     captain.setProfilePictureUrl(rs.getString("cap_pic"));
                     captain.setEloPoint(rs.getInt("elo_point"));
                     captain.setWinRate(rs.getDouble("win_rate"));
 
-                    // 2. Senin modelindeki Constructor'ı kullanarak Team objesini oluşturuyoruz
+                    // --- 2. TAKIM (TEAM) OBJESİNİ OLUŞTUR ---
                     models.Team team = new models.Team(
                         rs.getObject("team_id").toString(),
                         rs.getString("team_name"),
@@ -4125,6 +4129,33 @@ public class Database {
                         captain
                     );
                     
+                    // --- 3. TURNUVA (TOURNAMENT) OBJESİNİ OLUŞTUR VE TAKIMA BAĞLA ---
+                    models.SportType sType = null;
+                    try {
+                        sType = models.SportType.valueOf(rs.getString("sport_name").trim().toUpperCase().replace(" ", "_"));
+                    } catch (IllegalArgumentException e) {
+                        System.err.println("Uyarı: Geçersiz spor türü -> " + rs.getString("sport_name"));
+                    }
+
+                    java.time.LocalDate startDate = rs.getTimestamp("start_date").toLocalDateTime().toLocalDate();
+                    java.time.LocalDate endDate = rs.getTimestamp("end_date").toLocalDateTime().toLocalDate();
+
+                    models.Tournament tournament = new models.Tournament(
+                        rs.getObject("tr_id").toString(),
+                        rs.getString("tournament_name"),
+                        sType,
+                        startDate,
+                        endDate,
+                        rs.getInt("tr_max_cap"),
+                        rs.getBoolean("tr_ge250"),
+                        rs.getString("tr_code"),
+                        rs.getString("campus_location")
+                    );
+                    tournament.setActive(rs.getBoolean("is_active"));
+
+                    // Turnuvayı takıma set et!
+                    team.setCurrentTournament(tournament);
+
                     myTeams.add(team);
                 }
             }

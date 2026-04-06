@@ -11,6 +11,7 @@ public class Team {
     private boolean ge250Requested;
     private List<Student> members;
     private Student captain;
+    private Tournament currentTournament;
 
     public Team(String teamId, String teamName, String accessCode, int maxCapacity, boolean ge250Requested, Student captain) {
         this.teamId = teamId;
@@ -37,6 +38,8 @@ public class Team {
     public void setMembers(List<Student> members) { this.members = members; }
     public Student getCaptain() { return captain; }
     public void setCaptain(Student captain) { this.captain = captain; }
+    public Tournament getCurrentTournament() { return currentTournament; }
+    public void setCurrentTournament(Tournament currentTournament) { this.currentTournament = currentTournament; }
 
     public String toString() {
         return "Team{" +
@@ -46,6 +49,7 @@ public class Team {
                 ", maxCapacity=" + maxCapacity +
                 ", ge250Requested=" + ge250Requested +
                 ", captain=" + captain.getFullName() +
+                ", currentTournament=" + currentTournament +
                 '}';
     }
 }
