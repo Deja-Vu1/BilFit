@@ -4111,7 +4111,7 @@ public class Database {
         
         return tournamentTeams;
     }
-    
+
     /**
      * Inserts a new match record into the 'matches' table, associating it with the specified tournament and teams.
      * Automatically generates a UUID for the match and retrieves the sport_id from the associated tournament.
@@ -4624,5 +4624,119 @@ public class Database {
         }
 
         return tournamentMatches;
+    }
+
+    /**
+     * Deletes a tournament from the database based on the provided tournament ID.
+     * Handles potential foreign key constraint violations by catching SQL exceptions and providing informative error messages.
+     * @param tournamentId The UUID of the tournament to be deleted
+     * @return DbStatus indicating SUCCESS if the tournament was deleted, DATA_NOT_FOUND if no tournament with the given ID exists, or QUERY_ERROR in case of errors (including foreign key violations).
+     */
+    public DbStatus deleteTournament(String tournamentId) {
+        if (tournamentId == null || tournamentId.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String sql = "DELETE FROM tournaments WHERE tournament_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(tournamentId));
+            
+            int rowsDeleted = stmt.executeUpdate();
+            
+            return (rowsDeleted > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException e) {
+            System.err.println("Geçersiz UUID formatı: " + tournamentId);
+            return DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            // Foreign Key ihlali (23503) durumu
+            if ("23503".equals(e.getSQLState())) {
+                System.err.println("Hata: Bu turnuvaya bağlı takımlar veya maçlar olduğu için turnuva silinemiyor!");
+            } else {
+                e.printStackTrace();
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves a list of all reservations from the database, including details about the reserved facility, the organizer (student), and the associated sport.
+     * Joins multiple tables to fetch comprehensive reservation information and converts database records into Reservation model objects.
+     * @return A List of Reservation objects representing all reservations in the database, or an empty list if none found or in case of errors.
+     */
+    public java.util.ArrayList<models.Reservation> getAllReservations() {
+        java.util.ArrayList<models.Reservation> reservations = new java.util.ArrayList<>();
+
+        // SQL Sorgusu: r.reserved_by kolonu şemana uygun olarak JOIN işlemine dahil edildi.
+        String sql = "SELECT r.reservation_id, r.reservation_date, r.time_slot, r.is_cancelled, r.has_attended, " +
+                     "f.facility_id, f.name AS facility_name, f.campus_location, f.capacity, f.is_under_maintenance, " +
+                     "sp.name AS sport_name, " +
+                     "u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
+                     "s.elo_point, s.win_rate " +
+                     "FROM reservations r " +
+                     "INNER JOIN facilities f ON r.facility_id = f.facility_id " +
+                     "INNER JOIN sports sp ON f.sport_id = sp.id " +  
+                     "INNER JOIN students s ON r.reserved_by = s.user_id " + // fk->public.students.user_id bağlantısı
+                     "INNER JOIN users u ON s.user_id = u.id " +
+                     "ORDER BY r.reservation_date DESC, r.time_slot ASC";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql);
+             java.sql.ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                
+                // --- 1. TESİS (FACILITY) SPOR TÜRÜ ---
+                models.SportType fSportType = null;
+                try {
+                    fSportType = models.SportType.valueOf(rs.getString("sport_name").trim().toUpperCase().replace(" ", "_"));
+                } catch (IllegalArgumentException e) {
+                    System.err.println("Uyarı: Tesis için veritabanında eşleşmeyen spor türü: " + rs.getString("sport_name"));
+                }
+
+                // --- 2. TESİS (FACILITY) OBJESİ ---
+                models.Facility facility = new models.Facility(
+                    rs.getObject("facility_id").toString(),
+                    rs.getString("facility_name"),
+                    rs.getString("campus_location"),
+                    fSportType,
+                    rs.getInt("capacity")
+                );
+                facility.setUnderMaintenance(rs.getBoolean("is_under_maintenance"));
+                
+                // --- 3. ORGANİZATÖR (STUDENT) OBJESİ ---
+                models.Student organizer = new models.Student(
+                    rs.getString("full_name"),
+                    rs.getString("bilkent_email"),
+                    rs.getString("uni_id")
+                );
+                organizer.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                organizer.setEloPoint(rs.getInt("elo_point"));
+                organizer.setWinRate(rs.getDouble("win_rate"));
+
+                // --- 4. TARİH DÖNÜŞÜMÜ ---
+                java.time.LocalDate resDate = rs.getDate("reservation_date").toLocalDate();
+
+                // --- 5. REZERVASYON (RESERVATION) OBJESİ ---
+                models.Reservation reservation = new models.Reservation(
+                    rs.getObject("reservation_id").toString(),
+                    facility,
+                    resDate,
+                    rs.getString("time_slot")
+                );
+
+                reservation.setCancelled(rs.getBoolean("is_cancelled"));
+                reservation.setHasAttended(rs.getBoolean("has_attended"));
+                reservation.setOrganizer(organizer);
+
+                reservations.add(reservation);
+            }
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+
+        return reservations;
     }
 }
