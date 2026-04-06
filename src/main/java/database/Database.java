@@ -4248,8 +4248,9 @@ public class Database {
 
     /**
      * Updates the conclusion status of a match in the database.
+     * Automatically recalculates and updates matches_played and win_rate for ALL players involved in the match.
      * @param matchId The UUID of the match to be updated
-     * @param isConcluded The new conclusion status for the match (true if the match is concluded, false otherwise)
+     * @param isConcluded The new conclusion status for the match
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
      */
     public DbStatus updateMatchStatus(String matchId, boolean isConcluded) {
@@ -4257,23 +4258,42 @@ public class Database {
         if (matchId == null || matchId.trim().isEmpty()) return DbStatus.QUERY_ERROR;
 
         String sql = "UPDATE matches SET is_concluded = ? WHERE match_id = ?";
+        java.sql.Connection conn = null;
 
-        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
-            
-            stmt.setBoolean(1, isConcluded);
-            stmt.setObject(2, java.util.UUID.fromString(matchId));
-            
-            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // Transaction başlatıldı
+
+            int rowsUpdated = 0;
+            try (java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setBoolean(1, isConcluded);
+                stmt.setObject(2, java.util.UUID.fromString(matchId));
+                rowsUpdated = stmt.executeUpdate();
+            }
+
+            if (rowsUpdated > 0) {
+                // DURUM DEĞİŞTİ -> ŞİMDİ OYUNCULARIN İSTATİSTİKLERİNİ HESAPLA!
+                updateStatsForMatchParticipants(conn, matchId);
+                
+                conn.commit();
+                return DbStatus.SUCCESS;
+            } else {
+                conn.rollback();
+                return DbStatus.DATA_NOT_FOUND;
+            }
 
         } catch (IllegalArgumentException | java.sql.SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (Exception ex) {}
             e.printStackTrace();
             return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) try { conn.setAutoCommit(true); } catch (Exception ex) {}
         }
     }
 
     /**
      * Updates the winner team of a match in the database.
-     * If the winnerTeam parameter is null, it sets the winner_team_id to SQL NULL, indicating a draw or no winner.
+     * Automatically recalculates and updates matches_played and win_rate for ALL players involved in the match.
      * @param matchId The UUID of the match to be updated
      * @param winnerTeam The Team object representing the winner team (can be null for draw/no winner)
      * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
@@ -4283,26 +4303,105 @@ public class Database {
         if (matchId == null || matchId.trim().isEmpty()) return DbStatus.QUERY_ERROR;
 
         String sql = "UPDATE matches SET winner_team_id = ? WHERE match_id = ?";
+        java.sql.Connection conn = null;
 
-        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
-            
-            if (winnerTeam != null && winnerTeam.getTeamId() != null) {
-                stmt.setObject(1, java.util.UUID.fromString(winnerTeam.getTeamId()));
-            } else {
-                // Eğer winnerTeam null gelirse, veritabanına SQL NULL kaydederiz (Beraberlik durumu vb.)
-                stmt.setNull(1, java.sql.Types.OTHER); 
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // Transaction başlatıldı
+
+            int rowsUpdated = 0;
+            try (java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+                if (winnerTeam != null && winnerTeam.getTeamId() != null) {
+                    stmt.setObject(1, java.util.UUID.fromString(winnerTeam.getTeamId()));
+                } else {
+                    stmt.setNull(1, java.sql.Types.OTHER); 
+                }
+                stmt.setObject(2, java.util.UUID.fromString(matchId));
+                rowsUpdated = stmt.executeUpdate();
             }
-            
-            stmt.setObject(2, java.util.UUID.fromString(matchId));
-            
-            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+            if (rowsUpdated > 0) {
+                // MAÇ GÜNCELLENDİ -> ŞİMDİ OYUNCULARIN İSTATİSTİKLERİNİ HESAPLA!
+                updateStatsForMatchParticipants(conn, matchId);
+                
+                conn.commit();
+                return DbStatus.SUCCESS;
+            } else {
+                conn.rollback();
+                return DbStatus.DATA_NOT_FOUND;
+            }
 
         } catch (IllegalArgumentException | java.sql.SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (Exception ex) {}
             e.printStackTrace();
             return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) try { conn.setAutoCommit(true); } catch (Exception ex) {}
         }
     }
 
+    /**
+     * Helper method to update matches_played and win_rate for all participants of a match.
+     * This method is called after updating the match's conclusion status or winner team.
+     * It retrieves all players involved in the match, counts their total matches and wins, calculates the new win rate, and updates their records in the database.
+     * @param conn The active database connection to be used for executing queries
+     * @param matchId The UUID of the match for which to update participant statistics
+     * @throws SQLException If any SQL error occurs during the execution of queries
+     */
+    private void updateStatsForMatchParticipants(java.sql.Connection conn, String matchId) throws java.sql.SQLException {
+        // 1. O maçtaki iki takımın üyelerinin e-postalarını getir
+        String getEmailsSql = "SELECT u.bilkent_email FROM users u " +
+                              "INNER JOIN team_members tm ON u.id = tm.student_id " +
+                              "INNER JOIN matches m ON (tm.team_id = m.team1_id OR tm.team_id = m.team2_id) " +
+                              "WHERE m.match_id = ? AND tm.status = 'ACCEPTED'";
+
+        // 2. Bir öğrencinin sonuçlanmış maçlarını ve galibiyetlerini say
+        String countSql = "SELECT COUNT(m.match_id) AS total_matches, " +
+                          "COALESCE(SUM(CASE WHEN m.winner_team_id = tm.team_id THEN 1 ELSE 0 END), 0) AS total_wins " +
+                          "FROM matches m " +
+                          "INNER JOIN team_members tm ON (tm.team_id = m.team1_id OR tm.team_id = m.team2_id) " +
+                          "WHERE tm.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                          "AND tm.status = 'ACCEPTED' AND m.is_concluded = TRUE";
+
+        // 3. Öğrencinin yeni verilerini kaydet
+        String updateSql = "UPDATE students SET matches_played = ?, win_rate = ? " +
+                           "WHERE user_id = (SELECT id FROM users WHERE bilkent_email = ?)";
+
+        try (java.sql.PreparedStatement emailStmt = conn.prepareStatement(getEmailsSql)) {
+            emailStmt.setObject(1, java.util.UUID.fromString(matchId));
+            
+            try (java.sql.ResultSet rsEmails = emailStmt.executeQuery()) {
+                while (rsEmails.next()) {
+                    String email = rsEmails.getString("bilkent_email");
+                    int matchesPlayed = 0;
+                    int totalWins = 0;
+
+                    // Her bir oyuncunun istatistiklerini hesapla
+                    try (java.sql.PreparedStatement countStmt = conn.prepareStatement(countSql)) {
+                        countStmt.setString(1, email);
+                        try (java.sql.ResultSet rsCount = countStmt.executeQuery()) {
+                            if (rsCount.next()) {
+                                matchesPlayed = rsCount.getInt("total_matches");
+                                totalWins = rsCount.getInt("total_wins");
+                            }
+                        }
+                    }
+
+                    // Kazanma oranını belirle
+                    double winRate = (matchesPlayed > 0) ? (double) totalWins / matchesPlayed : 0.0;
+
+                    // Öğrencinin tablosunu güncelle
+                    try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                        updateStmt.setInt(1, matchesPlayed);
+                        updateStmt.setDouble(2, winRate);
+                        updateStmt.setString(3, email);
+                        updateStmt.executeUpdate();
+                    }
+                }
+            }
+        }
+    }
+    
     /**
      * Retrieves a list of matches from a specific tournament that involve the given student.
      * Joins multiple tables to fetch matches where the student is a member of either team1 or team2 with 'ACCEPTED' status.
