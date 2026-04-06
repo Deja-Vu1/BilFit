@@ -64,7 +64,6 @@ public class AdminTournamentsController {
         tournamentsContainer.getChildren().add(loadingLabel);
 
         new Thread(() -> {
-            // Gerçek veritabanından turnuvaları çekiyoruz
             List<Tournament> tournaments = tManager.getAllActiveTournaments(); 
             
             Platform.runLater(() -> {
@@ -196,7 +195,6 @@ public class AdminTournamentsController {
                 saveBtn.setDisable(true);
 
                 new Thread(() -> {
-                    // Gerçek veritabanı işlemi
                     DbStatus status = tManager.createTournament(t);
 
                     Platform.runLater(() -> {
@@ -251,7 +249,6 @@ public class AdminTournamentsController {
                 saveBtn.setDisable(true);
 
                 new Thread(() -> {
-                    // Gerçek veritabanı işlemi
                     DbStatus status = tManager.editDetails(t, newName, newPlayers);
                     
                     Platform.runLater(() -> {
@@ -281,7 +278,6 @@ public class AdminTournamentsController {
         isProcessing = true;
         
         new Thread(() -> {
-            // Gerçek veritabanı işlemi ile takımları çekiyoruz
             List<Team> teams = tManager.getTournamentTeams(t.getTournamentId());
             
             if (teams == null || teams.size() < 2) {
@@ -292,10 +288,8 @@ public class AdminTournamentsController {
                 return;
             }
 
-            // Takımları rastgele karıştır
             Collections.shuffle(teams);
             
-            // Veritabanı offset zamanlaması
             OffsetDateTime matchTime = OffsetDateTime.of(t.getStartDate(), LocalTime.of(1, 0), ZoneOffset.UTC);
 
             int matchCount = 0;
@@ -306,7 +300,6 @@ public class AdminTournamentsController {
                     db.insertMatch(t, t1, t2, matchTime, 10); 
                     matchCount++;
                 } else {
-                    // Tek sayı takım varsa BAY (Bye) durumu için t1 kendiyle eşleşmiş gibi tutulur
                     db.insertMatch(t, t1, t1, matchTime, 0); 
                 }
             }
@@ -332,8 +325,7 @@ public class AdminTournamentsController {
         matchesBox.setPadding(new Insets(10));
 
         new Thread(() -> {
-
-        List<Match> matches = db.getAllTournamentMatches(t.getTournamentId());
+            List<Match> matches = db.getAllTournamentMatches(t.getTournamentId());
             
             Platform.runLater(() -> {
                 if (matches == null || matches.isEmpty()) {
@@ -382,12 +374,12 @@ public class AdminTournamentsController {
                                 updateBtn.setDisable(true);
                                 
                                 new Thread(() -> {
-                                    // Gerçek veritabanı güncellemesi
                                     db.updateMatchWinner(m.getMatchId(), finalWinner);
                                     db.updateMatchStatus(m.getMatchId(), true);
                                     
                                     Platform.runLater(() -> {
                                         updateBtn.setText("Onaylandı");
+                                        showCustomAlert("Başarılı", "Maç sonucu başarıyla kaydedildi ve takım statüsü ayarlandı.");
                                     });
                                 }).start();
                             });
@@ -429,7 +421,6 @@ public class AdminTournamentsController {
         new Thread(() -> {
             int count = 0;
             for (Tournament t : toDelete) {
-                // Gerçek veritabanı silme işlemi
                 DbStatus status = db.deleteTournament(t.getTournamentId());
                 if (status == DbStatus.SUCCESS) {
                     count++;
@@ -444,8 +435,6 @@ public class AdminTournamentsController {
             });
         }).start();
     }
-
-    // --- YARDIMCI METOTLAR (UI) ---
 
     private Stage createDialogStage(String titleText) {
         Stage dialogStage = new Stage(); 
