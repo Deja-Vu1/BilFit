@@ -244,7 +244,12 @@ public class TournamentsController {
             row.getStyleClass().add("list-row");
 
             VBox infoBox = new VBox(5);
-            Label nameLabel = new Label("Team: " + t.getTeamName() + (isCaptain ? " (Captain)" : ""));
+            
+            String tourneyNameStr = (t.getCurrentTournament() != null && t.getCurrentTournament().getTournamentName() != null) 
+                                     ? t.getCurrentTournament().getTournamentName() + " | " 
+                                     : "";
+                                     
+            Label nameLabel = new Label(tourneyNameStr + "Team: " + t.getTeamName() + (isCaptain ? " (Captain)" : ""));
             nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2b3674;");
             
             Label subLabel = new Label("Status: Active | Max Players: " + t.getMaxCapacity() + " | Team Code: " + t.getAccessCode());
