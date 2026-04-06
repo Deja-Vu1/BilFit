@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,11 @@ public class AdminTournamentsController {
 
         new Thread(() -> {
             List<Tournament> tournaments = tManager.getAllActiveTournaments(); 
+            
+            if (tournaments != null && !tournaments.isEmpty()) {
+                // Turnuvaları başlangıç tarihine göre yakından uzağa sıralar
+                tournaments.sort(Comparator.comparing(Tournament::getStartDate));
+            }
             
             Platform.runLater(() -> {
                 tournamentsContainer.getChildren().clear();
@@ -200,8 +206,11 @@ public class AdminTournamentsController {
                     Platform.runLater(() -> {
                         if (status == DbStatus.SUCCESS) {
                             dialog.close(); 
-                            loadTournaments(); 
-                            showCustomAlert("Başarılı", "Turnuva başarıyla oluşturuldu.");
+                            // UI Deadlock'unu önlemek için ikinci pop-up'ı sıraya alıyoruz
+                            Platform.runLater(() -> {
+                                loadTournaments(); 
+                                showCustomAlert("Başarılı", "Turnuva başarıyla oluşturuldu.");
+                            });
                         } else {
                             saveBtn.setText("Oluştur");
                             saveBtn.setDisable(false);
@@ -254,8 +263,11 @@ public class AdminTournamentsController {
                     Platform.runLater(() -> {
                         if (status == DbStatus.SUCCESS) { 
                             dialog.close(); 
-                            loadTournaments();
-                            showCustomAlert("Başarılı", "Turnuva başarıyla güncellendi.");
+                            // UI Deadlock'unu önlemek için ikinci pop-up'ı sıraya alıyoruz
+                            Platform.runLater(() -> {
+                                loadTournaments();
+                                showCustomAlert("Başarılı", "Turnuva başarıyla güncellendi.");
+                            });
                         } else {
                             saveBtn.setText("Kaydet");
                             saveBtn.setDisable(false);
@@ -363,7 +375,7 @@ public class AdminTournamentsController {
                                 winnerCombo.setValue(m.getWinner().getTeamName());
                                 updateBtn.setText("Onaylandı");
                                 updateBtn.setDisable(true);
-                            } else if (m.is_concluded()) { // YENİ MODELE GÖRE GÜNCELLENDİ
+                            } else if (m.is_concluded()) { 
                                 winnerCombo.setValue("Beraberlik");
                                 updateBtn.setText("Onaylandı");
                                 updateBtn.setDisable(true);
@@ -487,6 +499,8 @@ public class AdminTournamentsController {
         okBtn.setOnAction(e -> dialog.close());
         
         layout.getChildren().addAll(msgLabel, okBtn); 
-        dialog.showAndWait();
+        
+        // MACOS KİLİTLENMESİNİ ENGELLEYEN DEĞİŞİKLİK
+        dialog.show(); 
     }
 }
