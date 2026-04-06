@@ -2,6 +2,7 @@ package controllers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import database.Database;
@@ -36,7 +37,6 @@ public class AdminFacilitiesController {
 
     @FXML private VBox facilitiesContainer;
     
-    
     private Map<CheckBox, Facility> facilitySelectionMap = new HashMap<>();
 
     private Database db = Database.getInstance();
@@ -48,7 +48,6 @@ public class AdminFacilitiesController {
         loadFacilities();
     }
 
-    
     private void loadFacilities() {
         if (facilitiesContainer == null) return;
         
@@ -78,21 +77,17 @@ public class AdminFacilitiesController {
         }).start();
     }
 
-   
     private HBox createFacilityCard(Facility facility) {
         HBox card = new HBox(15);
         card.setAlignment(Pos.CENTER_LEFT);
         card.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;");
         card.setPadding(new Insets(15, 20, 15, 20));
 
-        
         CheckBox selectBox = new CheckBox();
         selectBox.setStyle("-fx-cursor: hand;");
         
-        
         facilitySelectionMap.put(selectBox, facility);
 
-       
         HBox nameAndStatusBox = new HBox(10);
         nameAndStatusBox.setAlignment(Pos.CENTER_LEFT);
 
@@ -122,7 +117,6 @@ public class AdminFacilitiesController {
 
         nameAndStatusBox.getChildren().addAll(nameLabel, statusLabel); 
 
-       
         VBox textContainer = new VBox(5);
         String sportName = facility.getSportType() != null ? facility.getSportType().name().replace("_", " ") : "UNKNOWN";
         Label detailsLabel = new Label("Campus: " + facility.getCampusLocation() + "  |  Sport: " + sportName + "  |  Capacity: " + facility.getCapacity());
@@ -133,18 +127,16 @@ public class AdminFacilitiesController {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        
         actionBtn.setOnAction(e -> handleToggleMaintenance(facility, actionBtn));
 
         card.getChildren().addAll(selectBox, textContainer, spacer, actionBtn);
         return card;
     }
 
-    
     private void handleToggleMaintenance(Facility facility, Button clickedBtn) {
         if (isProcessing) return;
         isProcessing = true;
-        clickedBtn.setText("İşleniyor...");
+        clickedBtn.setText("Processing...");
 
         new Thread(() -> {
             boolean newStatus = !facility.isUnderMaintenance(); 
@@ -178,13 +170,11 @@ public class AdminFacilitiesController {
         }).start();
     }
 
-    
     @FXML
     public void handleBulkDelete(ActionEvent event) {
         if (isProcessing) return;
 
-        java.util.List<Facility> selectedOnes = new java.util.ArrayList<>();
-        
+        List<Facility> selectedOnes = new ArrayList<>();
         
         for (Map.Entry<CheckBox, Facility> entry : facilitySelectionMap.entrySet()) {
             if (entry.getKey().isSelected()) {
@@ -209,6 +199,9 @@ public class AdminFacilitiesController {
                     for (Facility f : selectedOnes) {
                         DbStatus status = adminManager.removeFacility(currentAdmin, f);
                         if (status == DbStatus.SUCCESS) {
+                            db.insertNotification("BROADCAST", 
+                                "Facility Removed", 
+                                "The facility '" + f.getName() + "' has been permanently removed from the system.");
                             count++;
                         }
                     }
@@ -217,7 +210,7 @@ public class AdminFacilitiesController {
                     Platform.runLater(() -> {
                         isProcessing = false;
                         if (finalCount > 0) {
-                            showCustomAlert("Success", finalCount + " facilities deleted successfully.");
+                            showCustomAlert("Success", finalCount + " facilities deleted successfully and notifications sent.");
                         } else {
                             showCustomAlert("Error", "Failed to delete facilities. There might be existing reservations associated with these facilities.");
                         }
@@ -229,23 +222,20 @@ public class AdminFacilitiesController {
         );
     }
 
-    
     @FXML
     public void handleBulkClose(ActionEvent event) {
         processBulkMaintenance(true, "Facility Maintenance", " has been put under maintenance.");
     }
 
-    
     @FXML
     public void handleBulkOpen(ActionEvent event) {
         processBulkMaintenance(false, "Facility Available", " is now available for reservations.");
     }
 
-   
     private void processBulkMaintenance(boolean shouldMaintain, String notifTitle, String notifMsg) {
         if (isProcessing) return;
         
-        java.util.List<Facility> selectedOnes = new java.util.ArrayList<>();
+        List<Facility> selectedOnes = new ArrayList<>();
         for (Map.Entry<CheckBox, Facility> entry : facilitySelectionMap.entrySet()) {
             if (entry.getKey().isSelected()) {
                 selectedOnes.add(entry.getValue());
@@ -283,7 +273,6 @@ public class AdminFacilitiesController {
         }).start();
     }
 
-    
     @FXML
     public void handleAddFacility(ActionEvent event) {
         Stage dialogStage = new Stage();
@@ -350,9 +339,15 @@ public class AdminFacilitiesController {
                 new Thread(() -> {
                     DbStatus status = db.insertFacility(fName.trim(), fLoc, capacity, fSport, false);
                     
+                    if (status == DbStatus.SUCCESS) {
+                        db.insertNotification("BROADCAST", 
+                            "New Facility Added", 
+                            "A new facility named '" + fName.trim() + "' has been added to " + fLoc + ".");
+                    }
+
                     Platform.runLater(() -> {
                         if (status == DbStatus.SUCCESS) {
-                            showCustomAlert("Success", "Facility added successfully!");
+                            showCustomAlert("Success", "Facility added successfully and notification sent!");
                             dialogStage.close();
                             loadFacilities();
                         } else {
@@ -376,7 +371,6 @@ public class AdminFacilitiesController {
         dialogStage.showAndWait();
     }
 
-    
     private void showCustomConfirmation(String title, String message, Runnable onConfirm, Runnable onCancel) {
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
@@ -427,7 +421,6 @@ public class AdminFacilitiesController {
         dialogStage.showAndWait();
     }
 
-    
     private void showCustomAlert(String title, String message) {
         Stage dialogStage = new Stage();
         dialogStage.initModality(Modality.APPLICATION_MODAL);
