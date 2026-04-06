@@ -98,7 +98,7 @@ public class ReservationController {
             return;
         }
 
-        String selectedFacilityName = selectedVal.replace(" (Under Maintenance)", "").replace(" (Active)", "");
+        String selectedFacilityName = selectedVal.replace(" (Under Maintenance)", "").replace(" (Active)", "").replace(" (Bakımda)", "").replace(" (Aktif)", "").trim();
 
         final long updateId = ++currentGridUpdateId;
 
@@ -179,7 +179,14 @@ public class ReservationController {
         if (isProcessing) return;
 
         String selectedVal = facilityComboBox.getValue();
-        String selectedFacilityName = selectedVal.replace(" (Bakımda)", "").replace(" (Aktif)", "");
+        
+        // KRİTİK HATA BURADAYDI: Sadece Türkçe değil, İngilizce etiketleri de silerek tesis adını saf hale getiriyoruz!
+        String selectedFacilityName = selectedVal.replace(" (Under Maintenance)", "")
+                                                 .replace(" (Active)", "")
+                                                 .replace(" (Bakımda)", "")
+                                                 .replace(" (Aktif)", "")
+                                                 .trim();
+                                                 
         LocalDate selectedDate = datePicker.getValue();
 
         Facility foundFacility = null;

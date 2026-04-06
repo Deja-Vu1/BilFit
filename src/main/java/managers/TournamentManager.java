@@ -133,4 +133,48 @@ public class TournamentManager {
         if (tournamentId == null) return new java.util.ArrayList<>();
         return db.getTournamentTeams(tournamentId);
     }
+
+    public void fillTournamentFixtures(Tournament tournament) {
+        if (tournament == null || tournament.getTournamentId() == null) return;
+        
+        java.util.List<models.Match> matches = db.getAllTournamentMatches(tournament.getTournamentId());
+        
+        if (tournament.getTournamentFixture() == null) {
+            tournament.setTournamentFixture(new models.Fixture());
+        }
+        
+        tournament.getTournamentFixture().setScheduledMatches(matches);
+    }
+
+    public DbStatus generateFixtures(Tournament tournament, int pointChange) {
+        if (tournament == null || tournament.getTournamentId() == null) return DbStatus.QUERY_ERROR;
+
+        java.util.List<Team> teams = db.getTournamentTeams(tournament.getTournamentId());
+        if (teams == null || teams.size() < 2) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        java.util.Collections.shuffle(teams);
+
+        java.time.OffsetDateTime currentMatchTime = java.time.OffsetDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0);
+
+        for (int i = 0; i < teams.size(); i += 2) {
+            if (i + 1 < teams.size()) {
+                Team team1 = teams.get(i);
+                Team team2 = teams.get(i + 1);
+                
+                DbStatus status = db.insertMatch(tournament, team1, team2, currentMatchTime, pointChange);
+                if (status != DbStatus.SUCCESS) {
+                    return status; 
+                }
+                currentMatchTime = currentMatchTime.plusHours(2);
+            }
+        }
+        
+        return DbStatus.SUCCESS;
+    }
+    public Tournament getTournamentByTeamId(String teamId) {
+        if (teamId == null) return null;
+        return db.getTournamentByTeamId(teamId);
+    }
 }

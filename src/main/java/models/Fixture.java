@@ -2,6 +2,7 @@ package models;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class Fixture {
     private String fixtureId;
@@ -10,6 +11,12 @@ public class Fixture {
 
     public Fixture(String fixtureId) {
         this.fixtureId = fixtureId;
+        this.scheduledMatches = new ArrayList<>();
+        this.currentStage = "Group Stage";
+    }
+
+    public Fixture() {
+        this.fixtureId = UUID.randomUUID().toString();
         this.scheduledMatches = new ArrayList<>();
         this.currentStage = "Group Stage";
     }

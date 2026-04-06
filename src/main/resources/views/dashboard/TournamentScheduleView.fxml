@@ -13,6 +13,9 @@
    </padding>
 
    <Label fx:id="scheduleTitleLabel" styleClass="content-title" text="Tournament Schedule" />
+   
+   <Label fx:id="tournamentStatusLabel" style="-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #A0AEC0;" text="Checking status..." />
+   
    <Separator prefWidth="200.0" />
 
    <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: #F4F7FE;" VBox.vgrow="ALWAYS">

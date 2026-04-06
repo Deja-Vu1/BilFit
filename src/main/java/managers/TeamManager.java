@@ -16,7 +16,7 @@ public class TeamManager {
         if (teamId == null || student == null || inputCode == null) {
             return DbStatus.QUERY_ERROR;
         }
-        return db.beTeamMember(teamId, student, inputCode);
+        return db.beTeamMember(student, inputCode);
     }
 
     public DbStatus removeMemberFromTeam(String teamId, Student student) {
