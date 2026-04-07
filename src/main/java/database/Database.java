@@ -4446,8 +4446,8 @@ public class Database {
             return studentMatches;
         }
 
-        // m.is_concluded ve öğrenci uni_id'leri SQL sorgusuna eklendi!
-        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, m.is_concluded, " +
+        // m.stage SQL sorgusuna eklendi!
+        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, m.is_concluded, m.stage, " +
                      "sp.name AS sport_name, " +
                      "t1.team_id AS t1_id, t1.team_name AS t1_name, t1.access_code AS t1_code, t1.max_capacity AS t1_cap, t1.ge250_requested AS t1_ge250, " +
                      "c1_u.full_name AS c1_name, c1_u.bilkent_email AS c1_email, c1_u.student_id AS c1_uni, c1_u.profile_pic_url AS c1_pic, c1_s.elo_point AS c1_elo, c1_s.win_rate AS c1_win, " +
@@ -4477,7 +4477,6 @@ public class Database {
             try (java.sql.ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     
-                    // Constructor'lar uni_id ile düzeltildi!
                     models.Student captain1 = new models.Student(rs.getString("c1_name"), rs.getString("c1_email"), rs.getString("c1_uni"));
                     captain1.setProfilePictureUrl(rs.getString("c1_pic"));
                     captain1.setEloPoint(rs.getInt("c1_elo"));
@@ -4508,9 +4507,10 @@ public class Database {
                     );
                     
                     match.setPointChange(rs.getInt("point_change"));
-                    
-                    // --- BİTİŞ DURUMUNU SET EDİYORUZ ---
                     match.set_concluded(rs.getBoolean("is_concluded"));
+                    
+                    // --- AŞAMA (STAGE) BİLGİSİNİ SET EDİYORUZ ---
+                    match.setCurrentStage(rs.getInt("stage"));
 
                     String winnerId = rs.getString("winner_team_id");
                     if (winnerId != null) {
@@ -4723,7 +4723,7 @@ public class Database {
 
     /**
      * Retrieves a list of all matches associated with a specific tournament, regardless of the student's involvement.
-     * Joins multiple tables to fetch match details, including teams, captains, and conclusion status.
+     * Joins multiple tables to fetch match details, including teams, captains, conclusion status, and stage.
      * @param tournamentId The UUID of the tournament for which to fetch all matches
      * @return A List of Match objects representing all matches in the specified tournament.
      */
@@ -4732,8 +4732,8 @@ public class Database {
         
         if (tournamentId == null || tournamentId.trim().isEmpty()) return tournamentMatches;
 
-        // m.is_concluded SQL sorgusuna eklendi!
-        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, m.is_concluded, " +
+        // m.stage SQL sorgusuna eklendi!
+        String sql = "SELECT m.match_id, m.match_date, m.point_change, m.winner_team_id, m.is_concluded, m.stage, " +
                      "sp.name AS sport_name, " +
                      "t1.team_id AS t1_id, t1.team_name AS t1_name, t1.access_code AS t1_code, t1.max_capacity AS t1_cap, t1.ge250_requested AS t1_ge250, " +
                      "c1_u.full_name AS c1_name, c1_u.bilkent_email AS c1_email, c1_u.student_id AS c1_uni, c1_u.profile_pic_url AS c1_pic, c1_s.elo_point AS c1_elo, c1_s.win_rate AS c1_win, " +
@@ -4783,9 +4783,10 @@ public class Database {
                     );
                     
                     match.setPointChange(rs.getInt("point_change"));
-                    
-                    // --- BİTİŞ DURUMUNU SET EDİYORUZ ---
                     match.set_concluded(rs.getBoolean("is_concluded"));
+                    
+                    // --- AŞAMA (STAGE) BİLGİSİNİ SET EDİYORUZ ---
+                    match.setCurrentStage(rs.getInt("stage"));
 
                     String winnerId = rs.getString("winner_team_id");
                     if (winnerId != null) {
