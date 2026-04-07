@@ -13,6 +13,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -57,6 +58,8 @@ public class TournamentScheduleController {
                 }
 
                 List<Match> allMatches = Database.getInstance().getAllTournamentMatches(tournament.getTournamentId());
+                // ŞAMPİYONU VERİTABANINDAN ÇEKİYORUZ
+                Team champion = Database.getInstance().getWinnerTeamTournament(tournament.getTournamentId());
                 
                 if (allMatches.isEmpty()) {
                     List<Team> allTeams = Database.getInstance().getTournamentTeams(tournament.getTournamentId());
@@ -129,7 +132,7 @@ public class TournamentScheduleController {
                     return; 
                 }
 
-                // EĞER FİKSTÜR OLUŞMUŞSA KENDİ MAÇLARINI FİLTRELE
+                // SADECE ÖĞRENCİNİN KENDİ TAKIMININ MAÇLARINI FİLTRELE
                 List<Match> teamMatches = allMatches.stream()
                     .filter(m -> m.getTeam1().getTeamId().equals(team.getTeamId()) || 
                                 (m.getTeam2() != null && m.getTeam2().getTeamId().equals(team.getTeamId())))
@@ -141,22 +144,31 @@ public class TournamentScheduleController {
                 Platform.runLater(() -> {
                     if (scheduleTitleLabel != null) scheduleTitleLabel.setText("Schedule for " + team.getTeamName()); 
                     
-                    if (tournamentStatusLabel != null) {
-                        Team champion = Database.getInstance().getWinnerTeamTournament(tournament.getTournamentId());
-                        if (champion != null) {
-                            tournamentStatusLabel.setText("🏆 CHAMPION: " + champion.getTeamName() + " 🏆");
-                            tournamentStatusLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #FF9120;"); 
-                        } else {
-                            tournamentStatusLabel.setText("Status: Tournament Started - Fixtures Generated");
-                            tournamentStatusLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #38A169;"); 
-                        }
-                    }
-
                     if (matchesVBox != null) {
                         matchesVBox.getChildren().clear();
                         
+                        // İŞTE KESİN ÇÖZÜM: ŞAMPİYONU MAÇ LİSTESİNİN EN TEPESİNE EKLİYORUZ
+                        if (champion != null) {
+                            Label champLabel = new Label("🏆 CHAMPION: " + champion.getTeamName() + " 🏆");
+                            champLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #FF9120; -fx-background-color: #FFF4E5; -fx-padding: 15; -fx-background-radius: 10; -fx-alignment: center;");
+                            champLabel.setMaxWidth(Double.MAX_VALUE);
+                            champLabel.setAlignment(Pos.CENTER);
+                            VBox.setMargin(champLabel, new Insets(0, 0, 20, 0));
+                            matchesVBox.getChildren().add(champLabel);
+                            
+                            if (tournamentStatusLabel != null) {
+                                tournamentStatusLabel.setText("Status: Tournament Concluded");
+                                tournamentStatusLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #FF9120;"); 
+                            }
+                        } else {
+                            if (tournamentStatusLabel != null) {
+                                tournamentStatusLabel.setText("Status: Tournament Started - Fixtures Generated");
+                                tournamentStatusLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #38A169;"); 
+                            }
+                        }
+
                         if (teamMatches.isEmpty()) {
-                            Label emptyLabel = new Label("No active matches found. You might be eliminated or not in the current stage.");
+                            Label emptyLabel = new Label("No matches found. You might be eliminated or awaiting the next stage.");
                             emptyLabel.setStyle("-fx-text-fill: #A0AEC0; -fx-font-weight: bold;");
                             matchesVBox.getChildren().add(emptyLabel);
                             return;
@@ -240,19 +252,23 @@ public class TournamentScheduleController {
                             if (match.getWinner() != null) {
                                 if (match.getWinner().getTeamId().equals(t1.getTeamId())) {
                                     t1Box.setStyle("-fx-background-color: #D4EDDA; -fx-background-radius: 8 0 0 8;");
+                                    t1Label.setTextFill(javafx.scene.paint.Color.web("#155724"));
                                     t2Box.setStyle("-fx-background-color: #F8D7DA;");
-                                    statusLabel.setText(t1.getTeamName() + " Won");
+                                    t2Label.setTextFill(javafx.scene.paint.Color.web("#721C24"));
+                                    statusLabel.setText(t1.getTeamName() + " WON");
                                     statusLabel.setStyle("-fx-text-fill: #28A745;");
                                 } else {
                                     t1Box.setStyle("-fx-background-color: #F8D7DA; -fx-background-radius: 8 0 0 8;");
+                                    t1Label.setTextFill(javafx.scene.paint.Color.web("#721C24"));
                                     t2Box.setStyle("-fx-background-color: #D4EDDA;");
-                                    statusLabel.setText(t2.getTeamName() + " Won");
+                                    t2Label.setTextFill(javafx.scene.paint.Color.web("#155724"));
+                                    statusLabel.setText(t2.getTeamName() + " WON");
                                     statusLabel.setStyle("-fx-text-fill: #28A745;");
                                 }
                             } else if (match.is_concluded()) { 
                                 t1Box.setStyle("-fx-background-color: #FFF4E5; -fx-background-radius: 8 0 0 8;");
                                 t2Box.setStyle("-fx-background-color: #FFF4E5;");
-                                statusLabel.setText("Draw");
+                                statusLabel.setText("DRAW");
                                 statusLabel.setStyle("-fx-text-fill: #DD6B20;");
                             } else {
                                 t1Box.setStyle("-fx-background-color: #F8FAFC; -fx-background-radius: 8 0 0 8;");
