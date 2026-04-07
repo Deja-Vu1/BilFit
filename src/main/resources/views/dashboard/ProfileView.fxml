@@ -32,11 +32,15 @@
          </StackPane>
          
          <VBox spacing="10" HBox.hgrow="ALWAYS">
-            <Label fx:id="nameLabel" text="Loading..." textFill="#2b3674">
-               <font>
-                  <Font name="System Bold" size="22.0" />
-               </font>
-            </Label>
+            <HBox alignment="CENTER_LEFT" spacing="15">
+               <Label fx:id="nameLabel" text="Loading..." textFill="#2b3674">
+                  <font>
+                     <Font name="System Bold" size="22.0" />
+                  </font>
+               </Label>
+               <Label fx:id="gymRatBadge" text="🏋️ GYM RAT" style="-fx-background-color: #FFD700; -fx-text-fill: #8B6508; -fx-font-weight: bold; -fx-padding: 5 10 5 10; -fx-background-radius: 12; -fx-font-size: 12px;" visible="false" managed="false"/>
+            </HBox>
+
             <HBox alignment="CENTER_LEFT" spacing="10">
                <Label fx:id="studentIdLabel" styleClass="modern-input" text="ID: Loading..." />
                
