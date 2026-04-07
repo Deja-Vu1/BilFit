@@ -1,6 +1,7 @@
 package controllers;
 
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 
 import database.Database;
@@ -135,20 +136,50 @@ public class TournamentDetailsController {
 
     private void populateFixture() {
         matchesVBox.getChildren().clear();
-        byeTeamBox.setVisible(false);
-        byeTeamBox.setManaged(false);
+        
+        if (byeTeamBox != null) {
+            byeTeamBox.setVisible(false);
+            byeTeamBox.setManaged(false);
+        }
 
         if (tournament.getTournamentFixture() == null || tournament.getTournamentFixture().getScheduledMatches() == null) return;
         List<Match> matches = tournament.getTournamentFixture().getScheduledMatches();
 
+        // 1. ŞAMPİYONU (WINNER) KONTROL ET VE EN ÜSTE YAZDIR
+        Team champion = Database.getInstance().getWinnerTeamTournament(tournament.getTournamentId());
+        if (champion != null) {
+            Label champLabel = new Label("🏆 CHAMPION: " + champion.getTeamName() + " 🏆");
+            champLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #FF9120; -fx-background-color: #FFF4E5; -fx-padding: 10; -fx-background-radius: 10; -fx-alignment: center;");
+            champLabel.setMaxWidth(Double.MAX_VALUE);
+            champLabel.setAlignment(Pos.CENTER);
+            VBox.setMargin(champLabel, new Insets(0, 0, 15, 0));
+            matchesVBox.getChildren().add(champLabel);
+        }
+
+        // 2. MAÇLARI TUR (STAGE) NUMARASINA GÖRE SIRALA
+        matches.sort(Comparator.comparingInt(Match::getCurrentStage));
+
+        int currentRoundNum = -1;
+
         for (Match match : matches) {
+            
+            // YENİ ROUND BAŞLIĞINI EKLE
+            if (match.getCurrentStage() != currentRoundNum) {
+                currentRoundNum = match.getCurrentStage();
+                Label roundLabel = new Label("--- ROUND " + currentRoundNum + " ---");
+                roundLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #4318FF; -fx-padding: 10 0 5 0;");
+                matchesVBox.getChildren().add(roundLabel);
+            }
+
             Team t1 = match.getTeam1();
             Team t2 = match.getTeam2();
 
-            if (t2 == null) {
-                byeTeamLabel.setText("🏆 Automatically Advanced (BYE): " + t1.getTeamName());
-                byeTeamBox.setVisible(true);
-                byeTeamBox.setManaged(true);
+            // BAY GEÇEN TAKIMI DÜZENLE (Tek takımsa)
+            if (t2 == null || t1.getTeamId().equals(t2.getTeamId())) {
+                Label byeLabel = new Label("🏆 Auto Advance (BYE) Round " + currentRoundNum + ": " + t1.getTeamName());
+                byeLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #1E8E3E; -fx-background-color: #E6F4EA; -fx-padding: 10; -fx-background-radius: 8;");
+                VBox.setMargin(byeLabel, new Insets(0, 0, 10, 0));
+                matchesVBox.getChildren().add(byeLabel);
                 continue;
             }
 
@@ -186,6 +217,7 @@ public class TournamentDetailsController {
             statusLabel.setFont(Font.font("System", FontWeight.BOLD, 13));
             statusBox.getChildren().add(statusLabel);
 
+            // KAZANANI RENKLENDİR
             if (match.getWinner() != null) {
                 if (match.getWinner().getTeamId().equals(t1.getTeamId())) {
                     t1Box.setStyle("-fx-background-color: #D4EDDA; -fx-background-radius: 8 0 0 8;");
@@ -198,10 +230,10 @@ public class TournamentDetailsController {
                     statusLabel.setText(t2.getTeamName() + " Won");
                     statusLabel.setStyle("-fx-text-fill: #28A745;");
                 }
-            } else if (match.is_concluded()) { // YENİ MODELE GÖRE GÜNCELLENDİ
+            } else if (match.is_concluded()) { 
                 t1Box.setStyle("-fx-background-color: #FFF4E5; -fx-background-radius: 8 0 0 8;");
                 t2Box.setStyle("-fx-background-color: #FFF4E5;");
-                statusLabel.setText("Draw (Berabere)");
+                statusLabel.setText("Draw");
                 statusLabel.setStyle("-fx-text-fill: #DD6B20;");
             } else {
                 t1Box.setStyle("-fx-background-color: #F8FAFC; -fx-background-radius: 8 0 0 8;");
@@ -210,6 +242,7 @@ public class TournamentDetailsController {
             }
 
             matchRow.getChildren().addAll(t1Box, vsLabel, t2Box, statusBox);
+            VBox.setMargin(matchRow, new Insets(0, 0, 10, 0));
             matchesVBox.getChildren().add(matchRow);
         }
     }
@@ -262,7 +295,7 @@ public class TournamentDetailsController {
                         applyTournamentButton.setText("Confirm Join");
                         applyTournamentButton.setDisable(false);
                         friendSelectionBox.setDisable(false);
-                        showAlert(Alert.AlertType.ERROR, "Failed", "Operation could not be performed.");
+                        showAlert(Alert.AlertType.ERROR, "Failed", "Operation could not be performed. You might already be in a team.");
                     }
                 });
             }).start();
@@ -275,5 +308,6 @@ public class TournamentDetailsController {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.initStyle(javafx.stage.StageStyle.UNDECORATED); 
+        alert.showAndWait();
     }
 }

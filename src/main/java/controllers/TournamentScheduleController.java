@@ -129,17 +129,27 @@ public class TournamentScheduleController {
                     return; 
                 }
 
+                // EĞER FİKSTÜR OLUŞMUŞSA KENDİ MAÇLARINI FİLTRELE
                 List<Match> teamMatches = allMatches.stream()
                     .filter(m -> m.getTeam1().getTeamId().equals(team.getTeamId()) || 
                                 (m.getTeam2() != null && m.getTeam2().getTeamId().equals(team.getTeamId())))
                     .collect(Collectors.toList());
 
+                // MAÇLARI STAGE'E GÖRE (TUR NUMARASINA GÖRE) SIRALA
+                teamMatches.sort((m1, m2) -> Integer.compare(m1.getCurrentStage(), m2.getCurrentStage()));
+
                 Platform.runLater(() -> {
                     if (scheduleTitleLabel != null) scheduleTitleLabel.setText("Schedule for " + team.getTeamName()); 
                     
                     if (tournamentStatusLabel != null) {
-                        tournamentStatusLabel.setText("Status: Tournament Started - Fixtures Generated");
-                        tournamentStatusLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #38A169;"); 
+                        Team champion = Database.getInstance().getWinnerTeamTournament(tournament.getTournamentId());
+                        if (champion != null) {
+                            tournamentStatusLabel.setText("🏆 CHAMPION: " + champion.getTeamName() + " 🏆");
+                            tournamentStatusLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #FF9120;"); 
+                        } else {
+                            tournamentStatusLabel.setText("Status: Tournament Started - Fixtures Generated");
+                            tournamentStatusLabel.setStyle("-fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: #38A169;"); 
+                        }
                     }
 
                     if (matchesVBox != null) {
@@ -152,13 +162,25 @@ public class TournamentScheduleController {
                             return;
                         }
 
+                        int currentRoundNum = -1;
+
                         for (Match match : teamMatches) {
+                            
+                            // YENİ ROUND (STAGE) BAŞLIĞI EKLEME
+                            if (match.getCurrentStage() != currentRoundNum) {
+                                currentRoundNum = match.getCurrentStage();
+                                Label roundLabel = new Label("--- ROUND " + currentRoundNum + " ---");
+                                roundLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #4318FF; -fx-padding: 10 0 5 0;");
+                                matchesVBox.getChildren().add(roundLabel);
+                            }
+
                             Team t1 = match.getTeam1();
                             Team t2 = match.getTeam2();
 
-                            if (t2 == null) {
+                            // BAY GEÇİLEN MAÇ KONTROLÜ
+                            if (t2 == null || t1.getTeamId().equals(t2.getTeamId())) {
                                 if (t1.getTeamId().equals(team.getTeamId())) {
-                                    if (byeTeamLabel != null) byeTeamLabel.setText("🏆 Automatically Advanced (BYE): " + t1.getTeamName());
+                                    if (byeTeamLabel != null) byeTeamLabel.setText("🏆 Auto Advance (Round " + currentRoundNum + "): " + t1.getTeamName());
                                     if (byeTeamBox != null) {
                                         byeTeamBox.setVisible(true);
                                         byeTeamBox.setManaged(true);
@@ -211,42 +233,31 @@ public class TournamentScheduleController {
                             statusBox.setAlignment(Pos.CENTER_RIGHT);
                             HBox.setHgrow(statusBox, Priority.ALWAYS);
                             statusBox.setPadding(new Insets(0, 20, 0, 0));
-                            
                             Label statusLabel = new Label("Pending");
-                            statusLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
+                            statusLabel.setFont(Font.font("System", FontWeight.BOLD, 13));
                             statusBox.getChildren().add(statusLabel);
 
                             if (match.getWinner() != null) {
                                 if (match.getWinner().getTeamId().equals(t1.getTeamId())) {
                                     t1Box.setStyle("-fx-background-color: #D4EDDA; -fx-background-radius: 8 0 0 8;");
-                                    t1Label.setTextFill(javafx.scene.paint.Color.web("#155724"));
-                                    
-                                    t2Box.setStyle("-fx-background-color: #F8D7DA;"); 
-                                    t2Label.setTextFill(javafx.scene.paint.Color.web("#721C24"));
-                                    
+                                    t2Box.setStyle("-fx-background-color: #F8D7DA;");
                                     statusLabel.setText(t1.getTeamName() + " Won");
-                                    statusLabel.setStyle("-fx-text-fill: #28A745;"); 
-                                } else if (match.getWinner().getTeamId().equals(t2.getTeamId())) {
-                                    t1Box.setStyle("-fx-background-color: #F8D7DA; -fx-background-radius: 8 0 0 8;"); 
-                                    t1Label.setTextFill(javafx.scene.paint.Color.web("#721C24"));
-                                    
-                                    t2Box.setStyle("-fx-background-color: #D4EDDA;"); 
-                                    t2Label.setTextFill(javafx.scene.paint.Color.web("#155724"));
-                                    
+                                    statusLabel.setStyle("-fx-text-fill: #28A745;");
+                                } else {
+                                    t1Box.setStyle("-fx-background-color: #F8D7DA; -fx-background-radius: 8 0 0 8;");
+                                    t2Box.setStyle("-fx-background-color: #D4EDDA;");
                                     statusLabel.setText(t2.getTeamName() + " Won");
-                                    statusLabel.setStyle("-fx-text-fill: #28A745;"); 
+                                    statusLabel.setStyle("-fx-text-fill: #28A745;");
                                 }
-                            } else if (match.is_concluded()) { // YENİ MODELE GÖRE GÜNCELLENDİ
+                            } else if (match.is_concluded()) { 
                                 t1Box.setStyle("-fx-background-color: #FFF4E5; -fx-background-radius: 8 0 0 8;");
-                                t1Label.setTextFill(javafx.scene.paint.Color.web("#DD6B20"));
                                 t2Box.setStyle("-fx-background-color: #FFF4E5;");
-                                t2Label.setTextFill(javafx.scene.paint.Color.web("#DD6B20"));
-                                statusLabel.setText("Draw (Berabere)");
+                                statusLabel.setText("Draw");
                                 statusLabel.setStyle("-fx-text-fill: #DD6B20;");
                             } else {
-                                t1Box.setStyle("-fx-background-color: transparent;");
-                                t2Box.setStyle("-fx-background-color: transparent;");
-                                statusLabel.setStyle("-fx-text-fill: #A0AEC0;"); 
+                                t1Box.setStyle("-fx-background-color: #F8FAFC; -fx-background-radius: 8 0 0 8;");
+                                t2Box.setStyle("-fx-background-color: #F8FAFC;");
+                                statusLabel.setStyle("-fx-text-fill: #A0AEC0;");
                             }
 
                             matchRow.getChildren().addAll(t1Box, vsLabel, t2Box, statusBox);

@@ -1,5 +1,6 @@
 package controllers;
 
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -60,7 +61,7 @@ public class AdminTournamentsController {
         tournamentsContainer.getChildren().clear();
         selectionMap.clear();
 
-        Label loadingLabel = new Label("Turnuvalar yükleniyor...");
+        Label loadingLabel = new Label("Loading tournaments...");
         loadingLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold;");
         tournamentsContainer.getChildren().add(loadingLabel);
 
@@ -68,7 +69,6 @@ public class AdminTournamentsController {
             List<Tournament> tournaments = tManager.getAllActiveTournaments(); 
             
             if (tournaments != null && !tournaments.isEmpty()) {
-                // Turnuvaları başlangıç tarihine göre yakından uzağa sıralar
                 tournaments.sort(Comparator.comparing(Tournament::getStartDate));
             }
             
@@ -76,7 +76,7 @@ public class AdminTournamentsController {
                 tournamentsContainer.getChildren().clear();
                 
                 if (tournaments == null || tournaments.isEmpty()) {
-                    Label emptyLabel = new Label("Sistemde aktif turnuva bulunmuyor.");
+                    Label emptyLabel = new Label("No active tournament found in the system.");
                     emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold;");
                     tournamentsContainer.getChildren().add(emptyLabel);
                 } else {
@@ -102,7 +102,7 @@ public class AdminTournamentsController {
         Label nameLabel = new Label(t.getTournamentName());
         nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #2B3674;");
         
-        Label detailsLabel = new Label("Spor: " + t.getSportType().name() + " | Takım Başı Kapasite: " + t.getMaxPlayersPerTeam() + " | Kampüs: " + t.getCampusLocation());
+        Label detailsLabel = new Label("Sport: " + t.getSportType().name() + " | Max Capacity/Team: " + t.getMaxPlayersPerTeam() + " | Campus: " + t.getCampusLocation());
         detailsLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #A3AED0;");
         
         Label dateLabel = new Label(t.getStartDate() + " -> " + t.getEndDate());
@@ -113,15 +113,15 @@ public class AdminTournamentsController {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button editBtn = new Button("Düzenle");
+        Button editBtn = new Button("Edit");
         editBtn.setStyle("-fx-background-color: #E2E8F0; -fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-pref-width: 80;");
         editBtn.setOnAction(e -> handleEditTournament(t));
 
-        Button scheduleBtn = new Button("Fikstür / Sonuç");
-        scheduleBtn.setStyle("-fx-background-color: #FFF4E5; -fx-text-fill: #FF9120; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-pref-width: 120;");
+        Button scheduleBtn = new Button("Schedule / Result");
+        scheduleBtn.setStyle("-fx-background-color: #FFF4E5; -fx-text-fill: #FF9120; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-pref-width: 130;");
         scheduleBtn.setOnAction(e -> handleSchedule(t));
 
-        Button fixtureBtn = new Button("Eşleşme Oluştur");
+        Button fixtureBtn = new Button("Create Fixture");
         fixtureBtn.setStyle("-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand; -fx-pref-width: 120;");
         fixtureBtn.setOnAction(e -> handleCreateFixture(t));
 
@@ -131,54 +131,54 @@ public class AdminTournamentsController {
 
     @FXML
     public void handleCreateTournament(ActionEvent event) {
-        Stage dialog = createDialogStage("Yeni Turnuva Oluştur");
+        Stage dialog = createDialogStage("Create New Tournament");
         VBox layout = (VBox) dialog.getScene().getRoot();
 
         TextField nameField = new TextField(); 
-        nameField.setPromptText("Turnuva Başlığı (Örn: Bahar Kupası)");
+        nameField.setPromptText("Tournament Title (e.g., Spring Cup)");
         nameField.setStyle("-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-pref-height: 40;");
 
         ComboBox<String> sportCombo = new ComboBox<>();
         for (SportType s : SportType.values()) {
             sportCombo.getItems().add(s.name());
         }
-        sportCombo.setPromptText("Spor Türü Seçin");
+        sportCombo.setPromptText("Select Sport Type");
         sportCombo.setStyle("-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-pref-height: 40; -fx-pref-width: 300;");
 
         ComboBox<String> campusCombo = new ComboBox<>();
         campusCombo.getItems().addAll("Main Campus", "East Campus");
-        campusCombo.setPromptText("Kampüs Seçin");
+        campusCombo.setPromptText("Select Campus");
         campusCombo.setStyle("-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-pref-height: 40; -fx-pref-width: 300;");
 
         DatePicker startDate = new DatePicker(); 
-        startDate.setPromptText("Başlangıç Tarihi");
+        startDate.setPromptText("Start Date");
         startDate.setStyle("-fx-font-size: 14px; -fx-pref-width: 300;");
 
         DatePicker endDate = new DatePicker(); 
-        endDate.setPromptText("Bitiş Tarihi");
+        endDate.setPromptText("End Date");
         endDate.setStyle("-fx-font-size: 14px; -fx-pref-width: 300;");
 
         TextField maxPlayers = new TextField(); 
-        maxPlayers.setPromptText("Takım Başı Maks. Oyuncu (Örn: 5)");
+        maxPlayers.setPromptText("Max Players per Team (e.g., 5)");
         maxPlayers.setStyle("-fx-background-color: #F4F7FE; -fx-border-color: #E2E8F0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-pref-height: 40;");
 
-        CheckBox ge250Check = new CheckBox("GE250 Puanı Verilsin mi?");
+        CheckBox ge250Check = new CheckBox("Grant GE250 Points?");
         ge250Check.setStyle("-fx-font-size: 14px; -fx-text-fill: #2B3674;");
 
         HBox btnBox = new HBox(15); 
         btnBox.setAlignment(Pos.CENTER);
         
-        Button cancelBtn = new Button("İptal");
+        Button cancelBtn = new Button("Cancel");
         cancelBtn.setStyle("-fx-background-color: #E2E8F0; -fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 100; -fx-pref-height: 35; -fx-cursor: hand;");
         cancelBtn.setOnAction(e -> dialog.close());
 
-        Button saveBtn = new Button("Oluştur");
+        Button saveBtn = new Button("Create");
         saveBtn.setStyle("-fx-background-color: #1E8E3E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 100; -fx-pref-height: 35; -fx-cursor: hand;");
         
         saveBtn.setOnAction(e -> {
             if (nameField.getText().isEmpty() || sportCombo.getValue() == null || campusCombo.getValue() == null || 
                 startDate.getValue() == null || endDate.getValue() == null || maxPlayers.getText().isEmpty()) {
-                showCustomAlert("Eksik Bilgi", "Lütfen tüm alanları doldurun.");
+                showCustomAlert("Missing Information", "Please fill out all fields.");
                 return;
             }
 
@@ -197,7 +197,7 @@ public class AdminTournamentsController {
                     campusCombo.getValue()
                 );
                 
-                saveBtn.setText("İşleniyor...");
+                saveBtn.setText("Processing...");
                 saveBtn.setDisable(true);
 
                 new Thread(() -> {
@@ -206,21 +206,20 @@ public class AdminTournamentsController {
                     Platform.runLater(() -> {
                         if (status == DbStatus.SUCCESS) {
                             dialog.close(); 
-                            // UI Deadlock'unu önlemek için ikinci pop-up'ı sıraya alıyoruz
                             Platform.runLater(() -> {
                                 loadTournaments(); 
-                                showCustomAlert("Başarılı", "Turnuva başarıyla oluşturuldu.");
+                                showCustomAlert("Success", "Tournament created successfully.");
                             });
                         } else {
-                            saveBtn.setText("Oluştur");
+                            saveBtn.setText("Create");
                             saveBtn.setDisable(false);
-                            showCustomAlert("Hata", "Turnuva oluşturulurken bir hata meydana geldi.");
+                            showCustomAlert("Error", "An error occurred while creating the tournament.");
                         }
                     });
                 }).start();
                 
             } catch (NumberFormatException ex) {
-                showCustomAlert("Hatalı Format", "Oyuncu sayısı sadece rakamlardan oluşmalıdır.");
+                showCustomAlert("Invalid Format", "Player count must consist of numbers only.");
             }
         });
 
@@ -230,7 +229,7 @@ public class AdminTournamentsController {
     }
 
     private void handleEditTournament(Tournament t) {
-        Stage dialog = createDialogStage("Turnuvayı Düzenle: " + t.getTournamentName());
+        Stage dialog = createDialogStage("Edit Tournament: " + t.getTournamentName());
         VBox layout = (VBox) dialog.getScene().getRoot();
 
         TextField nameField = new TextField(t.getTournamentName());
@@ -242,11 +241,11 @@ public class AdminTournamentsController {
         HBox btnBox = new HBox(15);
         btnBox.setAlignment(Pos.CENTER);
 
-        Button cancelBtn = new Button("İptal");
+        Button cancelBtn = new Button("Cancel");
         cancelBtn.setStyle("-fx-background-color: #E2E8F0; -fx-text-fill: #2B3674; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 100; -fx-pref-height: 35; -fx-cursor: hand;");
         cancelBtn.setOnAction(e -> dialog.close());
 
-        Button saveBtn = new Button("Kaydet");
+        Button saveBtn = new Button("Save");
         saveBtn.setStyle("-fx-background-color: #1E8E3E; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 100; -fx-pref-height: 35; -fx-cursor: hand;");
         
         saveBtn.setOnAction(e -> {
@@ -254,7 +253,7 @@ public class AdminTournamentsController {
                 int newPlayers = Integer.parseInt(maxPlayers.getText().trim());
                 String newName = nameField.getText().trim();
                 
-                saveBtn.setText("Kaydediliyor...");
+                saveBtn.setText("Saving...");
                 saveBtn.setDisable(true);
 
                 new Thread(() -> {
@@ -263,25 +262,24 @@ public class AdminTournamentsController {
                     Platform.runLater(() -> {
                         if (status == DbStatus.SUCCESS) { 
                             dialog.close(); 
-                            // UI Deadlock'unu önlemek için ikinci pop-up'ı sıraya alıyoruz
                             Platform.runLater(() -> {
                                 loadTournaments();
-                                showCustomAlert("Başarılı", "Turnuva başarıyla güncellendi.");
+                                showCustomAlert("Success", "Tournament successfully updated.");
                             });
                         } else {
-                            saveBtn.setText("Kaydet");
+                            saveBtn.setText("Save");
                             saveBtn.setDisable(false);
-                            showCustomAlert("Hata", "Güncelleme sırasında hata oluştu.");
+                            showCustomAlert("Error", "An error occurred during the update.");
                         }
                     });
                 }).start();
             } catch (NumberFormatException ex) {
-                showCustomAlert("Hatalı Format", "Oyuncu sayısı sayısal bir değer olmalıdır.");
+                showCustomAlert("Invalid Format", "Player count must be a numeric value.");
             }
         });
         
         btnBox.getChildren().addAll(cancelBtn, saveBtn);
-        layout.getChildren().addAll(new Label("Yeni Turnuva Başlığı:"), nameField, new Label("Takım Başı Max Katılımcı:"), maxPlayers, btnBox);
+        layout.getChildren().addAll(new Label("New Tournament Title:"), nameField, new Label("Max Participants per Team:"), maxPlayers, btnBox);
         dialog.showAndWait();
     }
 
@@ -290,94 +288,237 @@ public class AdminTournamentsController {
         isProcessing = true;
         
         new Thread(() -> {
-            List<Team> teams = tManager.getTournamentTeams(t.getTournamentId());
-            
-            if (teams == null || teams.size() < 2) {
-                Platform.runLater(() -> { 
-                    isProcessing = false; 
-                    showCustomAlert("Hata", "Fikstür oluşturmak için turnuvada en az 2 onaylı takım bulunmalıdır."); 
+            Team existingWinner = db.getWinnerTeamTournament(t.getTournamentId());
+            if (existingWinner != null) {
+                Platform.runLater(() -> {
+                    isProcessing = false;
+                    showCustomAlert("Information", "This tournament has already concluded. Champion: " + existingWinner.getTeamName());
                 });
                 return;
             }
 
-            Collections.shuffle(teams);
+            List<Team> allTeams = tManager.getTournamentTeams(t.getTournamentId());
+            List<Match> allMatches = db.getAllTournamentMatches(t.getTournamentId());
+            int currentStage = db.getCurrentStageOfTournament(t.getTournamentId());
             
+            if (allTeams == null || allTeams.size() < 2) {
+                Platform.runLater(() -> { 
+                    isProcessing = false; 
+                    showCustomAlert("Error", "At least 2 approved teams are required to create a fixture."); 
+                });
+                return;
+            }
+
+            List<Team> activeTeams = new ArrayList<>();
+
+            if (allMatches == null || allMatches.isEmpty() || currentStage == 0) {
+                activeTeams.addAll(allTeams);
+                currentStage = 1;
+            } else {
+                boolean hasPending = false;
+                List<String> loserIds = new ArrayList<>();
+
+                for (Match m : allMatches) {
+                    boolean isByeMatch = (m.getTeam2() == null || (m.getTeam1() != null && m.getTeam1().getTeamId().equals(m.getTeam2().getTeamId())));
+
+                    if (m.getWinner() == null && !isByeMatch) {
+                        hasPending = true; 
+                    } else if (m.getWinner() != null && !isByeMatch) {
+                        if (m.getTeam1() != null && !m.getTeam1().getTeamId().equals(m.getWinner().getTeamId())) {
+                            loserIds.add(m.getTeam1().getTeamId());
+                        }
+                        if (m.getTeam2() != null && !m.getTeam2().getTeamId().equals(m.getWinner().getTeamId())) {
+                            loserIds.add(m.getTeam2().getTeamId());
+                        }
+                    }
+                }
+
+                if (hasPending) {
+                    Platform.runLater(() -> {
+                        isProcessing = false;
+                        showCustomAlert("Warning", "Cannot generate the next round until all current matches are concluded and winners are set.");
+                    });
+                    return;
+                }
+
+                for (Team team : allTeams) {
+                    if (!loserIds.contains(team.getTeamId())) {
+                        activeTeams.add(team);
+                    }
+                }
+
+                if (activeTeams.size() == 1) {
+                    Team champion = activeTeams.get(0);
+                    db.setWinnerTournament(t.getTournamentId(), champion);
+                    
+                    Platform.runLater(() -> {
+                        isProcessing = false;
+                        showCustomAlert("Tournament Concluded", "The tournament has ended! The Champion is: " + champion.getTeamName());
+                    });
+                    return;
+                }
+
+                currentStage++;
+            }
+
+            Collections.shuffle(activeTeams);
             OffsetDateTime matchTime = OffsetDateTime.of(t.getStartDate(), LocalTime.of(1, 0), ZoneOffset.UTC);
 
             int matchCount = 0;
-            for (int i = 0; i < teams.size(); i += 2) {
-                Team t1 = teams.get(i);
-                if (i + 1 < teams.size()) {
-                    Team t2 = teams.get(i + 1);
-                    db.insertMatch(t, t1, t2, matchTime, 10); 
+            final int stageToInsert = currentStage;
+            
+            for (int i = 0; i < activeTeams.size(); i += 2) {
+                Team t1 = activeTeams.get(i);
+                
+                if (i + 1 < activeTeams.size()) {
+                    Team t2 = activeTeams.get(i + 1);
+                    db.insertMatch(t, t1, t2, matchTime, 10, stageToInsert); 
                     matchCount++;
                 } else {
-                    db.insertMatch(t, t1, t1, matchTime, 0); 
+                    db.insertMatch(t, t1, t1, matchTime, 0, stageToInsert); 
                 }
             }
 
             final int finalMatches = matchCount;
             Platform.runLater(() -> {
                 isProcessing = false;
-                showCustomAlert("Başarılı", "Kura çekildi! " + finalMatches + " adet eşleşme başarıyla oluşturuldu.");
+                showCustomAlert("Success", "Round " + stageToInsert + " generated! " + finalMatches + " new matches created.");
             });
         }).start();
     }
 
     private void handleSchedule(Tournament t) {
-        Stage dialog = createDialogStage("Fikstür ve Sonuçlar: " + t.getTournamentName());
+        Stage dialog = createDialogStage("Schedule & Results: " + t.getTournamentName());
         VBox layout = (VBox) dialog.getScene().getRoot();
         
         ScrollPane scrollPane = new ScrollPane(); 
         scrollPane.setFitToWidth(true);
         scrollPane.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
-        scrollPane.setPrefHeight(400);
+        scrollPane.setPrefHeight(450); 
 
-        VBox matchesBox = new VBox(10);
+        VBox matchesBox = new VBox(15);
         matchesBox.setPadding(new Insets(10));
 
         new Thread(() -> {
             List<Match> matches = db.getAllTournamentMatches(t.getTournamentId());
+            Team champion = db.getWinnerTeamTournament(t.getTournamentId());
             
             Platform.runLater(() -> {
+                
+                if (champion != null) {
+                    Label champLabel = new Label("🏆 CHAMPION: " + champion.getTeamName() + " 🏆");
+                    champLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #FF9120; -fx-background-color: #FFF4E5; -fx-padding: 10; -fx-background-radius: 10; -fx-alignment: center;");
+                    champLabel.setMaxWidth(Double.MAX_VALUE);
+                    champLabel.setAlignment(Pos.CENTER);
+                    matchesBox.getChildren().add(champLabel);
+                }
+
                 if (matches == null || matches.isEmpty()) {
-                    Label emptyLabel = new Label("Henüz fikstür oluşturulmamış veya eşleşme bulunamadı.");
-                    emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold;");
-                    matchesBox.getChildren().add(emptyLabel);
+                    new Thread(() -> {
+                        List<Team> registeredTeams = tManager.getTournamentTeams(t.getTournamentId());
+                        Platform.runLater(() -> {
+                            if (registeredTeams == null || registeredTeams.isEmpty()) {
+                                Label emptyLabel = new Label("No teams registered yet.");
+                                emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold;");
+                                matchesBox.getChildren().add(emptyLabel);
+                            } else {
+                                Label titleLabel = new Label("Registered Teams (Awaiting Fixture):");
+                                titleLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #2B3674;");
+                                matchesBox.getChildren().add(titleLabel);
+
+                                for (int i = 0; i < registeredTeams.size(); i++) {
+                                    Team team = registeredTeams.get(i);
+                                    HBox teamRow = new HBox(15);
+                                    teamRow.setAlignment(Pos.CENTER_LEFT);
+                                    teamRow.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-padding: 10; -fx-background-color: #F8FAFC;");
+                                    
+                                    Label tLabel = new Label((i + 1) + ". " + team.getTeamName() + " (Pending Fixture)");
+                                    tLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #A3AED0;");
+                                    
+                                    teamRow.getChildren().add(tLabel);
+                                    matchesBox.getChildren().add(teamRow);
+                                }
+                            }
+                        });
+                    }).start();
                 } else {
+                    matches.sort(Comparator.comparingInt(Match::getCurrentStage));
+                    
+                    int currentRoundNum = -1;
+
                     for (Match m : matches) {
+                        
+                        if (m.getCurrentStage() != currentRoundNum) {
+                            currentRoundNum = m.getCurrentStage();
+                            Label roundLabel = new Label("--- ROUND " + currentRoundNum + " ---");
+                            roundLabel.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #4318FF; -fx-padding: 10 0 5 0;");
+                            matchesBox.getChildren().add(roundLabel);
+                        }
+
                         HBox matchRow = new HBox(15); 
                         matchRow.setAlignment(Pos.CENTER_LEFT);
                         matchRow.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-padding: 10; -fx-background-color: #F8FAFC;");
 
-                        String team1Name = (m.getTeam1() != null) ? m.getTeam1().getTeamName() : "Bilinmiyor";
-                        String team2Name = (m.getTeam2() != null && !m.getTeam1().getTeamId().equals(m.getTeam2().getTeamId())) ? m.getTeam2().getTeamName() : "BAY GEÇTİ";
+                        String team1Name = (m.getTeam1() != null) ? m.getTeam1().getTeamName() : "Unknown";
+                        boolean isBye = (m.getTeam2() == null || (m.getTeam1() != null && m.getTeam1().getTeamId().equals(m.getTeam2().getTeamId())));
+                        String team2Name = isBye ? "BYE" : m.getTeam2().getTeamName();
                         
-                        Label mLabel = new Label(team1Name + " VS " + team2Name);
-                        mLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #2B3674;");
+                        Label t1Label = new Label(team1Name);
+                        Label vsLabel = new Label(" VS ");
+                        Label t2Label = new Label(team2Name);
+
+                        String defaultStyle = "-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2B3674;";
+                        String winStyle = "-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #1E8E3E;"; 
+                        String loseStyle = "-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #D93025; -fx-strikethrough: true;"; 
+
+                        t1Label.setStyle(defaultStyle);
+                        vsLabel.setStyle("-fx-text-fill: #A3AED0; -fx-font-weight: bold; -fx-font-size: 14px;");
+                        t2Label.setStyle(defaultStyle);
+
+                        HBox namesBox = new HBox(5, t1Label, vsLabel, t2Label);
+                        namesBox.setAlignment(Pos.CENTER_LEFT);
+                        namesBox.setMinWidth(Region.USE_PREF_SIZE);
                         
                         Region rSpacer = new Region();
                         HBox.setHgrow(rSpacer, Priority.ALWAYS);
                         
-                        if (team2Name.equals("BAY GEÇTİ")) {
-                            Label bayLabel = new Label("Otomatik Üst Tur");
-                            bayLabel.setStyle("-fx-text-fill: #1E8E3E; -fx-font-weight: bold;");
-                            matchRow.getChildren().addAll(mLabel, rSpacer, bayLabel);
+                        if (isBye) {
+                            Label bayLabel = new Label("Auto Advance (BYE)");
+                            bayLabel.setStyle("-fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-color: #E6F4EA; -fx-padding: 5 10 5 10; -fx-background-radius: 5;");
+                            bayLabel.setMinWidth(Region.USE_PREF_SIZE); 
+                            
+                            t1Label.setStyle(winStyle); 
+                            
+                            matchRow.getChildren().addAll(namesBox, rSpacer, bayLabel);
                         } else {
                             ComboBox<String> winnerCombo = new ComboBox<>();
-                            winnerCombo.getItems().addAll(team1Name, team2Name, "Beraberlik");
-                            winnerCombo.setPromptText("Kazananı Seç");
+                            winnerCombo.getItems().addAll(team1Name, team2Name);
+                            winnerCombo.setPromptText("Select Winner");
+                            winnerCombo.setPrefWidth(160);
+                            winnerCombo.setMinWidth(Region.USE_PREF_SIZE);
+                            winnerCombo.setPrefHeight(35);
                             
-                            Button updateBtn = new Button("Onayla");
+                            Button updateBtn = new Button("Confirm");
                             updateBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 5; -fx-cursor: hand;");
+                            updateBtn.setPrefWidth(100);
+                            updateBtn.setMinWidth(Region.USE_PREF_SIZE);
+                            updateBtn.setPrefHeight(35);
                             
                             if (m.getWinner() != null) {
-                                winnerCombo.setValue(m.getWinner().getTeamName());
-                                updateBtn.setText("Onaylandı");
+                                String winnerName = m.getWinner().getTeamName();
+                                winnerCombo.setValue(winnerName);
+                                updateBtn.setText("Confirmed");
                                 updateBtn.setDisable(true);
+
+                                if (winnerName.equals(team1Name)) {
+                                    t1Label.setStyle(winStyle);
+                                    t2Label.setStyle(loseStyle);
+                                } else if (winnerName.equals(team2Name)) {
+                                    t2Label.setStyle(winStyle);
+                                    t1Label.setStyle(loseStyle);
+                                }
                             } else if (m.is_concluded()) { 
-                                winnerCombo.setValue("Beraberlik");
-                                updateBtn.setText("Onaylandı");
+                                updateBtn.setText("Concluded");
                                 updateBtn.setDisable(true);
                             }
                             
@@ -400,13 +541,13 @@ public class AdminTournamentsController {
                                     db.updateMatchStatus(m.getMatchId(), true);
                                     
                                     Platform.runLater(() -> {
-                                        updateBtn.setText("Onaylandı");
-                                        showCustomAlert("Başarılı", "Maç sonucu başarıyla kaydedildi ve statü ayarlandı.");
+                                        dialog.close();
+                                        handleSchedule(t);
                                     });
                                 }).start();
                             });
                             
-                            matchRow.getChildren().addAll(mLabel, rSpacer, winnerCombo, updateBtn);
+                            matchRow.getChildren().addAll(namesBox, rSpacer, winnerCombo, updateBtn);
                         }
                         
                         matchesBox.getChildren().add(matchRow);
@@ -417,12 +558,13 @@ public class AdminTournamentsController {
 
         scrollPane.setContent(matchesBox);
         
-        Button closeBtn = new Button("Kapat");
+        Button closeBtn = new Button("Close");
         closeBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 35; -fx-cursor: hand;");
         closeBtn.setOnAction(e -> dialog.close());
         
         layout.getChildren().addAll(scrollPane, closeBtn);
-        dialog.showAndWait();
+        dialog.getScene().getWindow().setWidth(750); 
+        dialog.show(); 
     }
 
     @FXML
@@ -435,7 +577,7 @@ public class AdminTournamentsController {
         }
 
         if (toDelete.isEmpty()) {
-            showCustomAlert("Uyarı", "Lütfen silmek istediğiniz turnuvaları seçin.");
+            showCustomAlert("Warning", "Please select the tournaments you want to delete.");
             return;
         }
 
@@ -453,7 +595,7 @@ public class AdminTournamentsController {
             Platform.runLater(() -> {
                 isProcessing = false;
                 loadTournaments();
-                showCustomAlert("Bilgi", finalCount + " adet turnuva kalıcı olarak silindi.");
+                showCustomAlert("Information", finalCount + " tournaments permanently deleted.");
             });
         }).start();
     }
@@ -494,13 +636,12 @@ public class AdminTournamentsController {
         msgLabel.setAlignment(Pos.CENTER);
         msgLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #a3aed0; -fx-text-alignment: center;");
         
-        Button okBtn = new Button("Tamam"); 
+        Button okBtn = new Button("OK"); 
         okBtn.setStyle("-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-pref-width: 120; -fx-pref-height: 40; -fx-cursor: hand;");
         okBtn.setOnAction(e -> dialog.close());
         
         layout.getChildren().addAll(msgLabel, okBtn); 
         
-        // MACOS KİLİTLENMESİNİ ENGELLEYEN DEĞİŞİKLİK
         dialog.show(); 
     }
 }

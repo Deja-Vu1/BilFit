@@ -324,12 +324,14 @@ public class TournamentsController {
         try {
             java.net.URL fxmlLocation = getClass().getResource("/views/dashboard/TournamentScheduleView.fxml");
             if (fxmlLocation == null) {
-                showAlert(Alert.AlertType.ERROR, "Yol Hatası", "TournamentScheduleView.fxml dosyası bulunamadı!");
+                showAlert(Alert.AlertType.ERROR, "Path Error", "TournamentScheduleView.fxml file not found!");
                 return;
             }
             FXMLLoader loader = new FXMLLoader(fxmlLocation);
             Parent root = loader.load();
             
+            // Eğer Schedule ekranında TournamentScheduleController kullanıyorsan:
+            // O sınıfın içinde takımın maçlarını çeken ve kazanıp kaybetme durumunu gösteren bir yapı olmalı.
             TournamentScheduleController controller = loader.getController();
             controller.setTeam(t);
 
@@ -340,7 +342,7 @@ public class TournamentsController {
             stage.show();
         } catch(Exception ex) {
             ex.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Kritik Hata", "Ekran yüklenirken hata oluştu: " + ex.toString());
+            showAlert(Alert.AlertType.ERROR, "Critical Error", "Error loading view: " + ex.toString());
         }
     }
 
@@ -348,7 +350,7 @@ public class TournamentsController {
         try {
             java.net.URL fxmlLocation = getClass().getResource("/views/dashboard/TeamEditView.fxml");
             if (fxmlLocation == null) {
-                showAlert(Alert.AlertType.ERROR, "Yol Hatası", "TeamEditView.fxml dosyası bulunamadı!");
+                showAlert(Alert.AlertType.ERROR, "Path Error", "TeamEditView.fxml file not found!");
                 return;
             }
 
@@ -366,7 +368,7 @@ public class TournamentsController {
             
         } catch(Exception ex) {
             ex.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Kritik Hata", "Ekran yüklenirken hata oluştu: " + ex.toString());
+            showAlert(Alert.AlertType.ERROR, "Critical Error", "Error loading view: " + ex.toString());
         }
     }
 

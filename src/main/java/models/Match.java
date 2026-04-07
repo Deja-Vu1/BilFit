@@ -11,7 +11,8 @@ public class Match {
     private Team team2;
     private Team winner;
     private boolean is_concluded;
-
+    private int currentStage;
+    
     public Match(String matchId, LocalDateTime date, SportType sportType, Team team1, Team team2) {
         this.matchId = matchId;
         this.date = date;
@@ -19,6 +20,7 @@ public class Match {
         this.team1 = team1;
         this.team2 = team2;
         this.winner = null;
+        this.currentStage = 0;
     }
 
     public String getMatchId() { return matchId; }
@@ -37,5 +39,6 @@ public class Match {
     public void setWinner(Team winner) { this.winner = winner; }
     public boolean is_concluded() { return is_concluded; }
     public void set_concluded(boolean is_concluded) { this.is_concluded = is_concluded; }
-
+    public int getCurrentStage() { return currentStage; }
+    public void setCurrentStage(int currentStage) { this.currentStage = currentStage; }
 }
