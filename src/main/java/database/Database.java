@@ -4995,4 +4995,163 @@ public class Database {
             }
         }
     }
+
+    /**
+     * Inserts a new match record into the 'matches' table for a specific tournament stage.
+     * Automatically generates a UUID for the match and retrieves the sport_id from the associated tournament.
+     * @param currentTournament The Tournament object to which the match belongs
+     * @param team1 The first team participating in the match
+     * @param team2 The second team participating in the match
+     * @param matchDate The date and time when the match is scheduled to take place
+     * @param pointChange The number of points to be awarded or deducted based on the match outcome
+     * @param currentStage The stage of the tournament (e.g., 1 for Group, 2 for Quarter-Finals, etc.)
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus insertMatch(models.Tournament currentTournament, models.Team team1, models.Team team2, java.time.OffsetDateTime matchDate, int pointChange, int currentStage) {
+        
+        if (currentTournament == null || team1 == null || team2 == null || matchDate == null) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String matchId = java.util.UUID.randomUUID().toString();
+        String tournamentId = currentTournament.getTournamentId();
+
+        // SQL sorgusuna 'stage' kolonu ve 8. parametre olarak '?' eklendi
+        String sql = "INSERT INTO matches (match_id, tournament_id, sport_id, match_date, " +
+                     "team1_id, team2_id, point_change, is_concluded, stage) " +
+                     "VALUES (?, ?, (SELECT sport_id FROM tournaments WHERE tournament_id = ?), ?, ?, ?, ?, false, ?)";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(matchId));
+            stmt.setObject(2, java.util.UUID.fromString(tournamentId));
+            
+            // Subquery (Alt sorgu) içindeki '?' parametresi için turnuva ID'sini tekrar gönderiyoruz
+            stmt.setObject(3, java.util.UUID.fromString(tournamentId)); 
+            
+            // timestamptz için setObject ile OffsetDateTime gönderiyoruz
+            stmt.setObject(4, matchDate); 
+            
+            stmt.setObject(5, java.util.UUID.fromString(team1.getTeamId()));
+            stmt.setObject(6, java.util.UUID.fromString(team2.getTeamId()));
+            stmt.setInt(7, pointChange);
+            
+            // Yeni eklenen stage (aşama) parametresi
+            stmt.setInt(8, currentStage);
+            
+            return (stmt.executeUpdate() > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) return DbStatus.CONNECTION_ERROR;
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves a team that is registered to the tournament but does NOT have a match in the given stage.
+     * This is typically used to find the team that gets a "Bye" (automatically advances) when there is an odd number of teams.
+     * @param currentTournament The tournament to check
+     * @param currentStage The stage number where the team has no scheduled matches
+     * @return A Team object representing the team that passes the stage without a match, or null if all teams have matches.
+     */
+    public models.Team getTeamByePassedStage(models.Tournament currentTournament, int currentStage) {
+        
+        if (currentTournament == null || currentTournament.getTournamentId() == null) {
+            return null;
+        }
+
+        // FİLTRE: Takım bu turnuvada olacak VE matches tablosunda bu stage'de team1_id veya team2_id olarak bulunmayacak.
+        String sql = "SELECT t.team_id, t.team_name, t.access_code, t.max_capacity, t.ge250_requested, " +
+                     "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.student_id AS cap_uni_id, c_u.profile_pic_url AS cap_pic, " +
+                     "c_s.elo_point, c_s.win_rate " +
+                     "FROM teams t " +
+                     "INNER JOIN users c_u ON t.captain_id = c_u.id " +
+                     "INNER JOIN students c_s ON c_u.id = c_s.user_id " +
+                     "WHERE t.tournament_id = ? " +
+                     "AND NOT EXISTS (" +
+                     "    SELECT 1 FROM matches m " +
+                     "    WHERE m.tournament_id = t.tournament_id " +
+                     "      AND m.stage = ? " +
+                     "      AND (m.team1_id = t.team_id OR m.team2_id = t.team_id)" +
+                     ") LIMIT 1";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(currentTournament.getTournamentId()));
+            stmt.setInt(2, currentStage);
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    // Kaptanı oluşturuyoruz
+                    models.Student captain = new models.Student(
+                        rs.getString("cap_name"), 
+                        rs.getString("cap_email"), 
+                        rs.getString("cap_uni_id")
+                    );
+                    captain.setProfilePictureUrl(rs.getString("cap_pic"));
+                    captain.setEloPoint(rs.getInt("elo_point"));
+                    captain.setWinRate(rs.getDouble("win_rate"));
+
+                    // Takımı oluşturuyoruz
+                    models.Team byeTeam = new models.Team(
+                        rs.getObject("team_id").toString(),
+                        rs.getString("team_name"),
+                        rs.getString("access_code"),
+                        rs.getInt("max_capacity"),
+                        rs.getBoolean("ge250_requested"),
+                        captain
+                    );
+                    
+                    byeTeam.setCurrentTournament(currentTournament);
+                    return byeTeam;
+                }
+            }
+        } catch (IllegalArgumentException | java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return null; // Eğer herkesin bir maçı varsa (kimse bay geçmiyorsa) null döner
+    }
+
+    /**
+     * Retrieves the current highest stage (maximum stage value) of a tournament from the matches table.
+     * @param tournamentId The UUID of the tournament
+     * @return The highest stage number. Returns 0 if no matches exist for the tournament or if an error occurs.
+     */
+    public int getCurrentStageOfTournament(String tournamentId) {
+        
+        if (tournamentId == null || tournamentId.trim().isEmpty()) {
+            return 0;
+        }
+
+        // Belirtilen turnuvaya ait maçlar arasındaki en yüksek (MAX) stage değerini çeken sorgu
+        String sql = "SELECT MAX(stage) AS max_stage FROM matches WHERE tournament_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(tournamentId));
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    int maxStage = rs.getInt("max_stage");
+                    
+                    // Eğer turnuvada henüz hiç maç yoksa veritabanı NULL döndürür. 
+                    // rs.wasNull() ile bunu kontrol edip güvenli bir şekilde 0 dönüyoruz.
+                    if (rs.wasNull()) {
+                        return 0; 
+                    }
+                    
+                    return maxStage;
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            System.err.println("Geçersiz UUID formatı: " + tournamentId);
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
 }
