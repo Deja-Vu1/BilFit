@@ -95,9 +95,12 @@ public class DuelloManager {
 
     public DbStatus cancelDuello(Duello duello, Student creator) {
         if (duello == null || creator == null) return DbStatus.QUERY_ERROR;
-        
+        String participantEmail = duello.getAttendees().size() > 1 ? duello.getAttendees().get(1).getBilkentEmail() : null;
         DbStatus status = db.deleteDuello(duello.getReservationId(), creator.getBilkentEmail());
         if(status == DbStatus.SUCCESS) {
+            db.insertNotification(participantEmail, 
+                            "Your Duello match deleted", 
+                             creator.getFullName() + " has deleted the duello. The match has been cancelled.");
             duello.setCancelled(true);
             duello.getAttendees().clear();
         }
@@ -106,9 +109,11 @@ public class DuelloManager {
 
     public DbStatus leaveDuello(Duello duello, Student student) {
         if (duello == null || student == null) return DbStatus.QUERY_ERROR;
-        
         DbStatus status = db.removeDuelloParticipant(duello.getReservationId(), student.getBilkentEmail());
         if (status == DbStatus.SUCCESS) {
+            db.insertNotification(duello.getAttendees().get(0).getBilkentEmail(), 
+                            "Duello match cancelled", 
+                             student.getFullName() + " has left the duello. The match has been cancelled.");
             duello.setMatched(false);
             duello.setEmptySlots(duello.getEmptySlots() + 1);
             duello.getAttendees().remove(student);

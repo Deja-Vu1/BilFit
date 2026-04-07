@@ -19,8 +19,7 @@ public class TournamentManager {
 
     public DbStatus createTournament(Tournament tournament) {
         if (tournament == null) return DbStatus.QUERY_ERROR;
-        
-        return db.insertTournament(
+        DbStatus status = db.insertTournament(
                 tournament.getTournamentName(), 
                 tournament.getSportType().name(), 
                 tournament.getStartDate(), 
@@ -29,6 +28,12 @@ public class TournamentManager {
                 tournament.isHasGe250(),
                 tournament.getCampusLocation()
         );
+        if (status == DbStatus.SUCCESS) {
+            db.insertNotification("BROADCAST", 
+                            "New Facility Added", 
+                            "A new tournament named '" + tournament.getTournamentName() + "' has been added.");
+        }
+        return status;
     }
 
     public DbStatus editDetails(Tournament tournament, String newName, int newMaxPlayers) {
