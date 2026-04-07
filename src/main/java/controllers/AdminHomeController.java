@@ -18,6 +18,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.stage.Modality;
@@ -28,9 +29,7 @@ import models.Tournament;
 
 public class AdminHomeController {
 
-    @FXML private Label tournament1Label;
-    @FXML private Label tournament2Label;
-
+    @FXML private VBox tournamentsBox;
     @FXML private TextField titleField;
     @FXML private TextArea messageArea;
     @FXML private TextArea emailsArea;
@@ -43,7 +42,6 @@ public class AdminHomeController {
 
     @FXML
     public void initialize() {
-       
         loadTournaments();
 
         broadcastCheckBox.selectedProperty().addListener((obs, oldVal, newVal) -> {
@@ -58,36 +56,55 @@ public class AdminHomeController {
     }
 
     private void loadTournaments() {
+        if (tournamentsBox == null) return;
+        
+        tournamentsBox.getChildren().clear();
+        Label loadingLabel = new Label("Loading tournaments...");
+        loadingLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold;");
+        tournamentsBox.getChildren().add(loadingLabel);
+
         new Thread(() -> {
             try {
-                // Veritabanından tüm aktif turnuvaları çekiyoruz
                 List<Tournament> tournaments = tManager.getAllActiveTournaments();
 
-                String t1 = "No upcoming tournaments.";
-                String t2 = "No upcoming tournaments.";
-
-                if (tournaments != null && !tournaments.isEmpty()) {
-                    // Turnuvaları başlangıç tarihine göre (en yakından uzağa) sıralıyoruz
-                    tournaments.sort(Comparator.comparing(Tournament::getStartDate));
-                    
-                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-
-                    if (tournaments.size() > 0) {
-                        Tournament first = tournaments.get(0);
-                        t1 = first.getTournamentName() + " | " + first.getStartDate().format(dtf) + " - " + first.getEndDate().format(dtf) + " | Max " + first.getMaxPlayersPerTeam() + " player | Ge250: " + (first.isHasGe250() ? "Yes" : "No");
-                    }
-                    if (tournaments.size() > 1) {
-                        Tournament second = tournaments.get(1);
-                        t2 = second.getTournamentName() + " | " + second.getStartDate().format(dtf) + " - " + second.getEndDate().format(dtf) + " | Max " + second.getMaxPlayersPerTeam() + " player | Ge250: " + (second.isHasGe250() ? "Yes" : "No");
-                    }
-                }
-
-                final String finalT1 = t1;
-                final String finalT2 = t2;
-
                 Platform.runLater(() -> {
-                    if (tournament1Label != null) tournament1Label.setText(finalT1);
-                    if (tournament2Label != null) tournament2Label.setText(finalT2);
+                    tournamentsBox.getChildren().clear();
+
+                    if (tournaments == null || tournaments.isEmpty()) {
+                        Label emptyLabel = new Label("No upcoming tournaments.");
+                        emptyLabel.setStyle("-fx-text-fill: #a3aed0; -fx-font-weight: bold;");
+                        tournamentsBox.getChildren().add(emptyLabel);
+                    } else {
+                        tournaments.sort(Comparator.comparing(Tournament::getStartDate));
+                        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+                        boolean isFirst = true;
+
+                        for (Tournament t : tournaments) {
+                            String details = t.getTournamentName() + "  |  " + 
+                                             t.getStartDate().format(dtf) + " - " + t.getEndDate().format(dtf) + "  |  " + 
+                                             "Max " + t.getMaxPlayersPerTeam() + " players  |  Ge250: " + (t.isHasGe250() ? "Yes" : "No");
+
+                            HBox row = new HBox(15);
+                            row.setAlignment(Pos.CENTER_LEFT);
+                            row.setStyle("-fx-border-color: #E2E8F0; -fx-border-radius: 12; -fx-background-radius: 12; -fx-background-color: #FFFFFF;");
+                            row.setPadding(new Insets(12, 15, 12, 15));
+
+                            if (isFirst) {
+                                Label newTag = new Label("⭐ NEXT EVENT");
+                                newTag.setStyle("-fx-background-color: #FFF4E5; -fx-text-fill: #FF9120; -fx-font-weight: bold; -fx-padding: 3 8 3 8; -fx-background-radius: 8; -fx-font-size: 11px;");
+                                row.getChildren().add(newTag);
+                                row.setStyle("-fx-border-color: #FF9120; -fx-border-width: 2; -fx-border-radius: 12; -fx-background-radius: 12; -fx-background-color: #FFFFFF;");
+                                isFirst = false;
+                            }
+
+                            Label tLabel = new Label(details);
+                            tLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #2B3674; -fx-font-size: 13px;");
+                            
+                            row.getChildren().add(tLabel);
+                            tournamentsBox.getChildren().add(row);
+                        }
+                    }
                 });
             } catch (Exception e) {
                 e.printStackTrace();

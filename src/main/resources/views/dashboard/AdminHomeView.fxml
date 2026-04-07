@@ -4,12 +4,12 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.effect.DropShadow?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
@@ -20,7 +20,7 @@
    </padding>
    <children>
    
-      <VBox styleClass="content-card">
+      <VBox styleClass="content-card" prefHeight="250.0" VBox.vgrow="NEVER">
          <Label styleClass="content-title" text="Upcoming Tournaments" />
          <Label styleClass="content-subtitle" text="Tournaments currently active or upcoming in the system">
             <VBox.margin>
@@ -29,41 +29,19 @@
          </Label>
          <Separator prefWidth="200.0">
             <VBox.margin>
-               <Insets bottom="20.0" top="15.0" />
+               <Insets bottom="15.0" top="15.0" />
             </VBox.margin>
          </Separator>
          
-         <HBox alignment="CENTER_LEFT" style="-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;">
-            <padding>
-               <Insets bottom="10.0" left="20.0" right="10.0" top="10.0" />
-            </padding>
-            <Label fx:id="tournament1Label" text="Loading..." textFill="#2b3674">
-               <font>
-                  <Font name="System Bold" size="13.0" />
-               </font>
-            </Label>
-         </HBox>
-         
-         <HBox alignment="CENTER_LEFT">
-            <VBox.margin>
-               <Insets bottom="10.0" top="10.0" />
-            </VBox.margin>
-            <padding>
-               <Insets left="20.0" />
-            </padding>
-            <Label styleClass="tag-orange" text="⭐ NEW EVENT" />
-         </HBox>
-         
-         <HBox alignment="CENTER_LEFT" style="-fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15; -fx-background-color: #FFFFFF;">
-            <padding>
-               <Insets bottom="10.0" left="20.0" right="10.0" top="10.0" />
-            </padding>
-            <Label fx:id="tournament2Label" text="Loading..." textFill="#2b3674">
-               <font>
-                  <Font name="System Bold" size="13.0" />
-               </font>
-            </Label>
-         </HBox>
+         <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent; -fx-control-inner-background: transparent; -fx-background: transparent; -fx-border-color: transparent;">
+             <content>
+                 <VBox fx:id="tournamentsBox" spacing="10.0">
+                     <padding>
+                         <Insets bottom="5.0" left="5.0" right="15.0" top="5.0" />
+                     </padding>
+                     </VBox>
+             </content>
+         </ScrollPane>
       </VBox>
 
       <VBox style="-fx-background-color: #FFFFFF; -fx-background-radius: 20;" VBox.vgrow="ALWAYS">
