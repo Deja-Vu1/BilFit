@@ -5154,4 +5154,108 @@ public class Database {
 
         return 0;
     }
+
+    /**
+     * Updates the winner_team column in the tournaments table to officially declare the tournament champion.
+     * If winnerTeam is null, it sets the winner to SQL NULL (useful for resetting).
+     * @param tournamentId The UUID of the tournament
+     * @param winnerTeam The Team object representing the champion
+     * @return DbStatus indicating SUCCESS, DATA_NOT_FOUND, or errors.
+     */
+    public DbStatus setWinnerTournament(String tournamentId, models.Team winnerTeam) {
+        
+        if (tournamentId == null || tournamentId.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String sql = "UPDATE tournaments SET winner_team = ? WHERE tournament_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            // Eğer kazanan takım gönderildiyse UUID'sini set et, null gönderildiyse SQL NULL yap
+            if (winnerTeam != null && winnerTeam.getTeamId() != null) {
+                stmt.setObject(1, java.util.UUID.fromString(winnerTeam.getTeamId()));
+            } else {
+                stmt.setNull(1, java.sql.Types.OTHER); 
+            }
+            
+            stmt.setObject(2, java.util.UUID.fromString(tournamentId));
+            
+            int rowsUpdated = stmt.executeUpdate();
+            
+            return (rowsUpdated > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException e) {
+            System.err.println("Geçersiz UUID formatı: " + tournamentId);
+            return DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves the winning team of a specific tournament from the 'tournaments' table.
+     * Joins the teams, users, and students tables to fully construct the Team and its Captain.
+     * @param tournamentId The UUID of the tournament
+     * @return A Team object representing the tournament champion, or null if no winner is set or found.
+     */
+    public models.Team getWinnerTeamTournament(String tournamentId) {
+        
+        if (tournamentId == null || tournamentId.trim().isEmpty()) {
+            return null;
+        }
+
+        // tournaments tablosundaki winner_team kolonundan yola çıkarak takımı ve kaptanını buluyoruz
+        String sql = "SELECT t.team_id, t.team_name, t.access_code, t.max_capacity, t.ge250_requested, " +
+                     "c_u.full_name AS cap_name, c_u.bilkent_email AS cap_email, c_u.student_id AS cap_uni_id, c_u.profile_pic_url AS cap_pic, " +
+                     "c_s.elo_point, c_s.win_rate " +
+                     "FROM tournaments tr " +
+                     "INNER JOIN teams t ON tr.winner_team = t.team_id " +
+                     "INNER JOIN users c_u ON t.captain_id = c_u.id " +
+                     "INNER JOIN students c_s ON c_u.id = c_s.user_id " +
+                     "WHERE tr.tournament_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(tournamentId));
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    // --- 1. KAPTAN (STUDENT) OBJESİNİN OLUŞTURULMASI ---
+                    models.Student captain = new models.Student(
+                        rs.getString("cap_name"), 
+                        rs.getString("cap_email"), 
+                        rs.getString("cap_uni_id")
+                    );
+                    captain.setProfilePictureUrl(rs.getString("cap_pic"));
+                    captain.setEloPoint(rs.getInt("elo_point"));
+                    captain.setWinRate(rs.getDouble("win_rate"));
+
+                    // --- 2. ŞAMPİYON TAKIM (TEAM) OBJESİNİN OLUŞTURULMASI ---
+                    models.Team winningTeam = new models.Team(
+                        rs.getObject("team_id").toString(),
+                        rs.getString("team_name"),
+                        rs.getString("access_code"),
+                        rs.getInt("max_capacity"),
+                        rs.getBoolean("ge250_requested"),
+                        captain
+                    );
+                    
+                    return winningTeam;
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            System.err.println("Geçersiz UUID formatı: " + tournamentId);
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+        
+        // Eğer turnuvanın kazananı henüz yoksa veya bir hata oluşursa null döner
+        return null; 
+    }
 }
