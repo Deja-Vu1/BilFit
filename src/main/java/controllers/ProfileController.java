@@ -42,6 +42,8 @@ public class ProfileController {
    @FXML private StackPane profileImageContainer;
    @FXML private Circle profileImageCircle;
    @FXML private VBox editIconOverlay;
+   
+   @FXML private Label gymRatBadge; // YENİ ROZET
 
    private StudentManager studentManager = new StudentManager(Database.getInstance());
 
@@ -59,7 +61,7 @@ public class ProfileController {
            try {
                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
 
-               // YENİ EKLENEN KRİTİK SATIR: Ekrana basmadan önce veritabanından en güncel verileri çek (Tazele)
+               // Ekrana basmadan önce veritabanından en güncel verileri çek (Tazele)
                if (currentUser != null) {
                    Database.getInstance().fillStudentDataByEmail(currentUser, currentUser.getBilkentEmail());
                }
@@ -94,11 +96,26 @@ public class ProfileController {
 
                        if (interestsBox != null) {
                            interestsBox.getChildren().clear();
+                           
+                           // Varsayılan olarak Gym Rat rozetini gizle
+                           if (gymRatBadge != null) {
+                               gymRatBadge.setVisible(false);
+                               gymRatBadge.setManaged(false);
+                           }
+
                            if (currentUser.getInterests() != null && !currentUser.getInterests().isEmpty()) {
                                for (SportType sport : currentUser.getInterests()) {
                                    Label sportLabel = new Label(sport.name().replace("_", " "));
                                    sportLabel.getStyleClass().add("modern-input"); 
                                    interestsBox.getChildren().add(sportLabel);
+                                   
+                                   // Eğer kullanıcının ilgi alanlarında GYM veya FITNESS varsa GYM RAT rozetini göster
+                                   if (sport.name().equals("GYM") || sport.name().equals("FITNESS")) {
+                                       if (gymRatBadge != null) {
+                                           gymRatBadge.setVisible(true);
+                                           gymRatBadge.setManaged(true);
+                                       }
+                                   }
                                }
                            } else {
                                Label emptyLabel = new Label("No Interest Areas");

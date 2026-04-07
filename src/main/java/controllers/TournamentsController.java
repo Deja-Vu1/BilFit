@@ -1,9 +1,11 @@
 package controllers;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import database.Database;
 import database.DbStatus;
@@ -115,18 +117,26 @@ public class TournamentsController {
 
         new Thread(() -> {
             try {
-                List<Tournament> tournaments = tournamentManager.getAllActiveTournaments();
+                List<Tournament> allTournaments = tournamentManager.getAllActiveTournaments();
 
-                if (tournaments != null && upcomingTournamentsContainer != null) {
-                    tournaments.sort(Comparator.comparing(Tournament::getStartDate));
+                Platform.runLater(() -> {
+                    if (upcomingTournamentsContainer == null) return;
                     
-                    Platform.runLater(() -> {
-                        for (Tournament t : tournaments) {
-                            HBox row = createTournamentRow(t);
-                            upcomingTournamentsContainer.getChildren().add(row);
-                        }
-                    });
-                }
+                    if (allTournaments == null || allTournaments.isEmpty()) {
+                        return;
+                    }
+
+                    LocalDate today = LocalDate.now();
+                    List<Tournament> sortedTournaments = allTournaments.stream()
+                        .filter(t -> t.getEndDate() != null && !t.getEndDate().isBefore(today))
+                        .sorted(Comparator.comparing(Tournament::getStartDate))
+                        .collect(Collectors.toList());
+
+                    for (Tournament t : sortedTournaments) {
+                        HBox row = createTournamentRow(t);
+                        upcomingTournamentsContainer.getChildren().add(row);
+                    }
+                });
             } catch (Exception e) {
                 e.printStackTrace();
             }
