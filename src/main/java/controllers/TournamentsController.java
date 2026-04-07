@@ -3,7 +3,9 @@ package controllers;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -152,10 +154,23 @@ public class TournamentsController {
                 List<Student> outgoing = tournamentManager.getTeamOutgoingRequests(null, currentUser);
                 List<Team> myTeams = tournamentManager.getMyTeams(currentUser);
                 
+                // Şampiyonları arayüzü kilitlemeden arka planda çekiyoruz
+                Map<String, Team> championsMap = new HashMap<>();
+                if (myTeams != null) {
+                    for (Team t : myTeams) {
+                        if (t.getCurrentTournament() != null && t.getCurrentTournament().getTournamentId() != null) {
+                            Team champ = Database.getInstance().getWinnerTeamTournament(t.getCurrentTournament().getTournamentId());
+                            if (champ != null) {
+                                championsMap.put(t.getCurrentTournament().getTournamentId(), champ);
+                            }
+                        }
+                    }
+                }
+                
                 Platform.runLater(() -> {
                     populateIncomingTeamList(incomingRequestsContainer, incoming);
                     populateStudentRequestList(outgoingRequestsContainer, outgoing, "outgoing");
-                    populateMyTournamentsList(myTournamentsContainer, myTeams, currentUser);
+                    populateMyTournamentsList(myTournamentsContainer, myTeams, currentUser, championsMap);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -232,7 +247,7 @@ public class TournamentsController {
         }
     }
 
-    private void populateMyTournamentsList(VBox container, List<Team> teams, Student currentUser) {
+    private void populateMyTournamentsList(VBox container, List<Team> teams, Student currentUser, Map<String, Team> championsMap) {
         if (container == null) return;
         container.getChildren().clear();
 
@@ -262,8 +277,16 @@ public class TournamentsController {
             Label nameLabel = new Label(tourneyNameStr + "Team: " + t.getTeamName() + (isCaptain ? " (Captain)" : ""));
             nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2b3674;");
             
-            Label subLabel = new Label("Status: Active | Max Players: " + t.getMaxCapacity() + " | Team Code: " + t.getAccessCode());
-            subLabel.setStyle("-fx-text-fill: #a0aec0; -fx-font-size: 12px;");
+            // ŞAMPİYON KONTROLÜ
+            Team champion = (t.getCurrentTournament() != null) ? championsMap.get(t.getCurrentTournament().getTournamentId()) : null;
+            
+            String statusStr = (champion != null) ? "🏆 CHAMPION: " + champion.getTeamName() : "Status: Active";
+            String subLabelColor = (champion != null) ? "#FF9120" : "#a0aec0";
+            String subLabelFont = (champion != null) ? "bold" : "normal";
+            
+            Label subLabel = new Label(statusStr + " | Max Players: " + t.getMaxCapacity() + " | Team Code: " + t.getAccessCode());
+            subLabel.setStyle("-fx-text-fill: " + subLabelColor + "; -fx-font-size: 12px; -fx-font-weight: " + subLabelFont + ";");
+            
             infoBox.getChildren().addAll(nameLabel, subLabel);
 
             Region spacer = new Region();
@@ -330,8 +353,6 @@ public class TournamentsController {
             FXMLLoader loader = new FXMLLoader(fxmlLocation);
             Parent root = loader.load();
             
-            // Eğer Schedule ekranında TournamentScheduleController kullanıyorsan:
-            // O sınıfın içinde takımın maçlarını çeken ve kazanıp kaybetme durumunu gösteren bir yapı olmalı.
             TournamentScheduleController controller = loader.getController();
             controller.setTeam(t);
 
