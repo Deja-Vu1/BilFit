@@ -1325,7 +1325,6 @@ public class Database {
     }
 
     /**
-     * THIS IS AN OVERLOADED VERSION OF checkFacilityAvailability() THAT ALSO CHECKS FOR DOUBLE BOOKING.
      * Checks if a facility is available for a specific date and time slot, AND ensures 
      * the given student does not already have a reservation at the exact same time (Double Booking).
      * @param facilityName The name of the facility
@@ -1340,26 +1339,24 @@ public class Database {
             return false;
         }
 
-        // 1. Tesis kapasitesi ve aktif rezervasyonlar
-        // 2. Öğrencinin o saatteki aktif (iptal edilmemiş) rezervasyonu var mı kontrolü (EXISTS ile)
+        // OPTİMİZE EDİLMİŞ SQL: Alt sorgu yerine JOIN kullanıldı ve sorgu düzleştirildi.
         String sql = "SELECT f.capacity, f.is_under_maintenance, " +
                      
-                     // Tesisin o saatteki doluluk oranı alt sorgusu
-                     "(SELECT COUNT(*) FROM reservations r " +
+                     "(SELECT COUNT(r.reservation_id) FROM reservations r " +
                      " WHERE r.facility_id = f.facility_id " +
                      "   AND r.reservation_date = ? " +
                      "   AND r.time_slot = ? " +
                      "   AND r.is_cancelled = FALSE) AS active_reservations, " +
                      
-                     // Öğrenci Çifte Rezervasyon (Double Booking) alt sorgusu
-                     "(SELECT EXISTS (" +
+                     "EXISTS (" +
                      "   SELECT 1 FROM reservations r2 " +
                      "   INNER JOIN reservation_attendees ra ON r2.reservation_id = ra.reservation_id " +
-                     "   WHERE ra.student_id = (SELECT id FROM users WHERE bilkent_email = ?) " +
+                     "   INNER JOIN users u ON ra.student_id = u.id " + // Alt sorgu iptal, direkt JOIN!
+                     "   WHERE u.bilkent_email = ? " +
                      "     AND r2.reservation_date = ? " +
                      "     AND r2.time_slot = ? " +
                      "     AND r2.is_cancelled = FALSE" +
-                     ")) AS is_double_booked " +
+                     ") AS is_double_booked " +
                      
                      "FROM facilities f " +
                      "WHERE f.name = ?";
@@ -1368,16 +1365,16 @@ public class Database {
 
             java.sql.Date sqlDate = java.sql.Date.valueOf(date);
 
-            // 1. Kapasite alt sorgusu için parametreler
+            // 1. Kapasite alt sorgusu için
             stmt.setDate(1, sqlDate);
             stmt.setString(2, timeSlot);
             
-            // 2. Double booking alt sorgusu için parametreler
+            // 2. Double booking JOIN'i için
             stmt.setString(3, currentStudent.getBilkentEmail());
             stmt.setDate(4, sqlDate);
             stmt.setString(5, timeSlot);
             
-            // 3. Ana sorgu için tesis adı
+            // 3. Ana tesis sorgusu için
             stmt.setString(6, facilityName);
 
             try (java.sql.ResultSet rs = stmt.executeQuery()) {
@@ -1387,15 +1384,13 @@ public class Database {
                     int activeReservations = rs.getInt("active_reservations");
                     boolean isDoubleBooked = rs.getBoolean("is_double_booked");
 
-                    // Eğer tesis bakımdaysa VEYA öğrencinin o saatte zaten işi varsa direkt false
                     if (isUnderMaintenance || isDoubleBooked) {
                         if (isDoubleBooked) {
-                            System.err.println("Uyarı: Öğrencinin bu tarih ve saatte zaten başka bir rezervasyonu bulunuyor (Double Booking)!");
+                            System.err.println("Uyarı: Öğrencinin bu tarih ve saatte zaten başka bir rezervasyonu bulunuyor!");
                         }
                         return false;
                     }
 
-                    // Her şey yolundaysa kapasitenin dolup dolmadığına bak
                     return activeReservations < capacity;
                 }
             }
@@ -5258,5 +5253,137 @@ public class Database {
         
         // Eğer turnuvanın kazananı henüz yoksa veya bir hata oluşursa null döner
         return null; 
+    }
+
+    /**
+     * Updates the duello reservation to set the creator as the winner, marking the duello as matched and the creator as the winner.
+     * @param duelloId The UUID of the duello reservation
+     * @return DbStatus indicating SUCCESS if the update was successful, DATA_NOT_FOUND if no matching record was found, or QUERY_ERROR in case of errors.
+     */
+    public DbStatus setCreatorAsWinner(String duelloId) {
+        
+        if (duelloId == null || duelloId.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String sql = "UPDATE duellos SET is_matched = TRUE, is_creator_win = TRUE WHERE reservation_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(duelloId));
+            
+            int rowsUpdated = stmt.executeUpdate();
+            
+            return (rowsUpdated > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException e) {
+            System.err.println("Geçersiz UUID formatı (Duello ID): " + duelloId);
+            return DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Updates the duello reservation to set the requester as the winner, marking the duello as matched and the creator as the loser.
+     * @param duelloId The UUID of the duello reservation
+     * @return DbStatus indicating SUCCESS if the update was successful, DATA_NOT_FOUND if no matching record was found, or QUERY_ERROR in case of errors.
+     */
+    public DbStatus setRequesterAsWinner(String duelloId) {
+        
+        if (duelloId == null || duelloId.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        String sql = "UPDATE duellos SET is_matched = TRUE, is_creator_win = FALSE WHERE reservation_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(duelloId));
+            
+            int rowsUpdated = stmt.executeUpdate();
+            
+            return (rowsUpdated > 0) ? DbStatus.SUCCESS : DbStatus.DATA_NOT_FOUND;
+
+        } catch (IllegalArgumentException e) {
+            System.err.println("Geçersiz UUID formatı (Duello ID): " + duelloId);
+            return DbStatus.QUERY_ERROR;
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        }
+    }
+
+    /**
+     * Retrieves the winner of a duello reservation based on the 'is_creator_win' status.
+     * If 'is_creator_win' is TRUE, returns the creator as the winner; if FALSE, returns the requester as the winner.
+     * If the duello is not yet matched or if an error occurs, returns null.
+     * @param duelloId The UUID of the duello reservation
+     * @return A Student object representing the winner of the duello, or null if no winner is determined or in case of errors.
+     */
+    public models.Student getWinnerOfDuello(String duelloId) {
+        
+        if (duelloId == null || duelloId.trim().isEmpty()) {
+            return null;
+        }
+
+        // SQL'deki CASE yapısı:
+        // Eğer TRUE ise -> reservations.reserved_by (Kurucu)
+        // Eğer FALSE ise -> reservation_attendees tablosundaki kurucu olmayan kişi (Rakip)
+        // Eğer NULL ise -> Eşleşme olmaz, sonuç boş döner.
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
+                     "s.elo_point, s.win_rate " +
+                     "FROM duellos d " +
+                     "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
+                     "INNER JOIN users u ON u.id = (" +
+                     "    CASE " +
+                     "        WHEN d.is_creator_win = TRUE THEN r.reserved_by " +
+                     "        WHEN d.is_creator_win = FALSE THEN (" +
+                     "            SELECT student_id FROM reservation_attendees " +
+                     "            WHERE reservation_id = d.reservation_id AND student_id != r.reserved_by " +
+                     "            LIMIT 1" +
+                     "        ) " +
+                     "        ELSE NULL " +
+                     "    END " +
+                     ") " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE d.reservation_id = ?";
+
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+            
+            stmt.setObject(1, java.util.UUID.fromString(duelloId));
+
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    
+                    // Kazanan öğrencinin objesini oluşturuyoruz
+                    models.Student winner = new models.Student(
+                        rs.getString("full_name"),
+                        rs.getString("bilkent_email"),
+                        rs.getString("uni_id")
+                    );
+                    
+                    winner.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                    winner.setEloPoint(rs.getInt("elo_point"));
+                    winner.setWinRate(rs.getDouble("win_rate"));
+
+                    return winner;
+                }
+            }
+        } catch (IllegalArgumentException e) {
+            System.err.println("Geçersiz UUID formatı (Duello ID): " + duelloId);
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Kazanan yoksa (beraberlik veya henüz bitmemişse) ya da hata varsa null döner
+        return null;
     }
 }

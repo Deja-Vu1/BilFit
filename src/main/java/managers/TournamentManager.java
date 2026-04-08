@@ -30,7 +30,7 @@ public class TournamentManager {
         );
         if (status == DbStatus.SUCCESS) {
             db.insertNotification("BROADCAST", 
-                            "New Facility Added", 
+                            "New Tournament Added", 
                             "A new tournament named '" + tournament.getTournamentName() + "' has been added.");
         }
         return status;
