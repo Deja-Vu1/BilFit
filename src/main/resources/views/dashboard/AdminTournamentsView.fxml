@@ -19,10 +19,10 @@
       <HBox alignment="CENTER_LEFT">
          <VBox>
             <Label styleClass="content-title" text="Tournament Management" />
-            <Label styleClass="content-subtitle" text="Sistemdeki turnuvaları yönetin, fikstür oluşturun ve sonuçları belirleyin." />
+            <Label styleClass="content-subtitle" text="Manage the tournaments in the system, create fixtures, and determine the results." />
          </VBox>
          <Region HBox.hgrow="ALWAYS" />
-         <Button onAction="#handleCreateTournament" prefHeight="40" prefWidth="180" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="+ Yeni Turnuva Oluştur" />
+         <Button onAction="#handleCreateTournament" prefHeight="40" prefWidth="180" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="+ Create New Tournament" />
       </HBox>
 
       <Separator prefWidth="200.0">
