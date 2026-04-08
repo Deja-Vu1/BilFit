@@ -1,6 +1,8 @@
 package controllers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import database.Database;
@@ -63,6 +65,20 @@ public class ELOController {
                 ArrayList<Duello> myDuellos = duelloManager.getUserDuellos(currentUser);
                 ArrayList<Duello> suitableDuellos = duelloManager.findOpponentForMatch(currentUser, selectedSport);
 
+                // --- YENİ EKLENEN KISIM: My Duellos için kazananları (Winner) arka planda veritabanından çekiyoruz ---
+                Map<String, Student> duelloWinners = new HashMap<>();
+                if (myDuellos != null) {
+                    for (Duello d : myDuellos) {
+                        if (d.isMatched()) {
+                            Student winner = Database.getInstance().getWinnerOfDuello(d.getReservationId());
+                            if (winner != null) {
+                                duelloWinners.put(d.getReservationId(), winner);
+                            }
+                        }
+                    }
+                }
+                // ------------------------------------------------------------------------------------------------------
+
                 ArrayList<Reservation> validReservations = new ArrayList<>();
                 if (dbReservations != null) {
                     for (Reservation res : dbReservations) {
@@ -115,7 +131,9 @@ public class ELOController {
                             boolean hasActiveDuello = false;
                             for (Duello d : myDuellos) {
                                 if (!d.isCancelled()) {
-                                    myDuellosContainer.getChildren().add(createMyDuelloRow(d));
+                                    // YENİ KISIM: Kazanan bilgisini UI oluşturan metoda paslıyoruz
+                                    Student winner = duelloWinners.get(d.getReservationId());
+                                    myDuellosContainer.getChildren().add(createMyDuelloRow(d, winner));
                                     hasActiveDuello = true;
                                 }
                             }
@@ -194,7 +212,7 @@ public class ELOController {
         return row;
     }
 
-    private HBox createMyDuelloRow(Duello duello) {
+    private HBox createMyDuelloRow(Duello duello, Student winner) {
         HBox row = new HBox();
         row.setAlignment(Pos.CENTER_LEFT);
         row.setStyle("-fx-background-color: #F4F7FE; -fx-border-color: #4318FF; -fx-border-radius: 15; -fx-background-radius: 15;");
@@ -205,7 +223,16 @@ public class ELOController {
         String facilityName = duello.getFacility() != null ? duello.getFacility().getName() : "Saha";
         String loc = duello.getFacility() != null ? duello.getFacility().getCampusLocation() : "Kampüs";
         String mainText = loc + "   |   " + facilityName + "   |   " + duello.getDate() + " " + duello.getTimeSlot();
-        String subText = "Access Code: " + duello.getAccessCode() + "   |   Status: " + (duello.isMatched() ? "Match Ready" : "Waiting for Opponent");
+        
+        // DURUM (STATUS) BELİRLEMESİ
+        String statusStr = "Waiting for Opponent";
+        if (winner != null) {
+            statusStr = "Concluded";
+        } else if (duello.isMatched()) {
+            statusStr = "Match Ready";
+        }
+        
+        String subText = "Access Code: " + duello.getAccessCode() + "   |   Status: " + statusStr;
 
         Label mainLabel = new Label(mainText);
         mainLabel.setStyle("-fx-text-fill: #2b3674; -fx-font-weight: bold; -fx-font-size: 13px;");
@@ -218,21 +245,30 @@ public class ELOController {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        Button actionBtn = new Button();
-        actionBtn.setPrefHeight(35.0);
-        actionBtn.setPrefWidth(110.0);
-
-        if (duello.isMatched()) {
-            actionBtn.setText("Cancel Match");
-            actionBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10;");
-            actionBtn.setOnAction(e -> handleCancelSpecificDuello(duello, actionBtn));
+        // KAZANAN VARSA BUTON YERİNE KAZANANI YAZDIR
+        if (winner != null) {
+            Label winnerLabel = new Label("🏆 Winner: " + winner.getFullName());
+            winnerLabel.setStyle("-fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-color: #E6F4EA; -fx-padding: 8 15 8 15; -fx-background-radius: 8;");
+            row.getChildren().addAll(infoBox, spacer, winnerLabel);
         } else {
-            actionBtn.setText("Cancel Duello");
-            actionBtn.setStyle("-fx-background-color: #E2ECF6; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10;");
-            actionBtn.setOnAction(e -> handleCancelSpecificDuello(duello, actionBtn));
+            // KAZANAN YOKSA KLASİK "CANCEL" BUTONLARINI GÖSTER
+            Button actionBtn = new Button();
+            actionBtn.setPrefHeight(35.0);
+            actionBtn.setPrefWidth(110.0);
+
+            if (duello.isMatched()) {
+                actionBtn.setText("Cancel Match");
+                actionBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;");
+                actionBtn.setOnAction(e -> handleCancelSpecificDuello(duello, actionBtn));
+            } else {
+                actionBtn.setText("Cancel Duello");
+                actionBtn.setStyle("-fx-background-color: #E2ECF6; -fx-text-fill: #4318FF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;");
+                actionBtn.setOnAction(e -> handleCancelSpecificDuello(duello, actionBtn));
+            }
+
+            row.getChildren().addAll(infoBox, spacer, actionBtn);
         }
 
-        row.getChildren().addAll(infoBox, spacer, actionBtn);
         return row;
     }
 
@@ -304,7 +340,7 @@ public class ELOController {
         Button requestBtn = new Button("Request");
         requestBtn.setPrefHeight(35.0);
         requestBtn.setPrefWidth(100.0);
-        requestBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10;");
+        requestBtn.setStyle("-fx-background-color: #D93025; -fx-text-fill: #FFFFFF; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;");
         requestBtn.setOnAction(e -> handleRequestSpecificDuello(duello, requestBtn));
 
         row.getChildren().addAll(infoBox, spacer, iconLabel, requestBtn);
