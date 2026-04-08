@@ -29,7 +29,7 @@ public class RegisterActivationController {
     public void goBack(MouseEvent event) {
         System.out.println("Redirecting to SelectionView Screen");
         try {
-            // 1. Yeni FXML dosyasını yükle (Yolun doğru olduğundan emin ol)
+            
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/views/auth/SelectionView.fxml"));
             Parent root = loader.load();
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();

@@ -43,7 +43,7 @@ public class ProfileController {
    @FXML private Circle profileImageCircle;
    @FXML private VBox editIconOverlay;
    
-   @FXML private Label gymRatBadge; // YENİ ROZET
+   @FXML private Label gymRatBadge; 
 
    private StudentManager studentManager = new StudentManager(Database.getInstance());
 
@@ -61,7 +61,7 @@ public class ProfileController {
            try {
                Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
 
-               // Ekrana basmadan önce veritabanından en güncel verileri çek (Tazele)
+               
                if (currentUser != null) {
                    Database.getInstance().fillStudentDataByEmail(currentUser, currentUser.getBilkentEmail());
                }
@@ -84,7 +84,7 @@ public class ProfileController {
                        if (matchesPlayedLabel != null) matchesPlayedLabel.setText(String.valueOf(currentUser.getMatchesPlayed()));
                        if (winRateLabel != null) winRateLabel.setText(String.format("%.0f%%", currentUser.getWinRate() * 100));
                        
-                       // Güncel puanlar doğrudan buraya yansıyacak
+                       
                        if (reliabilityScoreLabel != null) reliabilityScoreLabel.setText("Reliability Score: " + currentUser.getReliabilityScore());
                        if (penaltyScoreLabel != null) penaltyScoreLabel.setText("Penalty Score: " + currentUser.getPenaltyPoints());
 
@@ -97,7 +97,7 @@ public class ProfileController {
                        if (interestsBox != null) {
                            interestsBox.getChildren().clear();
                            
-                           // Varsayılan olarak Gym Rat rozetini gizle
+                           
                            if (gymRatBadge != null) {
                                gymRatBadge.setVisible(false);
                                gymRatBadge.setManaged(false);
@@ -109,7 +109,7 @@ public class ProfileController {
                                    sportLabel.getStyleClass().add("modern-input"); 
                                    interestsBox.getChildren().add(sportLabel);
                                    
-                                   // Eğer kullanıcının ilgi alanlarında GYM veya FITNESS varsa GYM RAT rozetini göster
+                                   
                                    if (sport.name().equals("GYM") || sport.name().equals("FITNESS")) {
                                        if (gymRatBadge != null) {
                                            gymRatBadge.setVisible(true);

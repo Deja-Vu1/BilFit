@@ -71,7 +71,7 @@ public class AdminActivationController {
             try {
                 DbStatus status = DbStatus.QUERY_ERROR;
                 
-                // CONTEXT'E GÖRE FARKLI VERİTABANI İŞLEMİ (Şifre Sıfırlama vs. Kayıt)
+                
                 if (currentContext == ActivationContext.REGISTRATION) {
                     status = authManager.activateAccount(emailToActivate, code);
                 } else {
@@ -87,7 +87,7 @@ public class AdminActivationController {
 
                     switch (finalStatus) {
                         case SUCCESS:
-                            // EĞER KAYITSA DİREKT GİRİŞE, ŞİFRE SIFIRLAMAYSA POP-UP'A GÖNDER
+                            
                             if (currentContext == ActivationContext.REGISTRATION) {
                                 showAlert(Alert.AlertType.INFORMATION, "Success", "Your admin account has been activated! You can now log in.");
                                 goToAdminLogin(clickedButton);

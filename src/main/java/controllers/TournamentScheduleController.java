@@ -58,7 +58,7 @@ public class TournamentScheduleController {
                 }
 
                 List<Match> allMatches = Database.getInstance().getAllTournamentMatches(tournament.getTournamentId());
-                // ŞAMPİYONU VERİTABANINDAN ÇEKİYORUZ
+                
                 Team champion = Database.getInstance().getWinnerTeamTournament(tournament.getTournamentId());
                 
                 if (allMatches.isEmpty()) {
@@ -132,13 +132,13 @@ public class TournamentScheduleController {
                     return; 
                 }
 
-                // SADECE ÖĞRENCİNİN KENDİ TAKIMININ MAÇLARINI FİLTRELE
+                
                 List<Match> teamMatches = allMatches.stream()
                     .filter(m -> m.getTeam1().getTeamId().equals(team.getTeamId()) || 
                                 (m.getTeam2() != null && m.getTeam2().getTeamId().equals(team.getTeamId())))
                     .collect(Collectors.toList());
 
-                // MAÇLARI STAGE'E GÖRE (TUR NUMARASINA GÖRE) SIRALA
+                
                 teamMatches.sort((m1, m2) -> Integer.compare(m1.getCurrentStage(), m2.getCurrentStage()));
 
                 Platform.runLater(() -> {
@@ -147,7 +147,7 @@ public class TournamentScheduleController {
                     if (matchesVBox != null) {
                         matchesVBox.getChildren().clear();
                         
-                        // İŞTE KESİN ÇÖZÜM: ŞAMPİYONU MAÇ LİSTESİNİN EN TEPESİNE EKLİYORUZ
+                        
                         if (champion != null) {
                             Label champLabel = new Label("🏆 CHAMPION: " + champion.getTeamName() + " 🏆");
                             champLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #FF9120; -fx-background-color: #FFF4E5; -fx-padding: 15; -fx-background-radius: 10; -fx-alignment: center;");
@@ -178,7 +178,7 @@ public class TournamentScheduleController {
 
                         for (Match match : teamMatches) {
                             
-                            // YENİ ROUND (STAGE) BAŞLIĞI EKLEME
+                            
                             if (match.getCurrentStage() != currentRoundNum) {
                                 currentRoundNum = match.getCurrentStage();
                                 Label roundLabel = new Label("--- ROUND " + currentRoundNum + " ---");
@@ -189,7 +189,7 @@ public class TournamentScheduleController {
                             Team t1 = match.getTeam1();
                             Team t2 = match.getTeam2();
 
-                            // BAY GEÇİLEN MAÇ KONTROLÜ
+                            
                             if (t2 == null || t1.getTeamId().equals(t2.getTeamId())) {
                                 if (t1.getTeamId().equals(team.getTeamId())) {
                                     if (byeTeamLabel != null) byeTeamLabel.setText("🏆 Auto Advance (Round " + currentRoundNum + "): " + t1.getTeamName());

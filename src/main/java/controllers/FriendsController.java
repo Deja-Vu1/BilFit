@@ -79,7 +79,7 @@ public class FriendsController {
     }
 
     private void setupSpecificFriendColumns() {
-        // Last Seen Column
+        
         colFriendLastSeen.setCellValueFactory(data -> {
             LocalDateTime lastSeen = data.getValue().getLastSeen();
             if (lastSeen == null) {
@@ -89,7 +89,7 @@ public class FriendsController {
             return new SimpleStringProperty(lastSeen.format(formatter));
         });
 
-        // Profile Picture Column (GÜNCELLENDİ)
+        
         colFriendPic.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue()));
         colFriendPic.setCellFactory(param -> new TableCell<Student, Student>() {
             private final Circle circle = new Circle(18); 
@@ -106,20 +106,20 @@ public class FriendsController {
                     
                     if (url != null && !url.trim().isEmpty()) {
                         String noCacheUrl = url + (url.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
-                        // RESMİ ARKAPLANDA (BACKGROUND) YÜKLÜYORUZ (true parametresi)
+                        
                         Image image = new Image(noCacheUrl, true);
                         
-                        // Yüklenme sırasında ve eğer hata olursa düz renk gösteriyoruz ki sistem çökmesin
+                        
                         circle.setFill(Color.web("#E2E8F0")); 
                         
-                        // Yükleme tamamlandığında resmi yuvarlağa gömüyoruz
+                        
                         image.progressProperty().addListener((obs, oldVal, newVal) -> {
                             if (newVal.doubleValue() == 1.0 && !image.isError()) {
                                 Platform.runLater(() -> circle.setFill(new ImagePattern(image)));
                             }
                         });
                         
-                        // Eğer link bozuksa/hata verirse düz renkte kalsın
+                        
                         image.errorProperty().addListener((obs, oldVal, newVal) -> {
                             if (newVal) {
                                 Platform.runLater(() -> circle.setFill(Color.web("#E2E8F0")));
@@ -127,7 +127,7 @@ public class FriendsController {
                         });
 
                     } else {
-                        circle.setFill(Color.web("#E2E8F0")); // Fotoğraf hiç yoksa varsayılan renk
+                        circle.setFill(Color.web("#E2E8F0")); 
                     }
                     
                     setGraphic(circle);

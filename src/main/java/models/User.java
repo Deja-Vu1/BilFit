@@ -4,12 +4,12 @@ public abstract class User {
     protected String fullName;
     protected String bilkentEmail;
     protected String password;
-    private String profilePictureUrl; // Profil fotoğrafı URL'si (isteğe bağlı)
+    private String profilePictureUrl; 
 
     public User(String fullName, String bilkentEmail) {
         this.fullName = fullName;
         this.bilkentEmail = bilkentEmail;
-        this.profilePictureUrl = null; // Başlangıçta profil fotoğrafı yok
+        this.profilePictureUrl = null; 
     }
 
     public String getFullName() { return fullName; }

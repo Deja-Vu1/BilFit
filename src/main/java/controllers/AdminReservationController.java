@@ -122,7 +122,7 @@ public class AdminReservationController {
             card.getChildren().addAll(infoBox, spacer, cancelledLabel);
         } else {
             
-            // YENİ EKLENEN DUELLO KAZANAN BUTONLARI
+            
             Button creatorWinBtn = new Button("Creator Won");
             creatorWinBtn.setStyle("-fx-background-color: #EBF8FF; -fx-text-fill: #2B6CB0; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;");
             creatorWinBtn.setOnAction(e -> handleCreatorWin(res));
@@ -131,7 +131,7 @@ public class AdminReservationController {
             requesterWinBtn.setStyle("-fx-background-color: #FAF5FF; -fx-text-fill: #6B46C1; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;");
             requesterWinBtn.setOnAction(e -> handleRequesterWin(res));
 
-            // MEVCUT ATTEND VE NO SHOW BUTONLARI
+            
             Button attendBtn = new Button("Mark Attended");
             attendBtn.setStyle("-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;");
             attendBtn.setOnAction(e -> handleMarkAttended(res));
@@ -156,7 +156,7 @@ public class AdminReservationController {
                 isProcessing = false;
                 if (status == DbStatus.SUCCESS) {
                     showCustomAlert("Success", "The Creator has been marked as the winner of this Duello.");
-                    db.updateReservationAttendance(res.getReservationId(), true); // Sonuçlandığı için katıldı sayıyoruz
+                    db.updateReservationAttendance(res.getReservationId(), true); 
                     loadReservations();
                 } else if (status == DbStatus.DATA_NOT_FOUND) {
                     showCustomAlert("Information", "This reservation is not a Duello.");
@@ -177,7 +177,7 @@ public class AdminReservationController {
                 isProcessing = false;
                 if (status == DbStatus.SUCCESS) {
                     showCustomAlert("Success", "The Requester has been marked as the winner of this Duello.");
-                    db.updateReservationAttendance(res.getReservationId(), true); // Sonuçlandığı için katıldı sayıyoruz
+                    db.updateReservationAttendance(res.getReservationId(), true); 
                     loadReservations();
                 } else if (status == DbStatus.DATA_NOT_FOUND) {
                     showCustomAlert("Information", "This reservation is not a Duello.");

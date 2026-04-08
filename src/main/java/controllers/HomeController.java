@@ -50,7 +50,7 @@ public class HomeController {
                 List<Notification> myNotifications = db.getNotificationsByStudent(currentUser);
                 List<Tournament> allTournaments = db.getAllActiveTournaments();
                 
-                // Turnuvaları filtrele ve sırala (Bugünden sonra olanları yakından uzağa sırala)
+                
                 LocalDate currentDate = LocalDate.now();
                 List<Tournament> upcomingTournaments = new ArrayList<>();
                 

@@ -18,7 +18,7 @@ public class ReservationManager {
     }
     public java.util.ArrayList<Reservation> getUserReservations(Student student) {
         if (student == null) return new java.util.ArrayList<>();
-        // Zaten makeReservation içinde kullandığı db metodunu dışarı açıyoruz
+        
         Database db = Database.getInstance();
         return db.getReservationsByEmail(student.getBilkentEmail());
     }

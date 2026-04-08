@@ -65,7 +65,7 @@ public class ELOController {
                 ArrayList<Duello> myDuellos = duelloManager.getUserDuellos(currentUser);
                 ArrayList<Duello> suitableDuellos = duelloManager.findOpponentForMatch(currentUser, selectedSport);
 
-                // --- YENİ EKLENEN KISIM: My Duellos için kazananları (Winner) arka planda veritabanından çekiyoruz ---
+                
                 Map<String, Student> duelloWinners = new HashMap<>();
                 if (myDuellos != null) {
                     for (Duello d : myDuellos) {
@@ -77,7 +77,7 @@ public class ELOController {
                         }
                     }
                 }
-                // ------------------------------------------------------------------------------------------------------
+                
 
                 ArrayList<Reservation> validReservations = new ArrayList<>();
                 if (dbReservations != null) {
@@ -131,7 +131,7 @@ public class ELOController {
                             boolean hasActiveDuello = false;
                             for (Duello d : myDuellos) {
                                 if (!d.isCancelled()) {
-                                    // YENİ KISIM: Kazanan bilgisini UI oluşturan metoda paslıyoruz
+                                    
                                     Student winner = duelloWinners.get(d.getReservationId());
                                     myDuellosContainer.getChildren().add(createMyDuelloRow(d, winner));
                                     hasActiveDuello = true;
@@ -224,7 +224,7 @@ public class ELOController {
         String loc = duello.getFacility() != null ? duello.getFacility().getCampusLocation() : "Kampüs";
         String mainText = loc + "   |   " + facilityName + "   |   " + duello.getDate() + " " + duello.getTimeSlot();
         
-        // DURUM (STATUS) BELİRLEMESİ
+        
         String statusStr = "Waiting for Opponent";
         if (winner != null) {
             statusStr = "Concluded";
@@ -245,13 +245,13 @@ public class ELOController {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        // KAZANAN VARSA BUTON YERİNE KAZANANI YAZDIR
+        
         if (winner != null) {
             Label winnerLabel = new Label("🏆 Winner: " + winner.getFullName());
             winnerLabel.setStyle("-fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-color: #E6F4EA; -fx-padding: 8 15 8 15; -fx-background-radius: 8;");
             row.getChildren().addAll(infoBox, spacer, winnerLabel);
         } else {
-            // KAZANAN YOKSA KLASİK "CANCEL" BUTONLARINI GÖSTER
+            
             Button actionBtn = new Button();
             actionBtn.setPrefHeight(35.0);
             actionBtn.setPrefWidth(110.0);

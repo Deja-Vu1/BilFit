@@ -63,7 +63,7 @@ public class AdminRegisterController {
       
         clickedButton.getParent().requestFocus();
         clickedButton.setDisable(true);
-        clickedButton.setText("Kayıt Yapılıyor...");
+        clickedButton.setText("Registering...");
 
         new Thread(() -> {
             try {
@@ -101,7 +101,7 @@ public class AdminRegisterController {
                     isProcessing = false;
                     clickedButton.setDisable(false);
                     clickedButton.setText(originalText);
-                    showAlert(Alert.AlertType.ERROR, "Kritik Hata", "Sistemde beklenmeyen bir hata oluştu.");
+                    showAlert(Alert.AlertType.ERROR, "Critical Error", "An unexpected error occurred in the system.");
                 });
             }
         }).start();

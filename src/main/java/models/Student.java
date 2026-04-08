@@ -9,7 +9,7 @@ public class Student extends User {
     public static final double MIN_RELIABILITY_SCORE = 50.0;
     
     private String studentId;
-    private String nickname; // EKLENEN KISIM: Nickname değişkeni
+    private String nickname; 
     private int eloPoint;
     private int penaltyPoints;
     private double reliabilityScore;
@@ -23,18 +23,18 @@ public class Student extends User {
     private boolean isEloMatchingEnabled;
     private boolean isBanned;
     private List<Match> matchHistory;
-    private LocalDateTime lastSeen; // students tablosundaki son görülme zamanı
+    private LocalDateTime lastSeen; 
     
-    // Arkadaşlık sistemi listeleri
-    private List<Student> friends; // Kabul edilmiş arkadaşlar
-    private List<Student> incomingFriendRequests; // Bana gelen ve kabul etmemi bekleyen istekler
-    private List<Student> outgoingFriendRequests; // Benim attığım ve karşı tarafın kabul etmesini beklediğim istekler
+    
+    private List<Student> friends; 
+    private List<Student> incomingFriendRequests; 
+    private List<Student> outgoingFriendRequests; 
 
     public Student(String fullName, String bilkentEmail, String studentId) {
         super(fullName, bilkentEmail);
         this.studentId = studentId;
 
-        // Başlangıçta nickname boş kalmasın diye tam adı atıyoruz. (İstersen boş da bırakabilirsin)
+        
         this.nickname = fullName; 
         this.eloPoint = 1000;
         this.penaltyPoints = 0;
@@ -51,14 +51,14 @@ public class Student extends User {
         this.badges = new ArrayList<>();
         this.matchHistory = new ArrayList<>();
         
-        // Listelerin başlatılması
+        
         this.friends = new ArrayList<>();
         this.incomingFriendRequests = new ArrayList<>();
         this.outgoingFriendRequests = new ArrayList<>();
     }
     
 
-    // Getter ve Setter metotları
+    
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }
 

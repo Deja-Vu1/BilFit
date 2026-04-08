@@ -154,7 +154,7 @@ public class TournamentsController {
                 List<Student> outgoing = tournamentManager.getTeamOutgoingRequests(null, currentUser);
                 List<Team> myTeams = tournamentManager.getMyTeams(currentUser);
                 
-                // Şampiyonları arayüzü kilitlemeden arka planda çekiyoruz
+                
                 Map<String, Team> championsMap = new HashMap<>();
                 if (myTeams != null) {
                     for (Team t : myTeams) {
@@ -277,7 +277,7 @@ public class TournamentsController {
             Label nameLabel = new Label(tourneyNameStr + "Team: " + t.getTeamName() + (isCaptain ? " (Captain)" : ""));
             nameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2b3674;");
             
-            // ŞAMPİYON KONTROLÜ
+           
             Team champion = (t.getCurrentTournament() != null) ? championsMap.get(t.getCurrentTournament().getTournamentId()) : null;
             
             String statusStr = (champion != null) ? "🏆 CHAMPION: " + champion.getTeamName() : "Status: Active";

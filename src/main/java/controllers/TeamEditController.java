@@ -36,7 +36,7 @@ public class TeamEditController {
     @FXML private Button addPlayerButton;
     @FXML private VBox membersContainer;
     
-    // YENİ: Arkadaş listesi ve çoklu davet butonu için FXML bağlamaları
+    
     @FXML private VBox friendsCheckboxContainer;
     @FXML private Button addSelectedFriendsButton;
 
@@ -66,17 +66,17 @@ public class TeamEditController {
         
         teamNameLabel.setText(team.getTeamName() + " Members");
 
-        // Kaptan değilse oyuncu ekleme/davet menüsünü tamamen gizle
+        
         if (isCaptain) {
             addPlayerContainer.setVisible(true);
             addPlayerContainer.setManaged(true);
-            loadFriendsList(); // Kaptansa arkadaş listesini yükle
+            loadFriendsList(); 
         } else {
             addPlayerContainer.setVisible(false);
             addPlayerContainer.setManaged(false);
         }
 
-        // Üyeleri dinamik olarak veritabanından çek ve yükle
+        
         loadMembers();
     }
 
@@ -88,7 +88,7 @@ public class TeamEditController {
 
         new Thread(() -> {
             try {
-                // Veritabanından kullanıcının arkadaşlarını çekip objeye dolduruyoruz
+                
                 Database.getInstance().fillFriendsByEmail(currentUser);
                 List<Student> friends = currentUser.getFriends();
 
@@ -103,7 +103,7 @@ public class TeamEditController {
                     boolean hasAvailableFriends = false;
 
                     for (Student friend : friends) {
-                        // Zaten takımda olan arkadaşı davet listesinde göstermiyoruz
+                        
                         boolean alreadyInTeam = false;
                         if (team.getMembers() != null) {
                             for (Student member : team.getMembers()) {
@@ -117,7 +117,7 @@ public class TeamEditController {
                         if (!alreadyInTeam) {
                             hasAvailableFriends = true;
                             CheckBox cb = new CheckBox(friend.getFullName() + " (" + friend.getBilkentEmail() + ")");
-                            cb.setUserData(friend); // Seçildiğinde objeye ulaşabilmek için kaydediyoruz
+                            cb.setUserData(friend); 
                             cb.setStyle("-fx-text-fill: #2b3674; -fx-font-weight: bold; -fx-padding: 5;");
                             friendsCheckboxContainer.getChildren().add(cb);
                         }
@@ -144,7 +144,7 @@ public class TeamEditController {
 
         List<Student> selectedFriends = new ArrayList<>();
 
-        // Checkbox container'daki tüm bileşenleri tara ve seçili olanların içinden Student objesini al
+        
         for (Node node : friendsCheckboxContainer.getChildren()) {
             if (node instanceof CheckBox) {
                 CheckBox cb = (CheckBox) node;
@@ -188,7 +188,7 @@ public class TeamEditController {
 
                 if (finalAllSuccess) {
                     showAlert(Alert.AlertType.INFORMATION, "Success", "Invites sent successfully to all selected friends.");
-                    loadFriendsList(); // Checkboxları temizlemek/yenilemek için listeyi baştan çek
+                    loadFriendsList(); 
                 } else if (finalSomeSuccess) {
                     showAlert(Alert.AlertType.WARNING, "Partial Success", "Some invites were sent. Others may already have pending invites.");
                     loadFriendsList();
@@ -207,10 +207,10 @@ public class TeamEditController {
 
         new Thread(() -> {
             try {
-                // 1. Veritabanından güncel takım üyelerini çek
+                
                 List<Student> fetchedMembers = teamManager.getTeamMembers(team.getTeamId());
                 
-                // 2. Team objesinin içini güncel verilerle doldur
+                
                 team.setMembers(fetchedMembers);
 
                 Platform.runLater(() -> {
@@ -221,7 +221,7 @@ public class TeamEditController {
                         return;
                     }
 
-                    // 3. UI'ı dinamik olarak oluştur
+                   
                     for (Student member : fetchedMembers) {
                         HBox row = new HBox();
                         row.setAlignment(Pos.CENTER_LEFT);
@@ -240,7 +240,7 @@ public class TeamEditController {
 
                         row.getChildren().addAll(nameLabel, spacer);
 
-                        // Eğer giriş yapan kişi kaptansa ve listelenen kişi kendi değilse "Kick" butonunu koy
+                        
                         if (this.isCaptain && !isMemberCaptain) {
                             Button kickBtn = new Button("Kick");
                             kickBtn.setStyle("-fx-background-color: #EE5D50; -fx-text-fill: white; -fx-background-radius: 5;");
@@ -276,7 +276,7 @@ public class TeamEditController {
         new Thread(() -> {
             DbStatus status = DbStatus.QUERY_ERROR;
             try {
-                // Sadece email adresi ile geçici bir obje gönderiyoruz, DB email'den tanıyacak
+                
                 Student dummyReceiver = new Student("", email, "");
                 status = tournamentManager.sendTeamInvite(team.getTeamId(), dummyReceiver);
             } catch (Exception ex) {
@@ -313,7 +313,7 @@ public class TeamEditController {
             Platform.runLater(() -> {
                 if (finalStatus == DbStatus.SUCCESS) {
                     showAlert(Alert.AlertType.INFORMATION, "Success", "Player kicked successfully.");
-                    // Listeyi baştan çekerek UI'ı ve arkadaş listesini tazele
+                    
                     loadMembers(); 
                     loadFriendsList();
                 } else {

@@ -139,7 +139,7 @@ public class ActivationController {
         Optional<String> result = dialog.showAndWait();
 
         result.ifPresent(newPassword -> {
-            // Şifre uzunluğu kuralı kontrolü
+            
             if (newPassword == null || newPassword.trim().isEmpty()) {
                 showAlert(Alert.AlertType.WARNING, "Warning", "Password cannot be empty!");
             } else if (newPassword.length() < 6) {
