@@ -1210,15 +1210,16 @@ public class Database {
 
     /**
      * Retrieves all activated students whose profiles are public.
-     * Includes their sport interests mapped to the SportType enum.
+     * Includes their sport interests mapped to the SportType enum and their profile picture.
      * Used primarily for the matching/recommendation system.
-     * * @return A list of public Student objects
+     * @return A list of public Student objects
      */
     public List<Student> getAllPublicStudents() {
         
         List<Student> studentsList = new ArrayList<>();
 
-        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, " +
+        // SQL sorgusuna u.profile_pic_url eklendi
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
                      "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, " +
                      "s.win_rate, s.is_public_profile, s.is_elo_matching_enabled, " +
                      "STRING_AGG(sp.name, ',') AS sport_interests " +
@@ -1235,9 +1236,9 @@ public class Database {
             while (rs.next()) {
                 Student student = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
                 
-                student.setFullName(rs.getString("full_name"));
-                student.setBilkentEmail(rs.getString("bilkent_email"));
-                student.setStudentId(rs.getString("uni_id"));
+                // --- PROFİL FOTOĞRAFI EKLENDİ ---
+                student.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                
                 student.setEloPoint(rs.getInt("elo_point"));
                 student.setPenaltyPoints(rs.getInt("penalty_points"));
                 student.setReliabilityScore(rs.getDouble("reliability_score"));
@@ -1276,7 +1277,7 @@ public class Database {
 
         return studentsList;
     }
-
+    
     /**
      * Checks if a facility is available for a specific date and time slot.
      * A facility is considered available if it exists, is not under maintenance, 
