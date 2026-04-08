@@ -106,6 +106,7 @@ public class ReservationController {
         timeSlotGrid.setHgap(10);
         timeSlotGrid.setVgap(10);
 
+        // Loading butonlarını çizme kısmı aynı kalıyor...
         int initHour = 8;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 5; col++) {
@@ -122,14 +123,9 @@ public class ReservationController {
         new Thread(() -> {
             Database db = Database.getInstance();
             Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
-            boolean[] availabilities = new boolean[15];
             
-            int checkHour = 8;
-            for (int i = 0; i < 15; i++) {
-                String ts = String.format("%02d.00-%02d.00", checkHour, checkHour + 1);
-                availabilities[i] = db.checkFacilityAvailability(selectedFacilityName, selectedDate, ts, currentUser);
-                checkHour++;
-            }
+            // SİHİRLİ DOKUNUŞ BURADA: 15 sorgu yerine tek 1 sorgu atıyoruz!
+            java.util.Map<String, Boolean> dailyAvailabilities = db.getDailyAvailability(selectedFacilityName, selectedDate, currentUser);
 
             Platform.runLater(() -> {
                 if (updateId != currentGridUpdateId) return;
@@ -140,7 +136,9 @@ public class ReservationController {
                 for (int row = 0; row < 3; row++) {
                     for (int col = 0; col < 5; col++) {
                         String timeSlot = String.format("%02d.00-%02d.00", currentHour, currentHour + 1);
-                        boolean isAvailableFromDb = availabilities[(row * 5) + col];
+                        
+                        // Map'ten o saatin durumunu O(1) hızında çekiyoruz
+                        boolean isAvailableFromDb = dailyAvailabilities.getOrDefault(timeSlot, false);
                         
                         boolean isPast = false;
                         if (selectedDate.isBefore(LocalDate.now())) {
@@ -165,7 +163,7 @@ public class ReservationController {
                         } else {
                             slotBtn.getStyleClass().add("btn-danger"); 
                             slotBtn.setDisable(true);
-                            slotBtn.setTooltip(new Tooltip("This session is full or the facility is under maintenance."));
+                            slotBtn.setTooltip(new Tooltip("This session is full or you have another reservation."));
                         }
 
                         timeSlotGrid.add(slotBtn, col, row);
@@ -175,7 +173,7 @@ public class ReservationController {
             });
         }).start();
     }
-
+    
     private void attemptReservation(String timeSlot, Button clickedButton) {
         if (isProcessing) return;
 

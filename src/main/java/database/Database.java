@@ -2099,13 +2099,14 @@ public class Database {
         return reservationsList;
     }
 
- /**
+    /**
      * Fetches the accepted friends of a student based on their email
      * and populates the 'friends' list inside the provided Student object.
+     * Includes profile picture from the 'users' table and last seen data from the 'students' table.
      * @param currentStudent The Student object to be populated with friends
      * @return The updated Student object containing their friends list
      */
-    public Student fillFriendsByEmail(Student currentStudent) {
+    public models.Student fillFriendsByEmail(models.Student currentStudent) {
         
         if (currentStudent == null) {
             return null;
@@ -2114,10 +2115,9 @@ public class Database {
         String email = currentStudent.getBilkentEmail();
         java.util.List<models.Student> friendsList = new java.util.ArrayList<>();
 
-        // u alias'ları friend olarak değiştirildi.
-        // user_id_1 ve user_id_2 kolonları requester_id ve receiver_id olarak güncellendi.
-        String sql = "SELECT friend.full_name, friend.bilkent_email, friend.student_id AS uni_id, " +
-                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+        // friend.profile_pic_url (users tablosu) ve s.last_seen (students tablosu) olarak ayrıldı
+        String sql = "SELECT friend.full_name, friend.bilkent_email, friend.student_id AS uni_id, friend.profile_pic_url, " +
+                     "s.last_seen, s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
                      "FROM friendships f " +
                      "INNER JOIN users me ON (me.id = f.requester_id OR me.id = f.receiver_id) " +
                      "INNER JOIN users friend ON (friend.id = f.requester_id OR friend.id = f.receiver_id) " +
@@ -2126,14 +2126,28 @@ public class Database {
                      "  AND friend.id != me.id " +
                      "  AND f.status = 'Accepted'";
 
-        try (PreparedStatement stmt = getConnection().prepareStatement(sql)) {
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql)) {
             
             stmt.setString(1, email);
 
-            try (ResultSet rs = stmt.executeQuery()) {
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
-                    models.Student friend = new Student(rs.getString("full_name"), rs.getString("bilkent_email"), rs.getString("uni_id"));
+                    models.Student friend = new models.Student(
+                        rs.getString("full_name"), 
+                        rs.getString("bilkent_email"), 
+                        rs.getString("uni_id")
+                    );
                     
+                    // --- users tablosundan gelen veri ---
+                    friend.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                    
+                    // --- students tablosundan gelen veriler ---
+                    java.sql.Timestamp lastSeenTs = rs.getTimestamp("last_seen");
+                    if (lastSeenTs != null) {
+                        // timestamptz verisini Java'nın modern LocalDateTime formatına çeviriyoruz
+                        friend.setLastSeen(lastSeenTs.toLocalDateTime()); 
+                    }
+
                     friend.setEloPoint(rs.getInt("elo_point"));
                     friend.setPenaltyPoints(rs.getInt("penalty_points"));
                     friend.setReliabilityScore(rs.getDouble("reliability_score"));
@@ -2149,13 +2163,13 @@ public class Database {
             
             currentStudent.setFriends(friendsList);
 
-        } catch (SQLException e) {
+        } catch (java.sql.SQLException e) {
             e.printStackTrace();
         }
 
         return currentStudent;
     }
-
+    
 /**
      * Fetches the incoming friend requests (Pending) for a student based on their email
      * and populates the 'incomingFriendRequests' list inside the provided Student object.
@@ -5385,5 +5399,99 @@ public class Database {
 
         // Kazanan yoksa (beraberlik veya henüz bitmemişse) ya da hata varsa null döner
         return null;
+    }
+
+    /**
+     * Retrieves the daily availability of a specific facility for a given date, taking into account the facility's maintenance status, capacity, existing reservations, and the current student's schedule to prevent double bookings.
+     * @param facilityName The name of the facility for which to check availability
+     * @param date The specific date for which to check the facility's availability
+     * @param currentStudent The Student object representing the current user, used to check for potential double bookings in their schedule
+     * @return A Map where the keys are time slots (e.g., "08.00-09.00") and the values are Booleans indicating whether the facility is available (true) or not (false) for that time slot on the given date.
+     */
+    public java.util.Map<String, Boolean> getDailyAvailability(String facilityName, java.time.LocalDate date, models.Student currentStudent) {
+        java.util.Map<String, Boolean> dailyAvailability = new java.util.HashMap<>();
+        
+        // 1. Önce tüm saatleri varsayılan olarak "Uygun (TRUE)" yapalım
+        int hour = 8;
+        for (int i = 0; i < 15; i++) {
+            dailyAvailability.put(String.format("%02d.00-%02d.00", hour, hour + 1), true);
+            hour++;
+        }
+
+        if (currentStudent == null || facilityName == null) return dailyAvailability;
+
+        java.sql.Connection conn = null;
+        try {
+            conn = getConnection();
+            java.sql.Date sqlDate = java.sql.Date.valueOf(date);
+
+            // 1. TESİS BİLGİSİNİ AL (Bakımda mı ve Kapasitesi ne kadar?)
+            String facSql = "SELECT facility_id, capacity, is_under_maintenance FROM facilities WHERE name = ?";
+            String facilityId = null;
+            int capacity = 0;
+            
+            try (java.sql.PreparedStatement facStmt = conn.prepareStatement(facSql)) {
+                facStmt.setString(1, facilityName);
+                try (java.sql.ResultSet rs = facStmt.executeQuery()) {
+                    if (rs.next()) {
+                        if (rs.getBoolean("is_under_maintenance")) {
+                            // Bakımdaysa tüm saatleri FALSE yap ve hemen çık!
+                            dailyAvailability.replaceAll((k, v) -> false);
+                            return dailyAvailability;
+                        }
+                        facilityId = rs.getString("facility_id");
+                        capacity = rs.getInt("capacity");
+                    } else {
+                        // Tesis bulunamadı
+                        dailyAvailability.replaceAll((k, v) -> false);
+                        return dailyAvailability;
+                    }
+                }
+            }
+
+            // 2. TESİSİN O GÜNKÜ DOLULUK ORANLARINI BUL
+            String countSql = "SELECT time_slot, COUNT(*) as active_res " +
+                              "FROM reservations " +
+                              "WHERE facility_id = ? AND reservation_date = ? AND is_cancelled = FALSE " +
+                              "GROUP BY time_slot";
+                              
+            try (java.sql.PreparedStatement countStmt = conn.prepareStatement(countSql)) {
+                countStmt.setObject(1, java.util.UUID.fromString(facilityId));
+                countStmt.setDate(2, sqlDate);
+                try (java.sql.ResultSet rs = countStmt.executeQuery()) {
+                    while (rs.next()) {
+                        String slot = rs.getString("time_slot");
+                        int activeRes = rs.getInt("active_res");
+                        // Eğer o saatteki aktif rezervasyon sayısı kapasiteye eşit veya büyükse o saati FALSE yap
+                        if (activeRes >= capacity) {
+                            dailyAvailability.put(slot, false);
+                        }
+                    }
+                }
+            }
+
+            // 3. ÖĞRENCİNİN O GÜNKÜ ÇİFTE RANDEVULARINI (DOUBLE BOOKING) BUL
+            String busySql = "SELECT r.time_slot " +
+                             "FROM reservations r " +
+                             "INNER JOIN reservation_attendees ra ON r.reservation_id = ra.reservation_id " +
+                             "INNER JOIN users u ON ra.student_id = u.id " +
+                             "WHERE u.bilkent_email = ? AND r.reservation_date = ? AND r.is_cancelled = FALSE";
+                             
+            try (java.sql.PreparedStatement busyStmt = conn.prepareStatement(busySql)) {
+                busyStmt.setString(1, currentStudent.getBilkentEmail());
+                busyStmt.setDate(2, sqlDate);
+                try (java.sql.ResultSet rs = busyStmt.executeQuery()) {
+                    while (rs.next()) {
+                        // Öğrencinin o saatte zaten işi var, saati FALSE yap
+                        dailyAvailability.put(rs.getString("time_slot"), false);
+                    }
+                }
+            }
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+
+        return dailyAvailability;
     }
 }

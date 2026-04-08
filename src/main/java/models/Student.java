@@ -2,6 +2,7 @@ package models;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 public class Student extends User {
     public static final int MAX_PENALTY_LIMIT = 3;
@@ -22,6 +23,7 @@ public class Student extends User {
     private boolean isEloMatchingEnabled;
     private boolean isBanned;
     private List<Match> matchHistory;
+    private LocalDateTime lastSeen; // students tablosundaki son görülme zamanı
     
     // Arkadaşlık sistemi listeleri
     private List<Student> friends; // Kabul edilmiş arkadaşlar
@@ -86,6 +88,8 @@ public class Student extends User {
     public void setEloMatchingEnabled(boolean isEloMatchingEnabled) { this.isEloMatchingEnabled = isEloMatchingEnabled; }
     public boolean isBanned() { return isBanned; }
     public void setBanned(boolean isBanned) { this.isBanned = isBanned; }
+    public LocalDateTime getLastSeen() { return lastSeen; }
+    public void setLastSeen(LocalDateTime lastSeen) { this.lastSeen = lastSeen; }
     
     public boolean isCanAttend() { 
         return this.penaltyPoints < MAX_PENALTY_LIMIT && this.reliabilityScore >= MIN_RELIABILITY_SCORE && !this.isBanned; 
