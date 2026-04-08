@@ -22,7 +22,7 @@
             <Label styleClass="content-subtitle" text="Manage the tournaments in the system, create fixtures, and determine the results." />
          </VBox>
          <Region HBox.hgrow="ALWAYS" />
-         <Button onAction="#handleCreateTournament" prefHeight="40" prefWidth="180" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="+ Create New Tournament" />
+         <Button onAction="#handleCreateTournament" prefHeight="40" prefWidth="200" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="+ Create New Tournament" />
       </HBox>
 
       <Separator prefWidth="200.0">
@@ -45,7 +45,7 @@
          <VBox.margin>
             <Insets top="20.0" />
          </VBox.margin>
-         <Button onAction="#handleBulkDelete" prefHeight="45.0" prefWidth="180.0" style="-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand;" text="Seçili Turnuvaları Sil" />
+         <Button onAction="#handleBulkDelete" prefHeight="45.0" prefWidth="220.0" style="-fx-background-color: #D93025; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 12; -fx-cursor: hand;" text="Delete Selected Tournaments" />
       </HBox>
    </VBox>
 </VBox>
