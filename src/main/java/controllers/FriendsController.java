@@ -1,16 +1,20 @@
 package controllers;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.function.Predicate;
 
 import database.Database;
 import database.DbStatus;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
@@ -19,7 +23,11 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
+import javafx.scene.shape.Circle;
 import javafx.stage.StageStyle;
 import managers.SessionManager;
 import models.Student;
@@ -29,9 +37,11 @@ public class FriendsController {
     @FXML private TextField searchField;
     
     @FXML private TableView<Student> friendsTable;
+    @FXML private TableColumn<Student, Student> colFriendPic;
     @FXML private TableColumn<Student, String> colFriendName;
     @FXML private TableColumn<Student, String> colFriendStatus;
     @FXML private TableColumn<Student, String> colFriendELO;
+    @FXML private TableColumn<Student, String> colFriendLastSeen;
     @FXML private TableColumn<Student, Void> colFriendActions;
 
     @FXML private TableView<Student> incomingTable;
@@ -56,6 +66,7 @@ public class FriendsController {
         setupColumns(colIncomingName, colIncomingStatus, colIncomingELO);
         setupColumns(colOutgoingName, colOutgoingStatus, colOutgoingELO);
         
+        setupSpecificFriendColumns();
         setupActionColumns();
         setupSearchFilter();
         loadAllData();
@@ -65,6 +76,65 @@ public class FriendsController {
         name.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getFullName()));
         status.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getReliabilityScore() + "%"));
         elo.setCellValueFactory(data -> new SimpleStringProperty(String.valueOf(data.getValue().getEloPoint())));
+    }
+
+    private void setupSpecificFriendColumns() {
+        
+        colFriendLastSeen.setCellValueFactory(data -> {
+            LocalDateTime lastSeen = data.getValue().getLastSeen();
+            if (lastSeen == null) {
+                return new SimpleStringProperty("Offline / Hidden");
+            }
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
+            return new SimpleStringProperty(lastSeen.format(formatter));
+        });
+
+        
+        colFriendPic.setCellValueFactory(data -> new SimpleObjectProperty<>(data.getValue()));
+        colFriendPic.setCellFactory(param -> new TableCell<Student, Student>() {
+            private final Circle circle = new Circle(18); 
+            
+            @Override
+            protected void updateItem(Student student, boolean empty) {
+                super.updateItem(student, empty);
+                if (empty || student == null) {
+                    setGraphic(null);
+                } else {
+                    String url = student.getProfilePictureUrl();
+                    circle.setStroke(Color.web("#4318FF"));
+                    circle.setStrokeWidth(1.5);
+                    
+                    if (url != null && !url.trim().isEmpty()) {
+                        String noCacheUrl = url + (url.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
+                        
+                        Image image = new Image(noCacheUrl, true);
+                        
+                        
+                        circle.setFill(Color.web("#E2E8F0")); 
+                        
+                        
+                        image.progressProperty().addListener((obs, oldVal, newVal) -> {
+                            if (newVal.doubleValue() == 1.0 && !image.isError()) {
+                                Platform.runLater(() -> circle.setFill(new ImagePattern(image)));
+                            }
+                        });
+                        
+                        
+                        image.errorProperty().addListener((obs, oldVal, newVal) -> {
+                            if (newVal) {
+                                Platform.runLater(() -> circle.setFill(Color.web("#E2E8F0")));
+                            }
+                        });
+
+                    } else {
+                        circle.setFill(Color.web("#E2E8F0")); 
+                    }
+                    
+                    setGraphic(circle);
+                    setAlignment(Pos.CENTER);
+                }
+            }
+        });
     }
 
     private void setupActionColumns() {

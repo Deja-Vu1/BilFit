@@ -78,10 +78,10 @@ public class TournamentManager {
         return db.insertTeam(creator, tournament, teamName);
     }
 
-    // İŞTE GÜNCELLENEN KISIM BURASI: Senin yeni Database metoduna %100 uyumlu hale getirildi!
+    
     public DbStatus joinTeamWithCode(Student student, String code) {
         if (student == null || code == null) return DbStatus.QUERY_ERROR;
-        // Artık sadece Student ve Code nesnelerini senin yeni beTeamMember metoduna gönderiyor.
+        
         return db.beTeamMember(student, code);
     }
 

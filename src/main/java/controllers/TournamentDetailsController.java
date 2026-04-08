@@ -88,7 +88,7 @@ public class TournamentDetailsController {
                 List<Team> dbTeams = tournamentManager.getTournamentTeams(tournament.getTournamentId());
                 if (dbTeams != null) tournament.setParticipatingTeams(dbTeams);
                 
-                // ESKİ HATALI KOD SİLİNDİ. VERİTABANINDAN EN GÜNCEL MAÇLARI VE ŞAMPİYONU DİREKT ÇEKİYORUZ.
+                
                 List<Match> freshMatches = Database.getInstance().getAllTournamentMatches(tournament.getTournamentId());
                 Team champion = Database.getInstance().getWinnerTeamTournament(tournament.getTournamentId());
                 System.out.println("Fetched " + (freshMatches != null ? freshMatches.size() : 0) + " matches from DB for tournament " + tournament.getTournamentName());
@@ -144,7 +144,7 @@ public class TournamentDetailsController {
         }
         champion = Database.getInstance().getWinnerTeamTournament(tournament.getTournamentId());
 
-        // 1. ŞAMPİYONU (WINNER) KONTROL ET VE EN ÜSTE YAZDIR
+        
         if (champion != null) {
             Label champLabel = new Label("🏆 CHAMPION: " + champion.getTeamName() + " 🏆");
             champLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #FF9120; -fx-background-color: #FFF4E5; -fx-padding: 10; -fx-background-radius: 10; -fx-alignment: center;");
@@ -154,7 +154,7 @@ public class TournamentDetailsController {
             matchesVBox.getChildren().add(champLabel);
         }
 
-        // 2. MAÇLARI TUR (STAGE) NUMARASINA GÖRE SIRALA
+        
         try {
             matches.sort(Comparator.comparingInt(Match::getCurrentStage));
         } catch (Exception ignored) {}
@@ -163,7 +163,7 @@ public class TournamentDetailsController {
 
         for (Match match : matches) {
             
-            // YENİ ROUND BAŞLIĞINI EKLE
+            
             if (match.getCurrentStage() != currentRoundNum) {
                 currentRoundNum = match.getCurrentStage();
                 Label roundLabel = new Label("--- ROUND " + currentRoundNum + " ---");
@@ -174,7 +174,7 @@ public class TournamentDetailsController {
             Team t1 = match.getTeam1();
             Team t2 = match.getTeam2();
 
-            // BAY GEÇEN TAKIMI DÜZENLE
+            
             if (t2 == null || t1.getTeamId().equals(t2.getTeamId())) {
                 Label byeLabel = new Label("⭐ Auto Advance (BYE) Round " + currentRoundNum + ": " + t1.getTeamName());
                 byeLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #1E8E3E; -fx-background-color: #E6F4EA; -fx-padding: 10; -fx-background-radius: 8;");
@@ -215,7 +215,7 @@ public class TournamentDetailsController {
             statusLabel.setFont(Font.font("System", FontWeight.BOLD, 13));
             statusBox.getChildren().add(statusLabel);
 
-            // KAZANANI VE KAYBEDENİ KESİN OLARAK RENKLENDİR
+            
             if (match.getWinner() != null) {
                 String winnerId = match.getWinner().getTeamId();
                 if (winnerId.equals(t1.getTeamId())) {

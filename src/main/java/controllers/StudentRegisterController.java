@@ -49,7 +49,7 @@ public class StudentRegisterController {
             return;
         }
 
-        // DB'nin reddetmesini engellemek için ID kuralı eklendi (Sadece sayılar ve tam 8 hane)
+        
         if (!studentId.matches("\\d+") || studentId.length() < 7 || studentId.length() > 9) {
             showAlert(Alert.AlertType.WARNING, "Invalid ID", "Your student number must consist only of digits and be of valid length (Ex: 22200000).");
             return;

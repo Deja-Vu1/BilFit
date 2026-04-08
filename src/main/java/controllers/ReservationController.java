@@ -106,7 +106,7 @@ public class ReservationController {
         timeSlotGrid.setHgap(10);
         timeSlotGrid.setVgap(10);
 
-        // Loading butonlarını çizme kısmı aynı kalıyor...
+        
         int initHour = 8;
         for (int row = 0; row < 3; row++) {
             for (int col = 0; col < 5; col++) {
@@ -124,7 +124,7 @@ public class ReservationController {
             Database db = Database.getInstance();
             Student currentUser = (Student) SessionManager.getInstance().getCurrentUser();
             
-            // SİHİRLİ DOKUNUŞ BURADA: 15 sorgu yerine tek 1 sorgu atıyoruz!
+            
             java.util.Map<String, Boolean> dailyAvailabilities = db.getDailyAvailability(selectedFacilityName, selectedDate, currentUser);
 
             Platform.runLater(() -> {
@@ -137,7 +137,7 @@ public class ReservationController {
                     for (int col = 0; col < 5; col++) {
                         String timeSlot = String.format("%02d.00-%02d.00", currentHour, currentHour + 1);
                         
-                        // Map'ten o saatin durumunu O(1) hızında çekiyoruz
+                        
                         boolean isAvailableFromDb = dailyAvailabilities.getOrDefault(timeSlot, false);
                         
                         boolean isPast = false;
@@ -251,7 +251,7 @@ public class ReservationController {
             try {
                 ArrayList<Reservation> dbList = resManager.getUserReservations(currentUser);
                 
-                // YENİ MANTIK: İptal edilenleri VE süresi dolmuş (deadline'ı geçmiş) rezervasyonları anında listeden uçur!
+                
                 dbList.removeIf(r -> {
                     if (r.isCancelled()) return true;
                     
@@ -259,16 +259,16 @@ public class ReservationController {
                         return true; 
                     } else if (r.getDate().isEqual(LocalDate.now())) {
                         try {
-                            // "13.00-14.00" stringinden bitiş saatini (14) çekiyoruz
+                            
                             String endTimeStr = r.getTimeSlot().split("-")[1];
                             int endHour = Integer.parseInt(endTimeStr.split("\\.")[0]);
                             
-                            // Şu anki saat, rezervasyonun bitiş saatini geçmiş veya eşitse listeden uçur
+                            
                             if (LocalTime.now().getHour() >= endHour) {
                                 return true;
                             }
                         } catch (Exception e) {
-                            // Hata durumunda silmeyi pas geç
+                            
                         }
                     }
                     return false;

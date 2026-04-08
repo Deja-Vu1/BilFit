@@ -12,6 +12,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.HBox;
@@ -112,7 +113,7 @@ public class AdminReservationController {
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         if (res.isHasAttended()) {
-            Label attendedLabel = new Label("Attended");
+            Label attendedLabel = new Label("Attended / Concluded");
             attendedLabel.setStyle("-fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-color: #E6F4EA; -fx-padding: 8 15 8 15; -fx-background-radius: 8;");
             card.getChildren().addAll(infoBox, spacer, attendedLabel);
         } else if (res.isCancelled()) {
@@ -120,6 +121,17 @@ public class AdminReservationController {
             cancelledLabel.setStyle("-fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-color: #FCE8E8; -fx-padding: 8 15 8 15; -fx-background-radius: 8;");
             card.getChildren().addAll(infoBox, spacer, cancelledLabel);
         } else {
+            
+            
+            Button creatorWinBtn = new Button("Creator Won");
+            creatorWinBtn.setStyle("-fx-background-color: #EBF8FF; -fx-text-fill: #2B6CB0; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;");
+            creatorWinBtn.setOnAction(e -> handleCreatorWin(res));
+
+            Button requesterWinBtn = new Button("Requester Won");
+            requesterWinBtn.setStyle("-fx-background-color: #FAF5FF; -fx-text-fill: #6B46C1; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;");
+            requesterWinBtn.setOnAction(e -> handleRequesterWin(res));
+
+            
             Button attendBtn = new Button("Mark Attended");
             attendBtn.setStyle("-fx-background-color: #E6F4EA; -fx-text-fill: #1E8E3E; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;");
             attendBtn.setOnAction(e -> handleMarkAttended(res));
@@ -128,10 +140,52 @@ public class AdminReservationController {
             noShowBtn.setStyle("-fx-background-color: #FCE8E8; -fx-text-fill: #D93025; -fx-font-weight: bold; -fx-background-radius: 8; -fx-cursor: hand;");
             noShowBtn.setOnAction(e -> handleNoShowPenalty(res));
 
-            card.getChildren().addAll(infoBox, spacer, attendBtn, noShowBtn);
+            card.getChildren().addAll(infoBox, spacer, creatorWinBtn, requesterWinBtn, attendBtn, noShowBtn);
         }
 
         return card;
+    }
+
+    private void handleCreatorWin(Reservation res) {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        new Thread(() -> {
+            DbStatus status = db.setCreatorAsWinner(res.getReservationId());
+            Platform.runLater(() -> {
+                isProcessing = false;
+                if (status == DbStatus.SUCCESS) {
+                    showCustomAlert("Success", "The Creator has been marked as the winner of this Duello.");
+                    db.updateReservationAttendance(res.getReservationId(), true); 
+                    loadReservations();
+                } else if (status == DbStatus.DATA_NOT_FOUND) {
+                    showCustomAlert("Information", "This reservation is not a Duello.");
+                } else {
+                    showCustomAlert("Error", "Could not update the winner status.");
+                }
+            });
+        }).start();
+    }
+
+    private void handleRequesterWin(Reservation res) {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        new Thread(() -> {
+            DbStatus status = db.setRequesterAsWinner(res.getReservationId());
+            Platform.runLater(() -> {
+                isProcessing = false;
+                if (status == DbStatus.SUCCESS) {
+                    showCustomAlert("Success", "The Requester has been marked as the winner of this Duello.");
+                    db.updateReservationAttendance(res.getReservationId(), true); 
+                    loadReservations();
+                } else if (status == DbStatus.DATA_NOT_FOUND) {
+                    showCustomAlert("Information", "This reservation is not a Duello.");
+                } else {
+                    showCustomAlert("Error", "Could not update the winner status.");
+                }
+            });
+        }).start();
     }
 
     private void handleMarkAttended(Reservation res) {
@@ -160,7 +214,6 @@ public class AdminReservationController {
             Student targetStudent = res.getOrganizer();
             
             if (targetStudent != null) {
-
                 adminManager.givePenaltyPoint(currentAdmin, targetStudent, 20);
             }
             
@@ -170,7 +223,6 @@ public class AdminReservationController {
             Platform.runLater(() -> {
                 isProcessing = false;
                 loadReservations();
-
                 showCustomAlert("Penalty Issued", "Student received 20 penalty points for no-show.");
             });
         }).start();

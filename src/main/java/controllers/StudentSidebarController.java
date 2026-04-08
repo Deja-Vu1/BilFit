@@ -50,7 +50,7 @@ public class StudentSidebarController {
                 if (currentUser.getProfilePictureUrl() != null && !currentUser.getProfilePictureUrl().isEmpty()) {
                     String picUrl = currentUser.getProfilePictureUrl();
                     String noCacheUrl = picUrl + (picUrl.contains("?") ? "&" : "?") + "t=" + System.currentTimeMillis();
-                    downloadedImg = new Image(noCacheUrl, false); // Download in background without freezing
+                    downloadedImg = new Image(noCacheUrl, false); 
                 }
 
                 final Image finalImg = downloadedImg;

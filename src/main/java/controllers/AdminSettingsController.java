@@ -32,12 +32,12 @@ public class AdminSettingsController {
 
     @FXML private TextField studentEmailField;
     
-    // PENALTY BİLEŞENLERİ
+   
     @FXML private TextField penaltyPointsField;
     @FXML private Button addPenaltyBtn;
     @FXML private Button reducePenaltyBtn;
 
-    // RELIABILITY BİLEŞENLERİ
+    
     @FXML private TextField reliabilityPointsField;
     @FXML private Button addReliabilityBtn;
     @FXML private Button reduceReliabilityBtn;
@@ -58,7 +58,7 @@ public class AdminSettingsController {
         }
     }
 
-    // --- RELIABILITY (GÜVENİLİRLİK) İŞLEMLERİ (DOUBLE MANTIĞI) ---
+    
     @FXML
     public void handleAddReliability(ActionEvent event) {
         processReliabilityModification(true, addReliabilityBtn, "Add Reliability");
@@ -82,7 +82,7 @@ public class AdminSettingsController {
 
         double pointsToModify = 0.0;
         try {
-            // RELIABILITY SCORE double olduğu için double parse ediyoruz
+            
             pointsToModify = Double.parseDouble(pointsStr.trim());
             if (pointsToModify <= 0) {
                 showCustomAlert("Error", "Reliability points must be a positive number.");
@@ -115,7 +115,7 @@ public class AdminSettingsController {
             double currentPoints = targetStudent.getReliabilityScore(); 
             double newPoints = isAddition ? (currentPoints + finalPointsToModify) : (currentPoints - finalPointsToModify);
 
-            // SINIR KONTROLÜ: Puan 0'ın altına inemez, 100'ün üstüne çıkamaz.
+            
             newPoints = Math.max(0.0, Math.min(100.0, newPoints));
 
             Admin currentAdmin = (Admin) SessionManager.getInstance().getCurrentUser();
@@ -139,7 +139,7 @@ public class AdminSettingsController {
         }).start();
     }
 
-    // --- PENALTY İŞLEMLERİ (DEĞİŞTİRİLMEDİ) ---
+    
     @FXML
     public void handleAddPenalty(ActionEvent event) {
         processPenaltyModification(true, addPenaltyBtn, "Add Penalty");
@@ -249,7 +249,7 @@ public class AdminSettingsController {
         }).start();
     }
 
-    // --- BAN VE UNBAN İŞLEMLERİ (DEĞİŞTİRİLMEDİ) ---
+    
     @FXML
     public void handleUnbanStudent(ActionEvent event) {
         if (isProcessing) return;
@@ -342,7 +342,7 @@ public class AdminSettingsController {
         }).start();
     }
 
-    // --- KİŞİSEL AYARLAR İŞLEMLERİ (DEĞİŞTİRİLMEDİ) ---
+    
     @FXML
     public void handleChangeName(ActionEvent event) {
         if (isProcessing) return;

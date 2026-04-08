@@ -36,10 +36,12 @@
                <content>
                   <TableView fx:id="friendsTable" stylesheets="@bilfit-exact.css">
                     <columns>
-                      <TableColumn fx:id="colFriendName" prefWidth="250.0" text="Name" />
-                      <TableColumn fx:id="colFriendStatus" prefWidth="150.0" text="Reliability Score" />
-                        <TableColumn fx:id="colFriendELO" prefWidth="120.0" text="ELO Rating" />
-                        <TableColumn fx:id="colFriendActions" prefWidth="150.0" />
+                      <TableColumn fx:id="colFriendPic" prefWidth="70.0" text="Profile" />
+                      <TableColumn fx:id="colFriendName" prefWidth="200.0" text="Name" />
+                      <TableColumn fx:id="colFriendStatus" prefWidth="120.0" text="Reliability Score" />
+                        <TableColumn fx:id="colFriendELO" prefWidth="90.0" text="ELO Rating" />
+                        <TableColumn fx:id="colFriendLastSeen" prefWidth="140.0" text="Last Seen" />
+                        <TableColumn fx:id="colFriendActions" prefWidth="120.0" />
                     </columns>
                      <columnResizePolicy>
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
