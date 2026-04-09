@@ -5495,4 +5495,124 @@ public class Database {
 
         return dailyAvailability;
     }
+
+    /**
+     * Calculates and updates the ELO points for both the creator and the requester of a duello reservation based on the match outcome.
+     * Uses the standard ELO formula with a K-factor of 32 to determine how much each player's ELO should change after the match.
+     * Ensures that ELO points do not drop below zero and handles cases where the match outcome is not yet determined (e.g., draw or unfinished).
+     * @param duelloId The UUID of the duello reservation for which to calculate and update ELO points
+     * @return DbStatus indicating SUCCESS if ELO points were successfully updated, DATA_NOT_FOUND if the duello was not found, or QUERY_ERROR in case of errors or if the match outcome is not determined.
+     */
+    public DbStatus addEloPointDuello(String duelloId) {
+        
+        if (duelloId == null || duelloId.trim().isEmpty()) {
+            return DbStatus.QUERY_ERROR;
+        }
+
+        // 1. Kurucunun (creator) ve Rakibin (requester) ELO puanlarını ve ID'lerini çeken SQL
+        String getPlayersSql = "SELECT d.is_creator_win, " +
+                               "r.reserved_by AS creator_user_id, " +
+                               "creator_s.elo_point AS creator_elo, " +
+                               "(SELECT student_id FROM reservation_attendees ra WHERE ra.reservation_id = d.reservation_id AND ra.student_id != r.reserved_by LIMIT 1) AS requester_user_id, " +
+                               "(SELECT s.elo_point FROM students s INNER JOIN reservation_attendees ra ON s.user_id = ra.student_id WHERE ra.reservation_id = d.reservation_id AND ra.student_id != r.reserved_by LIMIT 1) AS requester_elo " +
+                               "FROM duellos d " +
+                               "INNER JOIN reservations r ON d.reservation_id = r.reservation_id " +
+                               "INNER JOIN students creator_s ON r.reserved_by = creator_s.user_id " +
+                               "WHERE d.reservation_id = ?";
+
+        // 2. Yeni ELO puanlarını öğrencilerin tablosuna yazacak SQL
+        String updateEloSql = "UPDATE students SET elo_point = ? WHERE user_id = ?";
+
+        java.sql.Connection conn = null;
+
+        try {
+            conn = getConnection();
+            conn.setAutoCommit(false); // İşlemi güvene al (Transaction)
+
+            java.util.UUID resUuid;
+            try {
+                resUuid = java.util.UUID.fromString(duelloId);
+            } catch (IllegalArgumentException e) {
+                System.err.println("Geçersiz UUID formatı (Duello ID): " + duelloId);
+                return DbStatus.QUERY_ERROR;
+            }
+
+            Boolean isCreatorWin = null;
+            String creatorUserId = null, requesterUserId = null;
+            int creatorElo = 0, requesterElo = 0;
+
+            // --- 1. AŞAMA: OYUNCULARIN MEVCUT ELO PUANLARINI AL ---
+            try (java.sql.PreparedStatement getStmt = conn.prepareStatement(getPlayersSql)) {
+                getStmt.setObject(1, resUuid);
+                try (java.sql.ResultSet rs = getStmt.executeQuery()) {
+                    if (rs.next()) {
+                        isCreatorWin = (Boolean) rs.getObject("is_creator_win"); // null olabilir (beraberlik/bitmemiş)
+                        creatorUserId = rs.getString("creator_user_id");
+                        creatorElo = rs.getInt("creator_elo");
+                        requesterUserId = rs.getString("requester_user_id");
+                        requesterElo = rs.getInt("requester_elo");
+                    } else {
+                        return DbStatus.DATA_NOT_FOUND; // Düello bulunamadı
+                    }
+                }
+            }
+
+            // Kazanan belli değilse veya rakip yoksa ELO güncellenemez
+            if (isCreatorWin == null || creatorUserId == null || requesterUserId == null) {
+                conn.rollback();
+                return DbStatus.QUERY_ERROR; 
+            }
+
+            // --- 2. AŞAMA: SATRANÇ ELO HESAPLAMASI (K-Factor = 32) ---
+            int K = 32; // Gelişimi belirleyen katsayı (Genellikle 32 kullanılır)
+            
+            // Kazanma Beklentisi Hesaplaması (Expected Score) - Standart Satranç Formülü
+            double expectedCreator = 1.0 / (1.0 + Math.pow(10, (requesterElo - creatorElo) / 400.0));
+            double expectedRequester = 1.0 / (1.0 + Math.pow(10, (creatorElo - requesterElo) / 400.0));
+
+            // Gerçek Sonuçlar (1 = Kazandı, 0 = Kaybetti)
+            double actualCreator = isCreatorWin ? 1.0 : 0.0;
+            double actualRequester = isCreatorWin ? 0.0 : 1.0;
+
+            // Yeni ELO'ların Hesaplanması (Mevcut ELO + K * (Gerçek Sonuç - Beklenen Sonuç))
+            int newCreatorElo = (int) Math.round(creatorElo + K * (actualCreator - expectedCreator));
+            int newRequesterElo = (int) Math.round(requesterElo + K * (actualRequester - expectedRequester));
+
+            // ELO puanlarının 0'ın altına düşmesini engelle (İsteğe bağlı güvenlik)
+            if (newCreatorElo < 0) newCreatorElo = 0;
+            if (newRequesterElo < 0) newRequesterElo = 0;
+
+            // --- 3. AŞAMA: YENİ PUANLARI VERİTABANINA KAYDET ---
+            try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(updateEloSql)) {
+                
+                // Kurucuyu güncelle
+                updateStmt.setInt(1, newCreatorElo);
+                updateStmt.setObject(2, java.util.UUID.fromString(creatorUserId));
+                updateStmt.executeUpdate();
+
+                // Rakibi (Requester) güncelle
+                updateStmt.setInt(1, newRequesterElo);
+                updateStmt.setObject(2, java.util.UUID.fromString(requesterUserId));
+                updateStmt.executeUpdate();
+            }
+
+            // Her şey sorunsuzsa onayla
+            conn.commit();
+            return DbStatus.SUCCESS;
+
+        } catch (java.sql.SQLException e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (java.sql.SQLException ex) { ex.printStackTrace(); }
+            }
+            e.printStackTrace();
+            if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+                return DbStatus.CONNECTION_ERROR;
+            }
+            return DbStatus.QUERY_ERROR;
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); } catch (java.sql.SQLException ex) { ex.printStackTrace(); }
+            }
+        }
+    }
 }
