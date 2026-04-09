@@ -1,17 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
-<VBox spacing="30.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.HomeController">
+<VBox prefHeight="800.0" prefWidth="1200.0" spacing="20.0" style="-fx-background-color: #F4F7FE;" stylesheets="@bilfit-exact.css" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controllers.HomeController">
    <padding>
       <Insets bottom="40.0" left="40.0" right="40.0" top="40.0" />
    </padding>
    
+   <HBox alignment="CENTER_LEFT">
+      <Region HBox.hgrow="ALWAYS" />
+      <Button onAction="#handleShowLeaderboard" prefHeight="40.0" prefWidth="180.0" style="-fx-background-color: #4318FF; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-cursor: hand;" text="🏆 View Leaderboard" />
+   </HBox>
+
    <VBox styleClass="content-card" prefHeight="500.0" VBox.vgrow="ALWAYS">
       <children>
          <Label styleClass="content-title" text="Upcoming Tournaments" />
