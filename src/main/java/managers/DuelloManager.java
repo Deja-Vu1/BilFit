@@ -57,7 +57,7 @@ public class DuelloManager {
 
         DbStatus status = db.insertDuelloRequest(duello.getReservationId(), student.getBilkentEmail());
         if (status == DbStatus.SUCCESS) {
-            notifManager.sendToUser(creator, "New Duello Request", student.getNickname() + " wants to join your duello.");
+            notifManager.sendToUser(creator, "New Duello Request", student.getFullName() + " wants to join your duello.");
         }
         return status;
     }
