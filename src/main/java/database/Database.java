@@ -5615,4 +5615,65 @@ public class Database {
             }
         }
     }
+
+    /**
+     * Retrieves a list of students to be displayed on the leaderboard, ordered by their ELO points in descending order.
+     * Only includes students who have activated their accounts, have public profiles, and have enabled ELO matching.
+     * Each Student object in the returned list contains relevant information such as full name, email, university ID, profile picture URL, ELO points, penalty points, reliability score, matches played, win rate, and matches won (calculated from win rate).
+     * @return An ArrayList of Student objects representing the leaderboard standings.
+     */
+    public java.util.ArrayList<models.Student> getLeaderboard() {
+        
+        java.util.ArrayList<models.Student> leaderboard = new java.util.ArrayList<>();
+
+        // ELO puanına göre azalan (DESC - Descending) sırada veri çeken SQL sorgusu
+        String sql = "SELECT u.full_name, u.bilkent_email, u.student_id AS uni_id, u.profile_pic_url, " +
+                     "s.elo_point, s.penalty_points, s.reliability_score, s.matches_played, s.win_rate " +
+                     "FROM users u " +
+                     "INNER JOIN students s ON u.id = s.user_id " +
+                     "WHERE u.role = 'student' " +
+                     "  AND u.is_activated = TRUE " +
+                     "  AND s.is_public_profile = TRUE " +
+                     "  AND s.is_elo_matching_enabled = TRUE " +
+                     "ORDER BY s.elo_point DESC";
+
+        // Parametre gerektirmeyen bir sorgu olduğu için executeQuery()'yi try-with-resources içinde direkt çağırıyoruz
+        try (java.sql.PreparedStatement stmt = getConnection().prepareStatement(sql);
+             java.sql.ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                
+                // --- ÖĞRENCİ OBJESİNİN OLUŞTURULMASI ---
+                models.Student student = new models.Student(
+                    rs.getString("full_name"), 
+                    rs.getString("bilkent_email"), 
+                    rs.getString("uni_id")
+                );
+                
+                student.setProfilePictureUrl(rs.getString("profile_pic_url"));
+                student.setEloPoint(rs.getInt("elo_point"));
+                student.setPenaltyPoints(rs.getInt("penalty_points"));
+                student.setReliabilityScore(rs.getDouble("reliability_score"));
+                
+                int matchesPlayed = rs.getInt("matches_played");
+                double winRate = rs.getDouble("win_rate");
+                student.setMatchesPlayed(matchesPlayed);
+                student.setWinRate(winRate);
+                
+                // Kazanılan maç sayısını win_rate üzerinden geri hesapla
+                student.setMatchesWon((int) Math.round(matchesPlayed * winRate));
+                
+                // Zaten WHERE şartından geçtikleri için bunları direkt true set edebiliriz
+                student.setPublicProfile(true);
+                student.setEloMatchingEnabled(true);
+
+                leaderboard.add(student);
+            }
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+
+        return leaderboard;
+    }
 }
