@@ -89,7 +89,7 @@
       <VBox style="-fx-background-color: #E6F4EA; -fx-background-radius: 20;" HBox.hgrow="ALWAYS">
          <padding><Insets bottom="30" left="30" right="30" top="30" /></padding>
          <HBox alignment="TOP_RIGHT">
-            <Label styleClass="btn-success" text="Football" />
+            <Label styleClass="btn-success" text="General" />
          </HBox>
          <Region VBox.vgrow="ALWAYS" />
          <Label fx:id="eloPointLabel" text="0" textFill="#1E8E3E">

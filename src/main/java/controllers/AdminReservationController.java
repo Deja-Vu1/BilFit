@@ -152,9 +152,11 @@ public class AdminReservationController {
 
         new Thread(() -> {
             DbStatus status = db.setCreatorAsWinner(res.getReservationId());
+            
             Platform.runLater(() -> {
                 isProcessing = false;
                 if (status == DbStatus.SUCCESS) {
+                    db.addEloPointDuello(res.getReservationId());
                     showCustomAlert("Success", "The Creator has been marked as the winner of this Duello.");
                     db.updateReservationAttendance(res.getReservationId(), true); 
                     loadReservations();
@@ -176,6 +178,7 @@ public class AdminReservationController {
             Platform.runLater(() -> {
                 isProcessing = false;
                 if (status == DbStatus.SUCCESS) {
+                    db.addEloPointDuello(res.getReservationId());
                     showCustomAlert("Success", "The Requester has been marked as the winner of this Duello.");
                     db.updateReservationAttendance(res.getReservationId(), true); 
                     loadReservations();
