@@ -94,10 +94,10 @@ The dedicated developers behind the BilFit project:
 
 Snapshots of our collaborative work sessions:
 - 🧠 One of our brainstorming sessions at the library focusing on data models and backend logic.
-![image 2](docs/images/img_2.JPG)
+![image 2](docs/images/img_2.jpg)
 
 - 🌙 Late-night coding sprints and peer-to-peer code review sessions during the final implementation phase.
-![image 1](docs/images/img_1.JPG)
+![image 1](docs/images/img_1.jpg)
 
 - Bonus
 ![image 3](docs/images/img_3.JPG)
