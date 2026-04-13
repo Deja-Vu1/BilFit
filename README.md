@@ -19,6 +19,12 @@ Explore the modern and user-friendly interface of BilFit:
 ### User Interface
 * **Login Panel:** Dedicated secure login and registration portal for students.
 ![Project Screenshot](docs/images/img_ui_1.JPG)
+* **Home Dashboard:** Central hub displaying a quick overview of upcoming tournaments and real-time user notifications, such as duel matches.
+![Project Screenshot](docs/images/img_ui_13.png)
+* **Tournaments:** Comprehensive interface for viewing active tournaments, applying to events, managing your teams, and handling team join requests.
+![Project Screenshot](docs/images/img_ui_15.png)
+* **Reservations:** Interactive booking system to reserve sports facilities by selecting specific dates and available time slots, alongside managing current active bookings.
+![Project Screenshot](docs/images/img_ui_14.png)
 * **Friends Network:** Social tab for managing current friends, as well as incoming and outgoing requests.
 ![Project Screenshot](docs/images/img_ui_4.JPG)
 * **User Settings:** Area for updating passwords, changing nicknames, and toggling ELO/Public profile preferences.
